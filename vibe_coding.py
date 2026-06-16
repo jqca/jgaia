@@ -261,19 +261,6 @@ section+section{border-top:1px solid var(--border)}
 .corp-item h4{font-family:var(--font-d);font-size:14px;font-weight:700;color:#fff;margin-bottom:6px}
 .corp-item p{font-size:12px;color:var(--text-s);line-height:1.7}
 
-/* ── Instructor ── */
-.instructor-section{display:grid;grid-template-columns:1fr 1fr;gap:0;background:var(--ink-s);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:0}
-.instructor-photo-wrap{position:relative;overflow:hidden;min-height:500px}
-.instructor-photo-wrap img{width:100%;height:100%;object-fit:cover;object-position:center top;filter:grayscale(20%)}
-.instructor-photo-wrap::after{content:'';position:absolute;inset:0;background:linear-gradient(to right,transparent 70%,var(--ink-s) 100%)}
-.instructor-text{padding:80px;display:flex;flex-direction:column;justify-content:center}
-.instructor-text blockquote{font-family:var(--font-d);font-size:clamp(20px,2.2vw,28px);font-weight:700;color:#fff;line-height:1.4;letter-spacing:-.02em;margin-bottom:32px;border-left:2px solid var(--accent);padding-left:24px}
-.instructor-body{font-size:14px;font-weight:300;color:var(--text-s);line-height:1.9;margin-bottom:32px}
-.instructor-sig{display:flex;align-items:center;gap:20px;padding-top:28px;border-top:1px solid var(--border)}
-.instructor-sig-avatar{width:48px;height:48px;border-radius:50%;background:var(--ink-m);border:1px solid var(--border-l);overflow:hidden;flex-shrink:0}
-.instructor-sig-avatar img{width:100%;height:100%;object-fit:cover}
-.instructor-sig-name{font-family:var(--font-d);font-size:15px;font-weight:700;color:#fff}
-.instructor-sig-role{font-size:11.5px;color:var(--text-m);margin-top:2px}
 
 /* ── FAQ ── */
 .faq-item{border-bottom:1px solid var(--border);padding:20px 0}
@@ -333,7 +320,6 @@ section+section{border-top:1px solid var(--border)}
   .sec-header-2col,.corp-section{grid-template-columns:1fr;gap:32px}
   .problems-grid{grid-template-columns:repeat(2,1fr)}
   .courses-grid{grid-template-columns:1fr}
-  .instructor-section{grid-template-columns:1fr}
   .cta-section{grid-template-columns:1fr;padding:80px 40px}
   .footer{padding:64px 40px 32px}
   .footer-top{grid-template-columns:1fr 1fr;gap:32px}
@@ -349,8 +335,6 @@ section+section{border-top:1px solid var(--border)}
   .stat-item:nth-child(3){border-top:1px solid var(--border);border-right:1px solid var(--border)}
   .problems-grid,.steps-grid{grid-template-columns:1fr}
   .quiz-wrap{padding:32px 24px}
-  .instructor-photo-wrap{min-height:320px}
-  .instructor-text{padding:40px 24px}
   .cta-right{grid-template-columns:1fr}
   .footer-top{grid-template-columns:1fr}
   .mobile-cta{display:block}
@@ -575,21 +559,6 @@ section+section{border-top:1px solid var(--border)}
   </div>
 </section>
 
-<!-- Instructor -->
-<div class="instructor-section">
-  <div class="instructor-photo-wrap">
-    <img src="/static/img/representative.png" alt="高野秀隆" onerror="this.parentElement.style.background='var(--ink-m)'">
-  </div>
-  <div class="instructor-text">
-    <div class="sec-label">INSTRUCTOR</div>
-    <blockquote>「技術を事業に変える。<br>非エンジニアこそ、<br>AIの主役になれる。」</blockquote>
-    <p class="instructor-body">AI×量子コンピューティングの両分野で国家プロジェクト（SIP・NEDO）を推進。JQCA（日本量子コンピューティング協会）では会員1,030名・資格取得者450名の実績。<br><br>「技術を事業に変える」実践者として、非エンジニアでもAIを使いこなせる教育プログラムを設計。バイブコーディング講座では、受講者が3時間で実際に動くアプリを完成させることを重視しています。</p>
-    <div class="instructor-sig">
-      <div class="instructor-sig-avatar"><img src="/static/img/representative.png" alt="" onerror="this.style.display='none'"></div>
-      <div><div class="instructor-sig-name">高野 秀隆</div><div class="instructor-sig-role">一般社団法人 日本生成AI協会 代表理事</div></div>
-    </div>
-  </div>
-</div>
 
 <!-- FAQ -->
 <section>
