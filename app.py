@@ -19,6 +19,10 @@ from flask import Flask, send_file, render_template, request
 
 from vibe_coding import register_vibe_coding_routes
 
+SENDGRID_API_KEY = os.environ.get("SENDGRID_API_KEY", "")
+FROM_EMAIL = "info@jgaia.org"
+NOTIFY_EMAIL = "takano.hidetaka@gmail.com"
+
 app = Flask(__name__, static_folder="static", static_url_path="/static")
 
 register_vibe_coding_routes(app)
@@ -57,6 +61,52 @@ def join_us():
 @app.route("/contact", methods=["GET", "POST"])
 def contact():
     if request.method == "POST":
+        name = (request.form.get("name") or "").strip()
+        email = (request.form.get("email") or "").strip()
+        company = (request.form.get("company") or "").strip()
+        message = (request.form.get("message") or "").strip()
+
+        if name and email and SENDGRID_API_KEY:
+            try:
+                from sendgrid import SendGridAPIClient
+                from sendgrid.helpers.mail import Mail
+
+                body_lines = [
+                    f"氏名: {name}",
+                    f"メール: {email}",
+                    f"会社名: {company}" if company else None,
+                    f"お問い合わせ内容:\n{message}" if message else None,
+                ]
+                body_text = "\n".join(line for line in body_lines if line)
+
+                sg = SendGridAPIClient(SENDGRID_API_KEY)
+
+                sg.send(Mail(
+                    from_email=FROM_EMAIL,
+                    to_emails=NOTIFY_EMAIL,
+                    subject=f"【JGAIA】お問い合わせ: {name}様",
+                    plain_text_content=body_text,
+                ))
+
+                sg.send(Mail(
+                    from_email=FROM_EMAIL,
+                    to_emails=email,
+                    subject="【JGAIA】お問い合わせありがとうございます",
+                    plain_text_content=(
+                        f"{name} 様\n\n"
+                        "一般社団法人日本生成AI協会（JGAIA）へお問い合わせいただき"
+                        "ありがとうございます。\n\n"
+                        "内容を確認の上、担当者より2営業日以内にご連絡いたします。\n\n"
+                        "---\n"
+                        "一般社団法人日本生成AI協会（JGAIA）\n"
+                        "〒104-0061 東京都中央区銀座1-22-11 銀座大竹ビジデンス2階\n"
+                        "info@jgaia.org\n"
+                        "https://www.jgaia.org/"
+                    ),
+                ))
+            except Exception:
+                pass
+
         return render_template("contact.html", sent=True)
     return render_template("contact.html", sent=False)
 
