@@ -13,7 +13,7 @@
 import json
 import os
 
-from flask import Response, request
+from flask import render_template, request
 
 
 SENDGRID_API_KEY = os.environ.get("SENDGRID_API_KEY", "")
@@ -24,7 +24,7 @@ NOTIFY_EMAIL = "takano.hidetaka@gmail.com"
 def register_vibe_coding_routes(app):
     @app.route("/vibe-coding")
     def vibe_coding():
-        return Response(LP_HTML, mimetype="text/html")
+        return render_template("vibe_coding_lp.html")
 
     @app.route("/api/inquiry", methods=["POST"])
     def inquiry():
