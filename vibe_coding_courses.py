@@ -3,7 +3,7 @@ import os
 from flask import Response, request
 import json
 
-SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY", "")
+RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
 SENDER_EMAIL = os.getenv("SENDER_EMAIL", "info@jgaia.org")
 
 # ─────────────────────────────────────────
@@ -234,12 +234,11 @@ def register_vibe_coding_course_routes(app):
         course = data.get("course", "")
         message = data.get("message", "")
 
-        sg_key = os.environ.get("SENDGRID_API_KEY", SENDGRID_API_KEY)
-        if sg_key:
+        rk = os.environ.get("RESEND_API_KEY", RESEND_API_KEY)
+        if rk:
             try:
-                import sendgrid
-                from sendgrid.helpers.mail import Mail
-                sg = sendgrid.SendGridAPIClient(api_key=sg_key)
+                import resend
+                resend.api_key = rk
                 body = (
                     f"コース: {course}\n"
                     f"お名前: {name}\n"
@@ -248,15 +247,13 @@ def register_vibe_coding_course_routes(app):
                     f"電話: {phone}\n\n"
                     f"メッセージ:\n{message}"
                 )
-                mail = Mail(
-                    from_email=SENDER_EMAIL,
-                    to_emails="takano.hidetaka@gmail.com",
-                    subject=f"【JGAIA講座問い合わせ】{course} - {company or name}",
-                    plain_text_content=body,
-                )
-                sg.send(mail)
+                resend.Emails.send({
+                    "from": SENDER_EMAIL,
+                    "to": ["takano.hidetaka@gmail.com"],
+                    "subject": f"【JGAIA講座問い合わせ】{course} - {company or name}",
+                    "text": body,
+                })
 
-                # 自動返信
                 auto_body = (
                     f"{name} 様\n\n"
                     f"お問い合わせありがとうございます。\n"
@@ -265,13 +262,12 @@ def register_vibe_coding_course_routes(app):
                     f"担当者より2営業日以内にご連絡いたします。\n\n"
                     f"一般社団法人日本生成AI協会（JGAIA）"
                 )
-                auto_mail = Mail(
-                    from_email=SENDER_EMAIL,
-                    to_emails=email,
-                    subject="【JGAIA】お問い合わせありがとうございます",
-                    plain_text_content=auto_body,
-                )
-                sg.send(auto_mail)
+                resend.Emails.send({
+                    "from": SENDER_EMAIL,
+                    "to": [email],
+                    "subject": "【JGAIA】お問い合わせありがとうございます",
+                    "text": auto_body,
+                })
             except Exception:
                 pass
 

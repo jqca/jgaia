@@ -8,7 +8,7 @@
   + 法人カスタマイズ研修
 
 問い合わせAPI:
-  POST /api/inquiry — SendGrid経由でinfo@jgaia.orgへ通知＋自動返信
+  POST /api/inquiry — Resend経由でinfo@jgaia.orgへ通知＋自動返信
 """
 import json
 import os
@@ -16,7 +16,7 @@ import os
 from flask import render_template, request
 
 
-SENDGRID_API_KEY = os.environ.get("SENDGRID_API_KEY", "")
+RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 FROM_EMAIL = "info@jgaia.org"
 NOTIFY_EMAIL = "takano.hidetaka@gmail.com"
 
@@ -42,12 +42,12 @@ def register_vibe_coding_routes(app):
         if not name or not email:
             return {"error": "name and email are required"}, 400
 
-        if not SENDGRID_API_KEY:
-            return {"ok": True, "note": "SendGrid未設定のためメール送信をスキップしました"}
+        if not RESEND_API_KEY:
+            return {"ok": True, "note": "Resend未設定のためメール送信をスキップしました"}
 
         try:
-            from sendgrid import SendGridAPIClient
-            from sendgrid.helpers.mail import Mail
+            import resend
+            resend.api_key = RESEND_API_KEY
 
             body_lines = [
                 f"氏名: {name}",
@@ -58,21 +58,18 @@ def register_vibe_coding_routes(app):
             ]
             body_text = "\n".join(line for line in body_lines if line)
 
-            sg = SendGridAPIClient(SENDGRID_API_KEY)
+            resend.Emails.send({
+                "from": FROM_EMAIL,
+                "to": [NOTIFY_EMAIL],
+                "subject": f"【JGAIA講座】お問い合わせ: {name}様",
+                "text": body_text,
+            })
 
-            notify = Mail(
-                from_email=FROM_EMAIL,
-                to_emails=NOTIFY_EMAIL,
-                subject=f"【JGAIA講座】お問い合わせ: {name}様",
-                plain_text_content=body_text,
-            )
-            sg.send(notify)
-
-            reply = Mail(
-                from_email=FROM_EMAIL,
-                to_emails=email,
-                subject="【JGAIA】お問い合わせありがとうございます",
-                plain_text_content=(
+            resend.Emails.send({
+                "from": FROM_EMAIL,
+                "to": [email],
+                "subject": "【JGAIA】お問い合わせありがとうございます",
+                "text": (
                     f"{name} 様\n\n"
                     "一般社団法人日本生成AI協会（JGAIA）のバイブコーディング講座に"
                     "ご関心をお寄せいただきありがとうございます。\n\n"
@@ -83,8 +80,7 @@ def register_vibe_coding_routes(app):
                     "info@jgaia.org\n"
                     "https://www.jgaia.org/"
                 ),
-            )
-            sg.send(reply)
+            })
 
             return {"ok": True}
         except Exception as e:

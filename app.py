@@ -10,7 +10,7 @@
 - /contact             お問い合わせ
 - /tokutei             特定商取引法に基づく表記
 - /vibe-coding         バイブコーディング講座LP（1ページ完結）
-- /api/inquiry         問い合わせ受信（SendGrid）
+- /api/inquiry         問い合わせ受信（Resend）
 - /healthz             ヘルスチェック
 """
 import os
@@ -19,7 +19,7 @@ from flask import Flask, send_file, render_template, request
 
 from vibe_coding import register_vibe_coding_routes
 
-SENDGRID_API_KEY = os.environ.get("SENDGRID_API_KEY", "")
+RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 FROM_EMAIL = "info@jgaia.org"
 NOTIFY_EMAIL = "takano.hidetaka@gmail.com"
 
@@ -66,10 +66,10 @@ def contact():
         company = (request.form.get("company") or "").strip()
         message = (request.form.get("message") or "").strip()
 
-        if name and email and SENDGRID_API_KEY:
+        if name and email and RESEND_API_KEY:
             try:
-                from sendgrid import SendGridAPIClient
-                from sendgrid.helpers.mail import Mail
+                import resend
+                resend.api_key = RESEND_API_KEY
 
                 body_lines = [
                     f"氏名: {name}",
@@ -79,20 +79,18 @@ def contact():
                 ]
                 body_text = "\n".join(line for line in body_lines if line)
 
-                sg = SendGridAPIClient(SENDGRID_API_KEY)
+                resend.Emails.send({
+                    "from": FROM_EMAIL,
+                    "to": [NOTIFY_EMAIL],
+                    "subject": f"【JGAIA】お問い合わせ: {name}様",
+                    "text": body_text,
+                })
 
-                sg.send(Mail(
-                    from_email=FROM_EMAIL,
-                    to_emails=NOTIFY_EMAIL,
-                    subject=f"【JGAIA】お問い合わせ: {name}様",
-                    plain_text_content=body_text,
-                ))
-
-                sg.send(Mail(
-                    from_email=FROM_EMAIL,
-                    to_emails=email,
-                    subject="【JGAIA】お問い合わせありがとうございます",
-                    plain_text_content=(
+                resend.Emails.send({
+                    "from": FROM_EMAIL,
+                    "to": [email],
+                    "subject": "【JGAIA】お問い合わせありがとうございます",
+                    "text": (
                         f"{name} 様\n\n"
                         "一般社団法人日本生成AI協会（JGAIA）へお問い合わせいただき"
                         "ありがとうございます。\n\n"
@@ -103,7 +101,7 @@ def contact():
                         "info@jgaia.org\n"
                         "https://www.jgaia.org/"
                     ),
-                ))
+                })
             except Exception:
                 pass
 

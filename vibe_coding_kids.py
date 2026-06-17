@@ -1,10 +1,8 @@
 """JGAIA バイブコーディング講座 子ども向けコース（GK1/GK2/GK3）"""
 import os
 from flask import Response, request, jsonify
-import sendgrid
-from sendgrid.helpers.mail import Mail, Email, To, Content
 
-SENDGRID_API_KEY = os.getenv('SENDGRID_API_KEY', '')
+RESEND_API_KEY = os.getenv('RESEND_API_KEY', '')
 
 
 def register_vibe_coding_kids_routes(app):
@@ -25,13 +23,13 @@ def register_vibe_coding_kids_routes(app):
         if not all([parent_name, child_age, email, course]):
             return jsonify({'success': False, 'error': 'missing fields'})
 
-        if not SENDGRID_API_KEY:
+        if not RESEND_API_KEY:
             return jsonify({'success': True})
 
         try:
-            sg = sendgrid.SendGridAPIClient(api_key=SENDGRID_API_KEY)
+            import resend
+            resend.api_key = RESEND_API_KEY
 
-            # 運営宛て通知
             admin_body = f"""【JGAIA キッズ講座 お問い合わせ】
 
 保護者名: {parent_name}
@@ -41,14 +39,13 @@ def register_vibe_coding_kids_routes(app):
 希望コース: {course}
 メッセージ: {message or 'なし'}
 """
-            sg.send(Mail(
-                from_email=Email('info@jgaia.org', 'JGAIA キッズ講座'),
-                to_emails=To('info@jgaia.org'),
-                subject=f'【キッズ講座】お問い合わせ: {parent_name}様',
-                plain_text_content=Content('text/plain', admin_body)
-            ))
+            resend.Emails.send({
+                "from": "JGAIA キッズ講座 <info@jgaia.org>",
+                "to": ["info@jgaia.org"],
+                "subject": f"【キッズ講座】お問い合わせ: {parent_name}様",
+                "text": admin_body,
+            })
 
-            # 申込者確認メール
             confirm_body = f"""{parent_name} 様
 
 この度はJGAIA キッズ・バイブコーディング講座にご関心をいただきありがとうございます。
@@ -67,16 +64,16 @@ def register_vibe_coding_kids_routes(app):
 キッズ・バイブコーディング講座 事務局
 https://www.jgaia.org/vibe-coding/kids
 """
-            sg.send(Mail(
-                from_email=Email('info@jgaia.org', 'JGAIA キッズ講座'),
-                to_emails=To(email),
-                subject='【JGAIA キッズ講座】お問い合わせを受け付けました',
-                plain_text_content=Content('text/plain', confirm_body)
-            ))
+            resend.Emails.send({
+                "from": "JGAIA キッズ講座 <info@jgaia.org>",
+                "to": [email],
+                "subject": "【JGAIA キッズ講座】お問い合わせを受け付けました",
+                "text": confirm_body,
+            })
 
             return jsonify({'success': True})
         except Exception as e:
-            print(f'SendGrid error: {e}')
+            print(f'Resend error: {e}')
             return jsonify({'success': True})
 
 

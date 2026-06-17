@@ -10,10 +10,8 @@ Routes:
 """
 import os
 from flask import Response, request, jsonify
-import sendgrid
-from sendgrid.helpers.mail import Mail, Email, To, Content
 
-SENDGRID_API_KEY = os.getenv('SENDGRID_API_KEY', '')
+RESEND_API_KEY = os.getenv('RESEND_API_KEY', '')
 
 # ─────────────────────────────────────────────────────────────
 #  業界別設定データ
@@ -1378,7 +1376,7 @@ async function submitInquiry(){{
 #  お問い合わせメール送信
 # ─────────────────────────────────────────────────────────────
 def _send_industry_inquiry(data):
-    if not SENDGRID_API_KEY:
+    if not RESEND_API_KEY:
         return False
     industry_names = {
         "manufacturing": "製造業",
@@ -1414,21 +1412,20 @@ def _send_industry_inquiry(data):
 Web: https://www.jgaia.org
 """
     try:
-        sg = sendgrid.SendGridAPIClient(SENDGRID_API_KEY)
-        # スタッフ宛
-        sg.send(Mail(
-            from_email=Email("info@jgaia.org"),
-            to_emails=To("takano.hidetaka@gmail.com"),
-            subject=subject,
-            plain_text_content=Content("text/plain", body_staff)
-        ))
-        # 申込者宛自動返信
-        sg.send(Mail(
-            from_email=Email("info@jgaia.org"),
-            to_emails=To(data.get("email")),
-            subject=f"【受付完了】{ind_name}特化型バイブコーディング講座のお問い合わせ",
-            plain_text_content=Content("text/plain", body_user)
-        ))
+        import resend
+        resend.api_key = RESEND_API_KEY
+        resend.Emails.send({
+            "from": "info@jgaia.org",
+            "to": ["takano.hidetaka@gmail.com"],
+            "subject": subject,
+            "text": body_staff,
+        })
+        resend.Emails.send({
+            "from": "info@jgaia.org",
+            "to": [data.get("email")],
+            "subject": f"【受付完了】{ind_name}特化型バイブコーディング講座のお問い合わせ",
+            "text": body_user,
+        })
         return True
     except Exception:
         return False
