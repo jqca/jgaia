@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}お問い合わせ{% endblock %}
+{% block description %}一般社団法人日本生成AI協会（JGAIA）へのお問い合わせ{% endblock %}
+
+{% block content %}
+<main class="content">
+    <div class="page-hero">
+        <h1>Contact</h1>
+        <div class="page-hero__sub">お問い合わせ</div>
+    </div>
+
+    <div class="page-section">
+        <div class="panel panel-rounded">
+
+            {% if sent %}
+            <div style="text-align:center;padding:3em 0;">
+                <h3 style="color:#041f4e;margin-bottom:1em;">お問い合わせを受け付けました</h3>
+                <p style="color:#333;line-height:1.8;">
+                    ご連絡ありがとうございます。<br>
+                    内容を確認の上、担当者よりご連絡いたします。
+                </p>
+                <a class="link-button" href="/" style="margin-top:2em;border-color:#041f4e;color:#041f4e;">トップページへ戻る</a>
+            </div>
+            {% else %}
+
+            <form class="contact-form" method="POST" action="/contact">
+                <div>
+                    <label>お名前 <span class="required">*必須</span></label>
+                    <input type="text" name="name" required placeholder="山田 太郎">
+                </div>
+                <div>
+                    <label>メールアドレス <span class="required">*必須</span></label>
+                    <input type="email" name="email" required placeholder="example@email.com">
+                </div>
+                <div>
+                    <label>会社名</label>
+                    <input type="text" name="company" placeholder="株式会社○○">
+                </div>
+                <div>
+                    <label>お問い合わせ内容 <span class="required">*必須</span></label>
+                    <textarea name="message" required placeholder="お問い合わせ内容をご記入ください"></textarea>
+                </div>
+                <div style="text-align:center;">
+                    <button type="submit" class="submit-btn">送信する</button>
+                </div>
+                <div class="alt-contact">
+                    メールでのお問い合わせ: <a href="mailto:info@jgaia.org">info@jgaia.org</a>
+                </div>
+            </form>
+
+            {% endif %}
+
+        </div>
+    </div>
+</main>
+{% endblock %}

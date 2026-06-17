@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}協会メンバー紹介{% endblock %}
+{% block description %}一般社団法人日本生成AI協会（JGAIA）のメンバー紹介{% endblock %}
+
+{% block content %}
+<main class="content">
+    <div class="page-hero">
+        <h1>Team Members</h1>
+        <div class="page-hero__sub">協会メンバー紹介</div>
+    </div>
+
+    <div class="page-section">
+        <div class="panel panel-rounded">
+
+            <div class="member-card">
+                <img class="member-card__photo" src="{{ url_for('static', filename='img/members/takano-hidetaka.png') }}" alt="高野 秀隆">
+                <div class="member-card__info">
+                    <div class="member-card__role">代表理事</div>
+                    <div class="member-card__name">高野 秀隆</div>
+                    <div class="member-card__message">
+                        <p>生成AI技術がもたらす革新的な可能性を、日本社会全体で最大化するために、この協会を設立しました。産業界・学術界・政府機関との連携を深め、生成AIの適切な活用と人材育成に全力で取り組んでまいります。皆様と共に、生成AIで新しい時代をデザインする旅に出発しましょう。</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="member-card">
+                <img class="member-card__photo" src="{{ url_for('static', filename='img/members/suenaga-yoshi.png') }}" alt="末永 陽士">
+                <div class="member-card__info">
+                    <div class="member-card__role">事務局長</div>
+                    <div class="member-card__name">末永 陽士</div>
+                    <div class="member-card__message">
+                        <p>日本生成AI協会の事務局長として、協会運営の全般を担当しています。会員の皆様が最大限の価値を得られるよう、イベントの企画運営、資格試験の実施、会員サポートなど、協会活動の基盤づくりに注力しています。生成AI技術の普及と発展に向けて、一つひとつ確実に歩みを進めてまいります。</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="member-card">
+                <img class="member-card__photo" src="{{ url_for('static', filename='img/members/terazono-ryoga.jpeg') }}" alt="寺園 諒雅">
+                <div class="member-card__info">
+                    <div class="member-card__role">理事</div>
+                    <div class="member-card__name">寺園 諒雅</div>
+                    <div class="member-card__message">
+                        <p>理事として、生成AI技術の研究支援と産業応用の推進を担当しています。最新の技術動向を把握し、会員企業や研究機関との橋渡しを行いながら、生成AIの実用化に向けた取り組みを加速させてまいります。日本の生成AI分野が世界をリードできるよう、全力を尽くします。</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="member-card">
+                <img class="member-card__photo" src="{{ url_for('static', filename='img/members/asa-tsuji.png') }}" alt="辻 愛咲">
+                <div class="member-card__info">
+                    <div class="member-card__role">広報</div>
+                    <div class="member-card__name">辻 愛咲</div>
+                    <div class="member-card__message">
+                        <p>広報担当として、日本生成AI協会の活動やビジョンを広く社会に発信しています。生成AI技術の可能性や最新情報をわかりやすくお届けし、多くの方々にこの革新的な分野に興味を持っていただけるよう努めています。SNSやイベントを通じて、生成AIコミュニティの輪を広げてまいります。</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</main>
+{% endblock %}

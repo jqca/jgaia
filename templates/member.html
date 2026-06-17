@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}協会員一覧{% endblock %}
+{% block description %}一般社団法人日本生成AI協会（JGAIA）の協会員一覧{% endblock %}
+
+{% block content %}
+<main class="content">
+    <div class="page-hero">
+        <h1>Association Members</h1>
+        <div class="page-hero__sub">協会員一覧</div>
+    </div>
+
+    <div class="page-section">
+        <div class="panel panel-rounded">
+
+            <div class="org-category">法人会員</div>
+
+            <div class="org-card">
+                <img class="org-card__logo" src="{{ url_for('static', filename='img/members/logo-zebraquantum.png') }}" alt="株式会社ZebraQuantum">
+                <div class="org-card__name">
+                    <a href="https://www.zebraquantum.com/" target="_blank" rel="noopener">株式会社ZebraQuantum</a>
+                </div>
+            </div>
+
+            <div class="org-card">
+                <img class="org-card__logo" src="{{ url_for('static', filename='img/members/logo-aiforward.png') }}" alt="株式会社AI Forward">
+                <div class="org-card__name">
+                    <a href="https://ai-forward.jp/" target="_blank" rel="noopener">株式会社AI Forward</a>
+                </div>
+            </div>
+
+            <div class="org-category">賛助会員</div>
+
+            <div class="org-card">
+                <img class="org-card__logo" src="{{ url_for('static', filename='img/members/logo-jqca.png') }}" alt="一般社団法人日本量子コンピューティング協会">
+                <div class="org-card__name">
+                    <a href="https://www.jqca.org/" target="_blank" rel="noopener">一般社団法人日本量子コンピューティング協会（JQCA）</a>
+                </div>
+            </div>
+
+            <div style="margin-top:3em;text-align:center;">
+                <a class="link-button" href="/join-us" style="border-color:#041f4e;color:#041f4e;">協会員募集はこちら</a>
+            </div>
+
+        </div>
+    </div>
+</main>
+{% endblock %}

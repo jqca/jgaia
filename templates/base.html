@@ -3,15 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>一般社団法人日本生成AI協会 - ホーム</title>
-    <meta name="description" content="日本生成AI協会は、生成AI技術の普及と進展を主導し、日本の産業界や学術界の革新的な発展を推進することを使命としています。私たちは最先端の生成AI技術を活用し、企業の生成AI活用、新しいビジネスモデルの創出、研究開発の促進をサポートします。">
-    <meta name="keywords" content="生成AI, 生成AI活用, 生成AI技術, 生成AI研究, 生成AI応用, 生成AI開発, 生成AI教育, 生成AIトレーニング, 生成AIツール, 生成AIプラットフォーム, 生成AIソリューション, 生成AI産業応用, 日本生成AI協会">
+    <title>{% block title %}一般社団法人日本生成AI協会{% endblock %} | JGAIA</title>
+    <meta name="description" content="{% block description %}日本生成AI協会は、生成AI技術の普及と進展を主導し、日本の産業界や学術界の革新的な発展を推進することを使命としています。{% endblock %}">
     <link rel="stylesheet" href="https://unpkg.com/modern-css-reset/dist/reset.min.css"/>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@100..900&display=swap">
     <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/mntn-dev/t.js/t.min.js"></script>
+    {% block extra_head %}{% endblock %}
     <style>
         :root {
             overflow-x: hidden;
@@ -305,39 +303,6 @@
         h4 { font-size: 1.6rem; }
         p { font-size: 1rem; }
 
-        /* ── キャッチフレーズ ── */
-        .catchphrase-area {
-            display: flex;
-            flex-direction: column;
-            gap: 3rem;
-            justify-content: center;
-            height: 86vh;
-        }
-        .catchphrase-area .catchphrase__text {
-            display: block;
-            height: 3lh;
-            font-size: 6vw;
-            font-weight: bold;
-            letter-spacing: 8px;
-            line-height: 1.4em;
-            visibility: hidden;
-        }
-        .catchphrase-area .catchphrase__text ins,
-        .catchphrase-area .catchphrase__text del { text-decoration: none; }
-        .catchphrase-area .catchphrase__text kbd { font-family: inherit; }
-        .catchphrase-area .catchphrase__text s { display: none; }
-        .catchphrase-area__links {
-            display: flex;
-            flex-direction: column;
-            width: 60%;
-        }
-        .catchphrase-area__links__row { display: flex; }
-        .catchphrase-area__links a.link-button {
-            margin: 0.8em 1em 0.8em 0;
-            font-size: 1.3rem;
-            min-width: 20em;
-        }
-
         /* ── パネル共通 ── */
         .panel {
             background-color: #fff;
@@ -360,7 +325,7 @@
             flex-direction: row;
             justify-content: center;
             padding: 3% 0;
-            min-height: 97vh;
+            min-height: 50vh;
             text-align: left;
         }
         .area__header {
@@ -385,126 +350,274 @@
             background-color: #e5e6ea;
         }
 
-        /* ── Features ── */
-        .feature { padding-bottom: 3em; }
-        .feature p { margin: 2.6em 0; }
-        .feature img { max-width: 100%; border-radius: 12px; }
+        /* ── サブページ共通 ── */
+        .page-hero {
+            padding: 6rem 0 3rem;
+            text-align: center;
+        }
+        .page-hero h1 {
+            font-size: clamp(2.4rem, 5vw, 4rem);
+            font-weight: 800;
+            margin-bottom: 0.3em;
+        }
+        .page-hero .page-hero__sub {
+            font-size: 1.1rem;
+            opacity: 0.7;
+        }
+        .page-section {
+            max-width: 960px;
+            margin: 0 auto 4rem;
+        }
+        .page-section .panel {
+            border-radius: 24px;
+            padding: 3em 3em;
+        }
 
-        /* ── News ── */
-        .news-list {
-            margin: 0;
-            list-style: none;
-            padding: 3em 2em;
+        /* ── テーブル共通 ── */
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
         }
-        .news-list__item {
-            padding: 1em 0;
-            border-top: #041f4e solid 1px;
+        .info-table th,
+        .info-table td {
+            padding: 1em 1.2em;
+            border-bottom: 1px solid #e0e0e0;
+            text-align: left;
+            vertical-align: top;
+            font-size: 0.95rem;
+            line-height: 1.7;
         }
-        .news-list__item:first-child {
-            padding-top: 0;
-            border-top: none;
+        .info-table th {
+            width: 30%;
+            font-weight: 700;
+            background: #f0f2f7;
+            white-space: nowrap;
         }
-        .news-list__item__meta {
+        .info-table tr:last-child th,
+        .info-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* ── メンバーカード ── */
+        .member-card {
+            display: flex;
+            gap: 2em;
+            padding: 2.5em 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .member-card:last-child { border-bottom: none; }
+        .member-card__photo {
+            flex-shrink: 0;
+            width: 160px; height: 160px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid #e0e0e0;
+        }
+        .member-card__info { flex: 1; }
+        .member-card__role {
+            display: inline-block;
+            padding: 0.2em 1em;
+            background: #041f4e;
+            color: #fff;
+            border-radius: 2em;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 0.5em;
+        }
+        .member-card__name {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin: 0.3em 0;
+            color: #041f4e;
+        }
+        .member-card__message {
+            font-size: 0.95rem;
+            line-height: 1.8;
+            color: #333;
+        }
+
+        /* ── 法人会員ロゴ ── */
+        .org-card {
             display: flex;
             align-items: center;
+            gap: 2em;
+            padding: 1.5em;
+            border: 1px solid #e0e0e0;
+            border-radius: 16px;
             margin-bottom: 1em;
+            transition: box-shadow 0.2s;
         }
-        .news-list__item__meta .news-date { width: 6em; }
-        .news-list__item__meta .news-category {
-            padding: 0.1em 1.5em;
-            background-color: #041f4e;
-            color: #fff;
-            border-radius: 1em;
+        .org-card:hover {
+            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
         }
-        .news-list__item__title a {
+        .org-card__logo {
+            width: 120px; height: 80px;
+            object-fit: contain;
+            flex-shrink: 0;
+        }
+        .org-card__name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #041f4e;
+        }
+        .org-card__name a {
             color: #041f4e;
             text-decoration: none;
-            font-weight: bold;
         }
-        .news-list__item__title a:hover { opacity: 0.8; }
+        .org-card__name a:hover { text-decoration: underline; }
+        .org-category {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #041f4e;
+            margin: 2em 0 1em;
+            padding-bottom: 0.5em;
+            border-bottom: 2px solid #041f4e;
+        }
 
-        /* ── Mission ── */
-        .card-list { counter-reset: item; }
-        .card-list__item {
-            margin: 1em 0;
-            padding: 1em 2em;
-            background-color: #fff;
+        /* ── メリットカード ── */
+        .benefit-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5em;
+            margin: 2em 0;
         }
-        ol > .card-list__item {
-            display: flex;
-            align-items: center;
-            list-style: none;
-        }
-        ol > .card-list__item:before {
-            min-width: 2em;
-            counter-increment: item;
-            content: counter(item) ".";
-            font-size: 3rem;
-            font-weight: bold;
-        }
-        .mission-list { margin: 2rem 0; }
-        .mission-list .card-list__item {
-            transition: scale 0.1s;
-        }
-        .mission-list .card-list__item:hover { scale: 1.01; }
-
-        /* ── Greeting ── */
-        .greeting__message { display: flex; }
-        .greeting__message__image { flex: 0.6; }
-        .greeting__message__image img {
-            width: 100%;
-            border-radius: 12px;
-        }
-        .greeting__message__text {
-            flex: 1;
-            padding: 0 2em;
-            text-indent: 1rem;
-        }
-        .greeting__signature {
-            margin-top: 4em;
-            text-align: right;
-        }
-        .greeting__signature span { font-weight: bold; }
-
-        /* ── Media ── */
-        .media-panels {
-            display: flex;
-            gap: 28px;
-            flex-wrap: wrap;
-        }
-        .media-panels .panel {
-            display: flex;
-            flex-direction: column;
-            justify-content: space-around;
-            text-decoration: none;
-            flex: 1 1 26em;
-            height: 12em;
+        .benefit-card {
+            padding: 1.5em;
+            background: #f7f8fc;
             border-radius: 16px;
-            padding: 2em;
-            transition: transform 0.2s, box-shadow 0.2s;
+            border-left: 4px solid #041f4e;
         }
-        .media-panels .panel:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+        .benefit-card h4 {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #041f4e;
+            margin-bottom: 0.5em;
         }
-        .media-panels .panel__title {
-            font-size: 1.6rem;
-            font-weight: bold;
+        .benefit-card p {
+            font-size: 0.9rem;
+            color: #444;
+            line-height: 1.6;
         }
-        .media-panels .panel__content p { font-size: 0.95rem; }
-        .media-panels .panel.media-discord {
-            background-color: #2e4ba0; color: #fff;
+
+        /* ── フォーム ── */
+        .contact-form label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 0.4em;
+            color: #041f4e;
+            font-size: 0.95rem;
         }
-        .media-panels .panel.media-twitter {
-            background-color: #292929; color: #fff;
+        .contact-form .required {
+            color: #d32f2f;
+            font-size: 0.85em;
+            margin-left: 0.3em;
         }
-        .media-panels .panel.media-connpass {
-            background-color: #f2563e; color: #fff;
+        .contact-form input[type="text"],
+        .contact-form input[type="email"],
+        .contact-form textarea {
+            display: block;
+            width: 100%;
+            padding: 0.8em 1em;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-family: inherit;
+            margin-bottom: 1.5em;
+            transition: border-color 0.2s;
         }
-        .media-panels .panel.media-coming-soon {
-            background-color: rgba(255,255,255,0.1);
-            color: rgba(255,255,255,0.5);
-            border: 1px dashed rgba(255,255,255,0.2);
+        .contact-form input:focus,
+        .contact-form textarea:focus {
+            outline: none;
+            border-color: #041f4e;
+            box-shadow: 0 0 0 2px rgba(4,31,78,0.15);
+        }
+        .contact-form textarea { min-height: 160px; resize: vertical; }
+        .contact-form .submit-btn {
+            display: inline-block;
+            padding: 0.9em 3em;
+            background: #041f4e;
+            color: #fff;
+            border: none;
+            border-radius: 2em;
+            font-size: 1.05rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+        }
+        .contact-form .submit-btn:hover {
+            background: #0a3a8a;
+            transform: translateY(-1px);
+        }
+        .contact-form .alt-contact {
+            margin-top: 2em;
+            padding-top: 1.5em;
+            border-top: 1px solid #e0e0e0;
+            font-size: 0.9rem;
+            color: #666;
+        }
+        .contact-form .alt-contact a {
+            color: #041f4e;
+            font-weight: 600;
+        }
+
+        /* ── 資格講座セクション ── */
+        .course-block {
+            margin-bottom: 2.5em;
+        }
+        .course-block h3 {
+            font-size: 1.4rem;
+            color: #041f4e;
+            margin-bottom: 0.8em;
+        }
+        .course-block p {
+            line-height: 1.8;
+            color: #333;
+        }
+        .course-block img {
+            max-width: 100%;
+            border-radius: 12px;
+            margin: 1em 0;
+        }
+        .course-links {
+            display: flex;
+            gap: 1em;
+            flex-wrap: wrap;
+            margin-top: 2em;
+        }
+        .course-links a {
+            display: inline-block;
+            padding: 0.8em 2em;
+            background: #041f4e;
+            color: #fff;
+            border-radius: 2em;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: background 0.2s;
+        }
+        .course-links a:hover { background: #0a3a8a; }
+
+        /* ── 会費テーブル ── */
+        .fee-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 2em 0;
+        }
+        .fee-table th,
+        .fee-table td {
+            padding: 1em;
+            border: 1px solid #ddd;
+            text-align: left;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+        .fee-table thead th {
+            background: #041f4e;
+            color: #fff;
+            font-weight: 600;
+        }
+        .fee-table tbody tr:nth-child(even) {
+            background: #f7f8fc;
         }
 
         /* ── フッター ── */
@@ -569,31 +682,6 @@
                 overflow: hidden;
             }
             .hamburger { display: block; }
-            .catchphrase-area {
-                position: relative;
-                justify-content: flex-start;
-                gap: 2rem;
-                height: calc(100vw / 1);
-            }
-            .catchphrase-area .catchphrase__text {
-                font-size: calc(100vw / 10);
-                height: auto;
-            }
-            .catchphrase-area__links {
-                display: grid;
-                grid-template-columns: repeat(2, 1fr);
-                justify-content: center;
-                gap: 20px;
-                position: absolute;
-                width: 100%; bottom: 40px;
-            }
-            .catchphrase-area__links a.link-button {
-                margin: 0.5em 0;
-                font-size: calc(100vw / 22);
-                min-width: calc(100vw / 2.3);
-                min-height: 3rem;
-                align-content: center;
-            }
             .area {
                 display: flex;
                 flex-direction: column;
@@ -621,21 +709,16 @@
                 padding-right: clamp(1rem, 5vw, 5rem);
                 padding-left: clamp(1rem, 5vw, 5rem);
             }
-            .feature p { margin: 0.4rem 0; }
-            .greeting__message {
-                display: flex;
+            .page-section .panel { padding: 2em 1.5em; }
+            .info-table th { width: auto; white-space: normal; }
+            .member-card {
                 flex-direction: column;
-                width: 100%;
+                align-items: center;
+                text-align: center;
             }
-            .greeting__message__image {
-                width: 60%;
-                margin: 0 auto 2em;
-            }
-            .greeting__message__text {
-                flex: 1;
-                padding: 0;
-                text-indent: 1rem;
-            }
+            .member-card__message { text-align: left; }
+            .benefit-grid { grid-template-columns: 1fr; }
+            .org-card { flex-direction: column; text-align: center; }
             .footer__inner { position: relative; height: 46%; }
             .footer-links {
                 display: grid;
@@ -647,7 +730,12 @@
                 margin: 0.5em 0;
                 width: 100%;
             }
-            .footer__copyright .legal-link { top: 100%; left: 0; }
+            .footer__copyright { text-align: center; }
+            .footer__copyright .legal-link {
+                position: static;
+                display: block;
+                margin-top: 0.5em;
+            }
         }
         @media screen and (min-width: 700px) and (max-width: 1200px) {
             .header-nav .nav-logo {
@@ -657,8 +745,9 @@
                 width: clamp(4rem, 48vw, 18rem) !important;
                 overflow: hidden;
             }
-            .catchphrase-area { height: calc(100vw / 1.1); }
         }
+
+        {% block extra_css %}{% endblock %}
     </style>
 </head>
 <body>
@@ -727,221 +816,7 @@
 
 <div class="particles-background" id="particlesJs"></div>
 
-<main class="content">
-    <!-- キャッチフレーズ -->
-    <div class="catchphrase-area">
-        <div class="catchphrase">
-            <span class="catchphrase__text" id="catchphrase">
-                s<del>*<ins>0</ins></del><ins>せ</ins>いs<del>*<ins>0</ins></del><ins>せいせ</ins>い<del>*<ins>0</ins></del><ins>生成</ins>AId<del>*<ins>0</ins></del><ins>生成AIで</ins><br/>あt<del>*<ins>0</ins></del><ins>生成AIで<br/>あた</ins>r<del>*<ins>0</ins></del><ins>生成AIで<br/>あたら</ins>s<del>*<ins>0</ins></del><ins>生成AIで<br/>あたらし</ins>い<del>*<ins>0</ins></del><ins>生成AIで<br/>新しい</ins>j<del>*<ins>0</ins></del><ins>生成AIで<br/>新しいじ</ins>d<del>*<ins>0</ins></del><ins>生成AIで<br/>新しいじだ</ins>いw<del>*<ins>0</ins></del><ins>生成AIで<br/>新しいじだいを</ins><del>*<ins>0</ins></del><ins>生成AIで<br/>新しい時代を</ins><br/>d<del>*<ins>0</ins></del><ins>生成AIで<br/>新しい時代を<br/>で</ins>z<del>*<ins>0</ins></del><ins>生成AIで<br/>新しい時代を<br/>でざ</ins>いn<del>*<ins>0</ins></del><ins>生成AIで<br/>新しい時代を<br/>でざいんs</ins><del>*<ins>0</ins></del><ins>生成AIで<br/>新しい時代を<br/>でざいんす</ins>r<del>*<ins>0</ins></del><ins>生成AIで<br/>新しい時代を<br/>でざいんする</ins><del>*<ins>0</ins></del><ins>生成AIで<br/>新しい時代を<br/>デザインする</ins>
-            </span>
-        </div>
-        <div class="catchphrase-area__links">
-            <div class="catchphrase-area__links__row">
-                <a class="link-button btn-rounded btn-white" href="/course">資格・認定講座</a>
-                <a class="link-button btn-rounded btn-white" href="https://connpass.com/user/jgaia/">イベント情報</a>
-            </div>
-            <div class="catchphrase-area__links__row">
-                <a class="link-button btn-rounded btn-white" href="/member">協会員一覧</a>
-                <a class="link-button btn-rounded btn-white" href="/contact">お問い合わせ</a>
-            </div>
-        </div>
-    </div>
-
-    <!-- Features -->
-    <div class="area panel">
-        <div class="area__header">
-            <h1>Features</h1>
-            <span class="area_title_jp">当協会の特徴</span>
-            <div class="area__header__button">
-                <a class="link-button" href="/company-info">協会情報</a>
-            </div>
-        </div>
-        <div class="area__content">
-            <div class="feature">
-                <h2>量子技術とAIの融合</h2>
-                <p>
-                    JGAIAは日本量子コンピューティング協会(JQCA)と戦略的提携を締結し、将来の重要技術である量子コンピューティングとAIの融合を目指しています。この連携により、両分野の知見を活かした革新的な取り組みを展開し、最先端技術の相乗効果を追求しています。量子技術とAIの連動した活動を通じて、従来の枠組みを超えた新たな可能性を探求し、技術革新の最前線を切り拓くことを目指しています。
-                </p>
-                <img src="static/img/strength-education.png" alt="量子技術とAIの融合">
-            </div>
-
-            <div class="feature">
-                <h2>包括的アプローチ</h2>
-                <p>
-                    JGAIAは、生成AI分野における「教育」「資格検定」「人材紹介」を一気通貫で提供します。最新の生成AI技術を学べる教育プログラムを実施し、習得したスキルを評価する資格検定制度を運営します。さらに、その専門性を活かせる職場への橋渡しも行います。この包括的なアプローチにより、生成AI産業で活躍できる人材の育成と、AI人材を必要とする企業様とのマッチングを目指します。JGAIAは、これらの活動を通じて日本の生成AI技術の発展に貢献します。
-                </p>
-                <img src="static/img/strength-certification.png" alt="教育、資格検定、人材紹介">
-            </div>
-        </div>
-    </div>
-
-    <!-- News -->
-    <div class="area">
-        <div class="area__header">
-            <h1>News</h1>
-            <span class="area_title_jp">新着情報</span>
-        </div>
-        <div class="area__content">
-            <ul class="panel panel-rounded news-list">
-                <li class="news-list__item">
-                    <div class="news-list__item__meta">
-                        <div class="news-date">2026.06.11</div>
-                        <div class="news-category">協会お知らせ</div>
-                    </div>
-                    <div class="news-list__item__title">
-                        <a href="https://jgaia.connpass.com/event/#2026-06">【講座視聴無料】6月試験開始のお知らせ</a>
-                    </div>
-                </li>
-                <li class="news-list__item">
-                    <div class="news-list__item__meta">
-                        <div class="news-date">2026.05.07</div>
-                        <div class="news-category">協会お知らせ</div>
-                    </div>
-                    <div class="news-list__item__title">
-                        <a href="https://jgaia.connpass.com/event/#2026-05">【講座視聴無料】5月試験開始のお知らせ</a>
-                    </div>
-                </li>
-                <li class="news-list__item">
-                    <div class="news-list__item__meta">
-                        <div class="news-date">2026.04.09</div>
-                        <div class="news-category">協会お知らせ</div>
-                    </div>
-                    <div class="news-list__item__title">
-                        <a href="https://jgaia.connpass.com/event/#2026-04">【講座視聴無料】4月試験開始のお知らせ</a>
-                    </div>
-                </li>
-                <li class="news-list__item">
-                    <div class="news-list__item__meta">
-                        <div class="news-date">2026.03.12</div>
-                        <div class="news-category">協会お知らせ</div>
-                    </div>
-                    <div class="news-list__item__title">
-                        <a href="https://jgaia.connpass.com/event/#2026-03">【講座視聴無料】3月試験開始のお知らせ</a>
-                    </div>
-                </li>
-                <li class="news-list__item">
-                    <div class="news-list__item__meta">
-                        <div class="news-date">2025.09.30</div>
-                        <div class="news-category">協会お知らせ</div>
-                    </div>
-                    <div class="news-list__item__title">
-                        <a href="https://qstar.jp/">量子技術による新産業創出協議会（Q-STAR）への入会のお知らせ</a>
-                    </div>
-                </li>
-            </ul>
-        </div>
-    </div>
-
-    <!-- Mission -->
-    <div class="area panel">
-        <div class="area__header">
-            <h1>Mission</h1>
-            <span class="area_title_jp">目標</span>
-        </div>
-        <div class="area__content">
-            <p>日本生成AI協会は、生成AI技術の普及と発展をリードし、日本の産業や学術界における革新的な成長を促進することを使命とします。我々は、生成AIの可能性を広く認知し、研究、産業応用、国際交流、教育などの活動を通じて、日本がグローバルな生成AI技術のリーダーとなることを目指します。</p>
-            <ol class="card-list mission-list">
-                <li class="card-list__item">
-                    <div class="card-list__item__inner">
-                        <h4>生成AI技術の普及と啓蒙</h4>
-                        <span>生成AIの基本概念や可能性を広く一般の人々に啓蒙し、産業界や学術界、一般社会に生成AIの重要性を理解してもらうことを目標とします。</span>
-                    </div>
-                </li>
-                <li class="card-list__item">
-                    <div class="card-list__item__inner">
-                        <h4>生成AI技術の研究支援</h4>
-                        <span>日本国内の生成AIに関連する研究者や企業の支援を行い、研究成果の共有や新たな研究プロジェクトの推進を促進します。</span>
-                    </div>
-                </li>
-                <li class="card-list__item">
-                    <div class="card-list__item__inner">
-                        <h4>産業界との連携と実用化</h4>
-                        <span>産業界と緊密な連携を図り、生成AI技術の産業応用を推進します。産業界のニーズに合った研究や技術開発を支援し、生成AIの実用化に向けた一歩を踏み出します。</span>
-                    </div>
-                </li>
-                <li class="card-list__item">
-                    <div class="card-list__item__inner">
-                        <h4>国際的な連携と交流</h4>
-                        <span>国際的な生成AIコミュニティとの連携を強化し、最新の技術動向や知識の共有を通じて日本の生成AI技術の発展を国際的なレベルでリードします。</span>
-                    </div>
-                </li>
-                <li class="card-list__item">
-                    <div class="card-list__item__inner">
-                        <h4>生成AI人材の育成</h4>
-                        <span>学生や若手研究者を対象とした生成AI技術の教育プログラムを提供し、次世代のリーダーや専門家を育成します。生成AI技術に関する人材の不足に対処し、日本の人材育成に貢献します。</span>
-                    </div>
-                </li>
-            </ol>
-        </div>
-    </div>
-
-    <!-- Greeting -->
-    <div class="area">
-        <div class="area__header">
-            <h1>Greeting</h1>
-            <span class="area_title_jp">代表者ご挨拶</span>
-        </div>
-        <div class="area__content">
-            <div class="panel panel-rounded greeting">
-                <div class="greeting__message">
-                    <div class="greeting__message__image">
-                        <img src="static/img/representative.jpg" alt="代表理事">
-                    </div>
-                    <div class="greeting__message__text">
-                        <p>
-                            当協会は、生成AI分野において日本の研究者、エンジニア、ビジネスパーソンの協力を促進し、革新的な技術とアプリケーション開発を推進します。この最先端の科学技術領域で、私たちは世界的リーダーシップの獲得を目指しています。
-                        </p>
-                        <p>
-                            生成AIは、従来不可能だった創造の扉を開きます。我々の使命は、その潜在能力を最大化し、社会に革新的価値をもたらすことです。これには、産官学の垣根を越えた連携と、知識・情熱の結集が不可欠です。
-                        </p>
-                        <p>
-                            当協会は、会員間の知識交換、情報共有、プロジェクト協力を促進し、相互成長の場を提供します。さらに、若手研究者の育成と啓発活動に注力し、次世代の生成AI人材育成にも取り組みます。
-                        </p>
-                    </div>
-                </div>
-                <div class="greeting__signature">
-                    <span>日本生成AI協会 代表理事</span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Media -->
-    <div class="area panel">
-        <div class="area__header">
-            <h1>Media</h1>
-            <span class="area_title_jp">情報発信</span>
-        </div>
-        <div class="area__content">
-            <div class="media-panels">
-                <a class="panel media-discord" href="https://discord.gg/cMF47nDj">
-                    <div class="panel__title">Discord</div>
-                    <div class="panel__content">
-                        <p>日本生成AI協会コミュニティー</p>
-                    </div>
-                </a>
-                <a class="panel media-twitter" href="https://x.com/jgaia_2024">
-                    <div class="panel__title">X</div>
-                    <div class="panel__content">
-                        <p>日本生成AI協会 公式アカウント</p>
-                    </div>
-                </a>
-                <a class="panel media-connpass" href="https://connpass.com/user/jgaia/">
-                    <div class="panel__title">connpass</div>
-                    <div class="panel__content">
-                        <p>日本生成AI協会 イベント情報</p>
-                    </div>
-                </a>
-                <div class="panel media-coming-soon">
-                    <div class="panel__title">Coming Soon</div>
-                    <div class="panel__content">
-                        <p>Coming Soon</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</main>
+{% block content %}{% endblock %}
 
 <footer class="footer">
     <div class="footer__inner">
@@ -961,7 +836,6 @@
 </footer>
 
 <script>
-    // particles.js 背景
     particlesJS("particlesJs", {
         "particles": {
             "number": { "value": 80, "density": { "enable": true, "value_area": 800 } },
@@ -984,16 +858,11 @@
         "retina_detect": true
     });
 
-    // モバイルメニュー
     function toggleMenu() {
         document.getElementById("mobileMenu").classList.toggle("active");
     }
-
-    // タイピングアニメーション
-    window.addEventListener('load', function () {
-        $('#catchphrase').t({speed: 50, delay: 0});
-    });
 </script>
+{% block extra_js %}{% endblock %}
 
 </body>
 </html>

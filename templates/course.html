@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}資格・認定講座{% endblock %}
+{% block description %}JGAIA 生成AIジェネラリスト検定・エンジニア認定・QAI-Zen学習プラットフォーム{% endblock %}
+
+{% block content %}
+<main class="content">
+    <div class="page-hero">
+        <h1>Qualifications</h1>
+        <div class="page-hero__sub">資格・認定講座</div>
+    </div>
+
+    <div class="page-section">
+        <div class="panel panel-rounded">
+
+            <div class="course-block">
+                <p style="font-size:1.05rem;line-height:1.8;color:#333;margin-bottom:2em;">
+                    JGAIAでは、生成AI分野のスキルを体系的に学び、実力を証明できる資格・認定講座を提供しています。
+                    非エンジニアの方からプロフェッショナルまで、レベルに合わせた学習プログラムと認定試験をご用意しています。
+                </p>
+            </div>
+
+            <div class="course-block">
+                <h3>生成AIジェネラリスト検定</h3>
+                <img src="{{ url_for('static', filename='img/course-generalist.png') }}" alt="生成AIジェネラリスト検定" style="max-width:400px;">
+                <p>生成AIの基本概念から活用事例まで、ビジネスパーソンに必要な知識を体系的に学べる検定試験です。非エンジニアの方でも安心して受験いただけます。</p>
+            </div>
+
+            <div class="course-block">
+                <h3>生成AIエンジニア認定</h3>
+                <img src="{{ url_for('static', filename='img/course-engineer.png') }}" alt="生成AIエンジニア認定" style="max-width:400px;">
+                <p>生成AI技術の実装・応用スキルを評価するエンジニア向け認定試験です。プロンプトエンジニアリング、モデルのファインチューニング、アプリケーション開発まで、実践的な技術力を証明します。</p>
+            </div>
+
+            <div class="course-block">
+                <h3>認定証</h3>
+                <img src="{{ url_for('static', filename='img/course-certificate.png') }}" alt="JGAIA認定証" style="max-width:400px;">
+                <p>試験に合格された方には、JGAIAの公式認定証を発行いたします。生成AI分野の知識・スキルを対外的に証明する資格として、ビジネスシーンでご活用いただけます。</p>
+            </div>
+
+            <div class="course-block">
+                <h3>QAI-Zen 学習プラットフォーム</h3>
+                <img src="{{ url_for('static', filename='img/course-qaizen.png') }}" alt="QAI-Zen" style="max-width:400px;">
+                <p>JGAIAの資格取得に向けた学習は、オンラインプラットフォーム「QAI-Zen（カイゼン）」で受講いただけます。動画講座の視聴から認定試験の受験まで、すべてオンラインで完結します。</p>
+            </div>
+
+            <div class="course-links">
+                <a href="https://jgaia.connpass.com/" target="_blank" rel="noopener">connpass イベント情報</a>
+                <a href="https://www.qai-zen.com/" target="_blank" rel="noopener">QAI-Zen プラットフォーム</a>
+                <a href="/vibe-coding">バイブコーディング講座</a>
+            </div>
+
+        </div>
+    </div>
+</main>
+{% endblock %}
