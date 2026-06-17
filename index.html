@@ -1,895 +1,999 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>一般社団法人 日本生成AI協会 | JGAIA</title>
-  <meta name="description" content="日本における生成AIの普及・教育・資格認定・産業連携を推進し、持続可能で豊かな社会の実現に貢献します。">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --ink:      #09090b;
-      --ink-s:    #111118;
-      --ink-m:    #27272a;
-      --text:     #fafafa;
-      --text-s:   #a1a1aa;
-      --text-m:   #52525b;
-      --accent:   #6366f1;
-      --accent-l: #818cf8;
-      --border:   rgba(255,255,255,0.07);
-      --border-l: rgba(255,255,255,0.12);
-      --font-d:   'Syne','Noto Sans JP',sans-serif;
-      --font:     'DM Sans','Noto Sans JP',sans-serif;
-      --r:        4px;
-      --ease:     cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    html{scroll-behavior:smooth;font-size:16px}
-    body{
-      background:var(--ink);color:var(--text);
-      font-family:var(--font);line-height:1.6;
-      -webkit-font-smoothing:antialiased;
-    }
-    a{color:inherit;text-decoration:none}
-    img{display:block;max-width:100%}
-    button{cursor:pointer;border:none;background:none;font-family:inherit}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>一般社団法人日本生成AI協会 - ホーム</title>
+    <meta name="description" content="日本生成AI協会は、生成AI技術の普及と進展を主導し、日本の産業界や学術界の革新的な発展を推進することを使命としています。私たちは最先端の生成AI技術を活用し、企業の生成AI活用、新しいビジネスモデルの創出、研究開発の促進をサポートします。">
+    <meta name="keywords" content="生成AI, 生成AI活用, 生成AI技術, 生成AI研究, 生成AI応用, 生成AI開発, 生成AI教育, 生成AIトレーニング, 生成AIツール, 生成AIプラットフォーム, 生成AIソリューション, 生成AI産業応用, 日本生成AI協会">
+    <link rel="stylesheet" href="https://unpkg.com/modern-css-reset/dist/reset.min.css"/>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@100..900&display=swap">
+    <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/mntn-dev/t.js/t.min.js"></script>
+    <style>
+        :root {
+            overflow-x: hidden;
+            box-sizing: border-box;
+            background: none;
+            color: #fff;
+            font: 16px/1.4 "Noto Sans", "Noto Sans JP", sans-serif;
+            list-style-position: inside;
+        }
+        *, *::before, *::after { box-sizing: border-box; }
 
-    /* ── ヘッダー ── */
-    .hd {
-      position:fixed;top:0;left:0;right:0;z-index:100;
-      padding:0 48px;
-      display:flex;align-items:center;height:72px;
-      transition:background .4s var(--ease), border-color .4s;
-      border-bottom:1px solid transparent;
-    }
-    .hd.scrolled{
-      background:rgba(9,9,11,0.88);
-      backdrop-filter:blur(24px);
-      border-color:var(--border);
-    }
-    .hd-logo{
-      display:flex;align-items:center;gap:11px;
-      margin-right:48px;flex-shrink:0;
-    }
-    .hd-logo-mark{
-      width:32px;height:32px;border-radius:6px;
-      border:1px solid var(--border-l);
-      display:flex;align-items:center;justify-content:center;
-    }
-    .hd-logo-mark svg{width:16px;height:16px;fill:none;stroke:#fff;stroke-width:1.5}
-    .hd-logo-text .en{
-      font-family:var(--font-d);font-size:16px;font-weight:700;
-      color:#fff;letter-spacing:.06em;
-    }
-    .hd-logo-text .ja{font-size:9px;color:var(--text-s);letter-spacing:.04em;margin-top:1px}
-    .hd-nav{display:flex;align-items:center;gap:2px;flex:1}
-    .hd-nav a{
-      font-size:13.5px;font-weight:400;color:var(--text-s);
-      padding:7px 14px;border-radius:var(--r);
-      transition:color .15s,background .15s;
-      white-space:nowrap;
-    }
-    .hd-nav a:hover{color:#fff;background:rgba(255,255,255,0.06)}
-    .hd-right{display:flex;align-items:center;gap:10px;margin-left:auto}
-    .btn-ghost{
-      font-size:13px;font-weight:500;color:var(--text-s);
-      padding:8px 18px;border-radius:var(--r);
-      border:1px solid var(--border-l);
-      transition:all .15s;
-    }
-    .btn-ghost:hover{color:#fff;border-color:rgba(255,255,255,0.25);background:rgba(255,255,255,0.05)}
-    .btn-solid{
-      font-size:13px;font-weight:600;color:#fff;
-      padding:9px 20px;border-radius:var(--r);
-      background:var(--accent);
-      transition:opacity .15s;
-    }
-    .btn-solid:hover{opacity:.85}
+        /* ── ボタン共通 ── */
+        a.link-button {
+            display: inline-block;
+            min-width: 6em;
+            padding: 0.6em 1em;
+            border: 2px solid #fff;
+            border-radius: 0.8em;
+            text-align: center;
+            color: #fff;
+            text-decoration: none;
+            font-weight: bold;
+            transition: color 0.2s, background-color 0.2s;
+        }
+        a.link-button:hover {
+            cursor: pointer;
+            background-color: #fff;
+            color: #041f4e;
+        }
+        a.link-button.btn-rounded { border-radius: 2em; }
+        a.link-button.btn-white {
+            background-color: #fff;
+            color: #041f4e;
+        }
+        a.link-button.btn-white:hover {
+            background-color: transparent;
+            color: #fff;
+        }
 
-    /* ── ヒーロー ── */
-    .hero{
-      position:relative;height:100vh;min-height:700px;
-      display:flex;align-items:flex-end;
-      overflow:hidden;
-    }
-    .hero-bg{
-      position:absolute;inset:0;
-      background:url('static/img/hero.png') center/cover no-repeat;
-    }
-    .hero-bg::after{
-      content:'';position:absolute;inset:0;
-      background:
-        linear-gradient(to top, rgba(9,9,11,1) 0%, rgba(9,9,11,0.5) 40%, rgba(9,9,11,0.1) 100%),
-        linear-gradient(to right, rgba(9,9,11,0.6) 0%, transparent 60%);
-    }
-    .hero-content{
-      position:relative;z-index:1;
-      padding:0 80px 96px;
-      max-width:900px;
-    }
-    .hero-eyebrow{
-      display:inline-flex;align-items:center;gap:10px;
-      font-size:11px;font-weight:600;letter-spacing:.2em;
-      text-transform:uppercase;color:var(--accent-l);
-      margin-bottom:28px;
-    }
-    .hero-eyebrow::before{
-      content:'';width:24px;height:1px;background:var(--accent-l);
-    }
-    .hero h1{
-      font-family:var(--font-d);
-      font-size:clamp(48px,6vw,80px);
-      font-weight:800;line-height:1.08;
-      color:#fff;letter-spacing:-.03em;
-      margin-bottom:28px;
-    }
-    .hero h1 em{
-      font-style:normal;
-      color:transparent;
-      -webkit-text-stroke:1px rgba(255,255,255,0.5);
-    }
-    .hero-sub{
-      font-size:16px;font-weight:300;color:rgba(255,255,255,0.65);
-      line-height:1.8;max-width:520px;margin-bottom:44px;
-    }
-    .hero-actions{display:flex;align-items:center;gap:16px}
-    .btn-hero-primary{
-      display:inline-flex;align-items:center;gap:10px;
-      font-size:14px;font-weight:600;color:#fff;
-      background:var(--accent);
-      padding:14px 30px;border-radius:var(--r);
-      transition:all .2s var(--ease);
-      letter-spacing:.01em;
-    }
-    .btn-hero-primary:hover{background:#4f46e5;transform:translateY(-1px)}
-    .btn-hero-ghost{
-      display:inline-flex;align-items:center;gap:10px;
-      font-size:14px;font-weight:400;color:rgba(255,255,255,0.7);
-      padding:14px 20px;border-radius:var(--r);
-      border:1px solid rgba(255,255,255,0.15);
-      transition:all .2s;
-    }
-    .btn-hero-ghost:hover{color:#fff;border-color:rgba(255,255,255,0.35)}
-    .hero-scroll{
-      position:absolute;right:48px;bottom:48px;z-index:1;
-      display:flex;flex-direction:column;align-items:center;gap:8px;
-      font-size:10px;letter-spacing:.15em;text-transform:uppercase;
-      color:rgba(255,255,255,0.35);
-    }
-    .hero-scroll-line{
-      width:1px;height:48px;background:rgba(255,255,255,0.2);
-      position:relative;overflow:hidden;
-    }
-    .hero-scroll-line::after{
-      content:'';position:absolute;
-      top:-100%;left:0;width:100%;height:100%;
-      background:#fff;animation:scroll-line 2s ease infinite;
-    }
-    @keyframes scroll-line{0%{top:-100%}100%{top:100%}}
+        /* ── ヘッダー ── */
+        .header-nav {
+            display: block;
+            position: relative;
+            top: 0; left: 0;
+            width: 100vw;
+            height: 8em;
+            padding: 10px 4%;
+            background-color: transparent;
+            z-index: 100;
+        }
+        .header-nav nav {
+            display: flex;
+            align-items: center;
+        }
+        .header-nav nav .nav-logo {
+            height: clamp(1rem, 7vw, 9rem);
+            width: clamp(1rem, 15vw, 18rem);
+            padding-top: 2%;
+            position: relative;
+            z-index: 2;
+        }
+        .header-nav nav .nav-logo a {
+            display: block;
+            height: 100%;
+            text-decoration: none;
+        }
+        .header-nav nav .nav-logo .logo-text {
+            font-size: clamp(1.2rem, 2vw, 1.8rem);
+            font-weight: 900;
+            color: #fff;
+            letter-spacing: 0.05em;
+            line-height: 1.2;
+        }
+        .header-nav nav .nav-logo .logo-sub {
+            font-size: clamp(0.5rem, 0.7vw, 0.7rem);
+            color: rgba(255,255,255,0.7);
+            letter-spacing: 0.04em;
+        }
+        .header-nav nav .nav-item {
+            display: flex;
+            gap: clamp(0.5rem, 1.5vw, 2rem);
+            position: absolute;
+            right: 40px;
+            top: 53px;
+            z-index: 1;
+        }
+        .header-nav nav .nav-item .nav-menu-list {
+            display: flex;
+            gap: calc(100vw / 33);
+            align-items: center;
+            margin-left: 20vw;
+        }
+        .nav-menu-list__item {
+            display: list-item;
+            margin: 0;
+            list-style: none;
+            text-align: center;
+        }
+        .nav-menu-list__item a {
+            display: flex;
+            gap: 0.3rem;
+            flex-wrap: wrap;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-size: clamp(1rem, 1.2vw, 3rem);
+            color: #fff;
+            text-decoration: none;
+            transition: opacity 0.2s;
+        }
+        .nav-menu-list__item a:hover { opacity: 0.8; }
+        .nav-menu-list__item a strong {
+            display: block;
+            width: 100%;
+            white-space: nowrap;
+        }
+        .nav-menu-list__item a span {
+            display: block;
+            overflow: hidden;
+            font-size: 0.8em;
+            line-height: 24px;
+            text-align: center;
+            white-space: nowrap;
+        }
 
-    /* ── 統計バー ── */
-    .stats-bar{
-      border-top:1px solid var(--border);
-      border-bottom:1px solid var(--border);
-      padding:48px 80px;
-      display:grid;grid-template-columns:repeat(4,1fr);
-    }
-    .stat{
-      padding:0 40px 0 0;
-      border-right:1px solid var(--border);
-    }
-    .stat:last-child{border-right:none;padding-right:0;padding-left:40px}
-    .stat:not(:first-child){padding-left:40px}
-    .stat-n{
-      font-family:var(--font-d);
-      font-size:48px;font-weight:800;
-      color:#fff;line-height:1;
-      margin-bottom:8px;letter-spacing:-.03em;
-    }
-    .stat-n sup{font-size:24px;vertical-align:super;font-weight:600}
-    .stat-label{font-size:12px;color:var(--text-s);letter-spacing:.04em}
-    .stat-desc{font-size:11px;color:var(--text-m);margin-top:4px}
+        /* ドロップダウン */
+        .nav-menu-list .dropdown { position: relative; }
+        .nav-menu-list .dropdown > a strong::after {
+            content: " ▾";
+            font-size: 0.7em;
+            opacity: 0.75;
+        }
+        .nav-menu-list .dropdown-menu {
+            display: block;
+            position: absolute;
+            top: calc(100% + 12px);
+            left: 50%;
+            transform: translateX(-50%) translateY(-6px);
+            min-width: 220px;
+            list-style: none;
+            margin: 0; padding: 8px;
+            background: rgba(8, 20, 45, 0.92);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 12px;
+            box-shadow: 0 14px 34px rgba(0,0,0,0.4);
+            opacity: 0; visibility: hidden;
+            transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+            z-index: 1000;
+        }
+        .nav-menu-list .dropdown-menu::before {
+            content: ""; display: block; position: absolute;
+            top: -12px; left: 0; right: 0; height: 12px;
+        }
+        .nav-menu-list .dropdown-menu::after {
+            content: ""; position: absolute;
+            top: -6px; left: 50%;
+            transform: translateX(-50%) rotate(45deg);
+            width: 12px; height: 12px;
+            background: rgba(8, 20, 45, 0.92);
+            border-left: 1px solid rgba(255,255,255,0.12);
+            border-top: 1px solid rgba(255,255,255,0.12);
+        }
+        .nav-menu-list .dropdown:hover .dropdown-menu,
+        .nav-menu-list .dropdown:focus-within .dropdown-menu {
+            opacity: 1; visibility: visible;
+            transform: translateX(-50%) translateY(0);
+        }
+        .nav-menu-list .dropdown-menu li {
+            list-style: none; margin: 0; padding: 0; text-align: left;
+        }
+        .nav-menu-list .dropdown-menu li::before { display: none; }
+        .nav-menu-list .dropdown-menu li + li { margin-top: 2px; }
+        .nav-menu-list .dropdown-menu a {
+            display: block;
+            padding: 10px 14px;
+            font-size: 0.95rem !important;
+            font-weight: 500;
+            line-height: 1.4;
+            color: #e6edf7;
+            text-decoration: none;
+            white-space: nowrap;
+            border-radius: 8px;
+            transition: background 0.18s ease, color 0.18s ease;
+        }
+        .nav-menu-list .dropdown-menu a:hover {
+            background: linear-gradient(135deg, #1d4ed8, #2563eb);
+            color: #fff;
+        }
+        .nav-profile {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+        .hamburger {
+            display: none;
+            font-size: clamp(2rem, 8vw, 5rem);
+            cursor: pointer;
+            position: absolute;
+            right: 20px; top: 20px;
+            color: #fff;
+        }
 
-    /* ── セクション基本 ── */
-    section{padding:120px 80px}
-    .sec-label{
-      display:inline-flex;align-items:center;gap:10px;
-      font-size:10.5px;font-weight:600;letter-spacing:.2em;
-      text-transform:uppercase;color:var(--accent-l);
-      margin-bottom:20px;
-    }
-    .sec-label::before{content:'';width:16px;height:1px;background:var(--accent-l)}
-    .sec-title{
-      font-family:var(--font-d);
-      font-size:clamp(32px,4vw,52px);
-      font-weight:800;color:#fff;
-      line-height:1.1;letter-spacing:-.03em;
-      margin-bottom:20px;
-    }
-    .sec-desc{
-      font-size:15px;font-weight:300;
-      color:var(--text-s);line-height:1.8;
-      max-width:560px;
-    }
+        /* モバイルメニュー */
+        .mobile-menu {
+            display: none;
+            flex-direction: column;
+            align-items: flex-start;
+            width: 100%; height: 100vh;
+            background-color: #001e5f;
+            color: white;
+            position: fixed;
+            top: 0; left: 0;
+            z-index: 1000;
+        }
+        .mobile-menu.active { display: flex; }
+        .mobile-menu .mobile-menu-list {
+            list-style: none;
+            padding: 80px 30px 30px 30px;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+        }
+        .mobile-menu .mobile-nav-item {
+            font-size: 20px;
+            text-align: left;
+            padding: 15px 0;
+            width: 100%;
+            border-bottom: 1px solid white;
+        }
+        .mobile-menu .mobile-nav-item a {
+            color: white;
+            text-decoration: none;
+        }
+        .mobile-menu .mobile-subitem {
+            padding-left: 1.2em;
+            border-left: 2px solid rgba(255,255,255,0.3);
+        }
+        .mobile-menu .mobile-subitem a { font-size: 0.9em; opacity: 0.85; }
+        .mobile-menu .mobile-subitem a span { opacity: 0.7; }
+        .mobile-log-item {
+            position: fixed;
+            bottom: 30px;
+            font-size: clamp(1rem, 3vw, 1.5rem);
+            left: 50%; transform: translateX(-50%);
+            width: 90%; max-width: 100%;
+            text-align: center;
+        }
+        .close-btn {
+            position: absolute;
+            top: 10px; right: 10px;
+            font-size: 30px; cursor: pointer; color: white;
+        }
 
-    /* ── 強み ── */
-    .strengths-header{
-      display:grid;grid-template-columns:1fr 1fr;
-      gap:80px;align-items:end;
-      margin-bottom:64px;
-    }
-    .strengths-grid{
-      display:grid;grid-template-columns:repeat(2,1fr);
-      grid-template-rows:repeat(2,1fr);
-      gap:2px;
-    }
-    .strength-card{
-      position:relative;overflow:hidden;
-      aspect-ratio:4/3;
-      background:var(--ink-s);
-    }
-    .strength-card img{
-      width:100%;height:100%;object-fit:cover;
-      transition:transform .8s var(--ease);
-    }
-    .strength-card:hover img{transform:scale(1.04)}
-    .strength-overlay{
-      position:absolute;inset:0;
-      background:linear-gradient(to top,rgba(9,9,11,0.9) 0%,rgba(9,9,11,0.2) 60%,transparent 100%);
-      display:flex;flex-direction:column;justify-content:flex-end;
-      padding:32px;
-      transition:background .4s;
-    }
-    .strength-card:hover .strength-overlay{
-      background:linear-gradient(to top,rgba(9,9,11,0.95) 0%,rgba(9,9,11,0.5) 60%,rgba(9,9,11,0.15) 100%);
-    }
-    .strength-num{
-      font-family:var(--font-d);font-size:11px;font-weight:700;
-      letter-spacing:.2em;color:var(--accent-l);
-      margin-bottom:10px;
-    }
-    .strength-card h3{
-      font-family:var(--font-d);font-size:22px;font-weight:700;
-      color:#fff;margin-bottom:10px;
-    }
-    .strength-card p{
-      font-size:13px;color:rgba(255,255,255,0.65);
-      line-height:1.7;
-      max-height:0;overflow:hidden;
-      transition:max-height .5s var(--ease),opacity .4s;
-      opacity:0;
-    }
-    .strength-card:hover p{max-height:80px;opacity:1}
-    .strength-link{
-      display:inline-flex;align-items:center;gap:6px;
-      font-size:12px;font-weight:600;color:var(--accent-l);
-      margin-top:14px;
-      max-height:0;overflow:hidden;
-      transition:max-height .5s var(--ease),opacity .4s;
-      opacity:0;
-    }
-    .strength-card:hover .strength-link{max-height:30px;opacity:1}
+        /* ── 背景 ── */
+        .particles-background {
+            position: fixed;
+            top: 0; width: 100%; height: 100vh;
+            background: linear-gradient(-135deg, #000429 0%, #020f37 30%, #004b8f 100%);
+            z-index: -100;
+        }
+        .polygon-background {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100vh;
+            z-index: -50;
+            overflow: hidden;
+        }
+        .polygon-background .bg-polygon {
+            position: absolute;
+            width: 50%; height: 107%;
+            background: radial-gradient(ellipse at center, rgba(0,78,143,0.15) 0%, transparent 70%);
+        }
+        .polygon-background .bg-polygon:last-child {
+            right: 0;
+            transform: rotate(180deg);
+        }
 
-    /* ── ニュース ── */
-    .news-section{
-      display:grid;grid-template-columns:280px 1fr;
-      gap:80px;align-items:start;
-    }
-    .news-sticky{position:sticky;top:100px}
-    .news-list{border-top:1px solid var(--border)}
-    .news-row{
-      display:grid;
-      grid-template-columns:100px 110px 1fr 20px;
-      gap:24px;align-items:center;
-      padding:24px 0;
-      border-bottom:1px solid var(--border);
-      transition:background .2s;
-      cursor:pointer;
-    }
-    .news-row:hover .news-row-title{color:var(--accent-l)}
-    .news-date{font-size:12px;color:var(--text-m);font-weight:400;letter-spacing:.03em}
-    .news-tag{
-      display:inline-block;
-      font-size:10.5px;font-weight:700;letter-spacing:.08em;
-      padding:4px 12px;border-radius:2px;
-      white-space:nowrap;
-    }
-    .tag-info{background:rgba(99,102,241,0.15);color:var(--accent-l)}
-    .tag-event{background:rgba(16,185,129,0.12);color:#6ee7b7}
-    .tag-media{background:rgba(245,158,11,0.12);color:#fcd34d}
-    .tag-news{background:rgba(239,68,68,0.12);color:#fca5a5}
-    .news-row-title{
-      font-size:14px;font-weight:400;color:var(--text);
-      line-height:1.6;transition:color .2s;
-    }
-    .news-arrow{color:var(--text-m);font-size:14px;transition:transform .2s,color .2s}
-    .news-row:hover .news-arrow{transform:translateX(4px);color:#fff}
-    .news-btn{
-      display:inline-flex;align-items:center;gap:8px;
-      margin-top:32px;
-      font-size:13px;font-weight:500;color:var(--text-s);
-      padding:10px 20px;border-radius:var(--r);
-      border:1px solid var(--border-l);
-      transition:all .2s;
-    }
-    .news-btn:hover{color:#fff;border-color:rgba(255,255,255,0.3)}
+        /* ── メイン ── */
+        main {
+            min-height: 100vh;
+            margin-top: 3vh;
+            padding: 0 4rem;
+            background: none;
+        }
+        ul, ol { margin: 0; padding: 0; }
+        h1 { font-size: 3.4rem; }
+        h2 { font-size: 2.6rem; }
+        h3 { font-size: 2rem; }
+        h4 { font-size: 1.6rem; }
+        p { font-size: 1rem; }
 
-    /* ── ミッション ── */
-    .mission-section{
-      position:relative;padding:0;overflow:hidden;
-      min-height:700px;display:flex;align-items:center;
-    }
-    .mission-bg{
-      position:absolute;inset:0;
-      background:url('static/img/mission-bg.png') center/cover no-repeat;
-    }
-    .mission-bg::after{
-      content:'';position:absolute;inset:0;
-      background:rgba(9,9,11,0.75);
-    }
-    .mission-content{
-      position:relative;z-index:1;
-      padding:120px 80px;
-      width:100%;
-    }
-    .mission-header{
-      display:grid;grid-template-columns:1fr 2fr;
-      gap:80px;align-items:end;margin-bottom:72px;
-    }
-    .mission-pillars{
-      display:grid;grid-template-columns:repeat(5,1fr);
-      gap:1px;background:var(--border);
-      border:1px solid var(--border);
-    }
-    .pillar{
-      background:rgba(9,9,11,0.6);backdrop-filter:blur(12px);
-      padding:36px 24px;
-      transition:background .3s;
-    }
-    .pillar:hover{background:rgba(99,102,241,0.12)}
-    .pillar-num{
-      font-family:var(--font-d);font-size:11px;font-weight:700;
-      letter-spacing:.2em;color:var(--accent-l);
-      margin-bottom:24px;
-    }
-    .pillar-icon{
-      font-size:28px;margin-bottom:16px;
-      filter:grayscale(0.3);
-    }
-    .pillar h4{
-      font-family:var(--font-d);font-size:15px;font-weight:700;
-      color:#fff;margin-bottom:10px;
-    }
-    .pillar p{font-size:12px;color:rgba(255,255,255,0.55);line-height:1.7}
+        /* ── キャッチフレーズ ── */
+        .catchphrase-area {
+            display: flex;
+            flex-direction: column;
+            gap: 3rem;
+            justify-content: center;
+            height: 86vh;
+        }
+        .catchphrase-area .catchphrase__text {
+            display: block;
+            height: 3lh;
+            font-size: 6vw;
+            font-weight: bold;
+            letter-spacing: 8px;
+            line-height: 1.4em;
+            visibility: hidden;
+        }
+        .catchphrase-area .catchphrase__text ins,
+        .catchphrase-area .catchphrase__text del { text-decoration: none; }
+        .catchphrase-area .catchphrase__text kbd { font-family: inherit; }
+        .catchphrase-area .catchphrase__text s { display: none; }
+        .catchphrase-area__links {
+            display: flex;
+            flex-direction: column;
+            width: 60%;
+        }
+        .catchphrase-area__links__row { display: flex; }
+        .catchphrase-area__links a.link-button {
+            margin: 0.8em 1em 0.8em 0;
+            font-size: 1.3rem;
+            min-width: 20em;
+        }
 
-    /* ── 代表理事 ── */
-    .greeting-section{
-      display:grid;grid-template-columns:1fr 1fr;
-      gap:0;
-      background:var(--ink-s);
-      border-top:1px solid var(--border);
-      border-bottom:1px solid var(--border);
-    }
-    .greeting-photo-wrap{
-      position:relative;overflow:hidden;
-      min-height:640px;
-    }
-    .greeting-photo-wrap img{
-      width:100%;height:100%;object-fit:cover;object-position:center top;
-      filter:grayscale(20%);
-    }
-    .greeting-photo-wrap::after{
-      content:'';position:absolute;inset:0;
-      background:linear-gradient(to right,transparent 70%,var(--ink-s) 100%);
-    }
-    .greeting-text-wrap{
-      padding:80px;display:flex;flex-direction:column;justify-content:center;
-    }
-    .greeting-text-wrap blockquote{
-      font-family:var(--font-d);
-      font-size:clamp(22px,2.5vw,32px);
-      font-weight:700;color:#fff;
-      line-height:1.4;letter-spacing:-.02em;
-      margin-bottom:36px;
-      border-left:2px solid var(--accent);
-      padding-left:24px;
-    }
-    .greeting-body{
-      font-size:14px;font-weight:300;
-      color:var(--text-s);line-height:1.9;
-      margin-bottom:40px;
-    }
-    .greeting-sig{
-      display:flex;align-items:center;gap:20px;
-      padding-top:32px;border-top:1px solid var(--border);
-    }
-    .greeting-sig-avatar{
-      width:48px;height:48px;border-radius:50%;
-      background:var(--ink-m);border:1px solid var(--border-l);
-      overflow:hidden;flex-shrink:0;
-    }
-    .greeting-sig-avatar img{width:100%;height:100%;object-fit:cover}
-    .greeting-sig-name{font-family:var(--font-d);font-size:15px;font-weight:700;color:#fff}
-    .greeting-sig-role{font-size:11.5px;color:var(--text-m);margin-top:2px}
+        /* ── パネル共通 ── */
+        .panel {
+            background-color: #fff;
+            padding: 3em 2em;
+            color: #041f4e;
+        }
+        .panel.panel-rounded { border-radius: 24px; }
+        .panel a.link-button {
+            border: 2px solid #041f4e;
+            color: #041f4e;
+        }
+        .panel a.link-button:hover {
+            background-color: #041f4e;
+            color: #fff;
+        }
 
-    /* ── CTA ── */
-    .cta-section{
-      padding:120px 80px;
-      background:var(--ink-s);
-      border-top:1px solid var(--border);
-      display:grid;grid-template-columns:1fr 1fr;
-      gap:80px;align-items:center;
-    }
-    .cta-left .sec-title{margin-bottom:16px}
-    .cta-left p{font-size:15px;font-weight:300;color:var(--text-s);line-height:1.8;margin-bottom:36px}
-    .cta-actions{display:flex;gap:12px;flex-wrap:wrap}
-    .btn-cta-primary{
-      display:inline-flex;align-items:center;gap:8px;
-      font-size:14px;font-weight:600;color:#fff;
-      background:var(--accent);
-      padding:14px 28px;border-radius:var(--r);
-      transition:all .2s;
-    }
-    .btn-cta-primary:hover{background:#4f46e5;transform:translateY(-1px)}
-    .btn-cta-ghost{
-      display:inline-flex;align-items:center;gap:8px;
-      font-size:14px;font-weight:400;color:var(--text-s);
-      padding:14px 24px;border-radius:var(--r);
-      border:1px solid var(--border-l);
-      transition:all .2s;
-    }
-    .btn-cta-ghost:hover{color:#fff;border-color:rgba(255,255,255,0.3)}
-    .cta-right{
-      display:grid;grid-template-columns:1fr 1fr;gap:1px;
-      background:var(--border);border:1px solid var(--border);
-    }
-    .cta-item{
-      background:var(--ink-s);padding:32px;
-      transition:background .2s;
-    }
-    .cta-item:hover{background:rgba(99,102,241,0.06)}
-    .cta-item-num{
-      font-family:var(--font-d);font-size:11px;font-weight:700;
-      letter-spacing:.2em;color:var(--accent-l);margin-bottom:16px;
-    }
-    .cta-item h4{
-      font-family:var(--font-d);font-size:16px;font-weight:700;
-      color:#fff;margin-bottom:8px;
-    }
-    .cta-item p{font-size:12.5px;color:var(--text-s);line-height:1.7}
+        /* ── エリア（セクション） ── */
+        .area {
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            padding: 3% 0;
+            min-height: 97vh;
+            text-align: left;
+        }
+        .area__header {
+            min-width: 30%;
+            text-align: center;
+            padding-bottom: 3%;
+        }
+        .area__header__button { margin: 2em 0; }
+        .area__content {
+            width: 50%;
+            word-wrap: anywhere;
+        }
+        .area__content p {
+            font-size: clamp(1rem, 1.2vw, 1.5rem);
+            font-weight: normal;
+        }
+        .area.panel {
+            margin-right: calc(50% - 50vw);
+            margin-left: calc(50% - 50vw);
+            padding-right: calc(50vw - 50%);
+            padding-left: calc(50vw - 50%);
+            background-color: #e5e6ea;
+        }
 
-    /* ── フッター ── */
-    .footer{
-      padding:72px 80px 40px;
-      border-top:1px solid var(--border);
-    }
-    .footer-top{
-      display:grid;
-      grid-template-columns:1.6fr 1fr 1fr 1fr 1fr;
-      gap:48px;margin-bottom:64px;
-    }
-    .footer-brand-name{
-      font-family:var(--font-d);font-size:15px;font-weight:700;
-      color:#fff;margin-bottom:6px;
-    }
-    .footer-brand-ja{font-size:11px;color:var(--text-m);margin-bottom:20px;letter-spacing:.04em}
-    .footer-brand-desc{font-size:13px;color:var(--text-m);line-height:1.75;margin-bottom:24px}
-    .footer-socials{display:flex;gap:8px}
-    .footer-social{
-      width:34px;height:34px;border-radius:var(--r);
-      border:1px solid var(--border-l);
-      display:flex;align-items:center;justify-content:center;
-      font-size:13px;color:var(--text-m);
-      transition:all .15s;
-    }
-    .footer-social:hover{border-color:rgba(255,255,255,0.3);color:#fff;background:rgba(255,255,255,0.06)}
-    .footer-col h5{
-      font-size:10.5px;font-weight:700;letter-spacing:.15em;
-      text-transform:uppercase;color:var(--text-m);
-      margin-bottom:18px;
-    }
-    .footer-col ul{list-style:none}
-    .footer-col li+li{margin-top:12px}
-    .footer-col a{font-size:13.5px;color:var(--text-s);transition:color .15s}
-    .footer-col a:hover{color:#fff}
-    .footer-bottom{
-      display:flex;align-items:center;justify-content:space-between;
-      padding-top:28px;border-top:1px solid var(--border);
-    }
-    .footer-bottom p{font-size:12px;color:var(--text-m)}
-    .footer-bottom-links{display:flex;gap:24px}
-    .footer-bottom-links a{font-size:12px;color:var(--text-m);transition:color .15s}
-    .footer-bottom-links a:hover{color:var(--text-s)}
+        /* ── Features ── */
+        .feature { padding-bottom: 3em; }
+        .feature p { margin: 2.6em 0; }
+        .feature img { max-width: 100%; border-radius: 12px; }
 
-    /* ── レスポンシブ ── */
-    @media(max-width:1024px){
-      section{padding:80px 40px}
-      .hd{padding:0 24px}
-      .hero-content{padding:0 40px 72px}
-      .stats-bar{padding:40px}
-      .strengths-header,.news-section,.greeting-section{grid-template-columns:1fr}
-      .mission-header{grid-template-columns:1fr}
-      .mission-pillars{grid-template-columns:repeat(3,1fr)}
-      .cta-section{grid-template-columns:1fr;padding:80px 40px}
-      .footer{padding:64px 40px 32px}
-      .footer-top{grid-template-columns:1fr 1fr;gap:32px}
-    }
-    @media(max-width:768px){
-      .hd-nav,.hd-right .btn-ghost{display:none}
-      .hero h1{font-size:36px}
-      .stats-bar{grid-template-columns:repeat(2,1fr);padding:32px 24px;gap:0}
-      .stat:nth-child(2){border-right:none}
-      .stat:nth-child(3){border-top:1px solid var(--border);border-right:1px solid var(--border)}
-      .strengths-grid{grid-template-columns:1fr}
-      .mission-pillars{grid-template-columns:repeat(2,1fr)}
-      .greeting-photo-wrap{min-height:320px}
-      .cta-right{grid-template-columns:1fr}
-      .footer-top{grid-template-columns:1fr}
-    }
-  </style>
+        /* ── News ── */
+        .news-list {
+            margin: 0;
+            list-style: none;
+            padding: 3em 2em;
+        }
+        .news-list__item {
+            padding: 1em 0;
+            border-top: #041f4e solid 1px;
+        }
+        .news-list__item:first-child {
+            padding-top: 0;
+            border-top: none;
+        }
+        .news-list__item__meta {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1em;
+        }
+        .news-list__item__meta .news-date { width: 6em; }
+        .news-list__item__meta .news-category {
+            padding: 0.1em 1.5em;
+            background-color: #041f4e;
+            color: #fff;
+            border-radius: 1em;
+        }
+        .news-list__item__title a {
+            color: #041f4e;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .news-list__item__title a:hover { opacity: 0.8; }
+
+        /* ── Mission ── */
+        .card-list { counter-reset: item; }
+        .card-list__item {
+            margin: 1em 0;
+            padding: 1em 2em;
+            background-color: #fff;
+        }
+        ol > .card-list__item {
+            display: flex;
+            align-items: center;
+            list-style: none;
+        }
+        ol > .card-list__item:before {
+            min-width: 2em;
+            counter-increment: item;
+            content: counter(item) ".";
+            font-size: 3rem;
+            font-weight: bold;
+        }
+        .mission-list { margin: 2rem 0; }
+        .mission-list .card-list__item {
+            transition: scale 0.1s;
+        }
+        .mission-list .card-list__item:hover { scale: 1.01; }
+
+        /* ── Greeting ── */
+        .greeting__message { display: flex; }
+        .greeting__message__image { flex: 0.6; }
+        .greeting__message__image img {
+            width: 100%;
+            border-radius: 12px;
+        }
+        .greeting__message__text {
+            flex: 1;
+            padding: 0 2em;
+            text-indent: 1rem;
+        }
+        .greeting__signature {
+            margin-top: 4em;
+            text-align: right;
+        }
+        .greeting__signature span { font-weight: bold; }
+
+        /* ── Media ── */
+        .media-panels {
+            display: flex;
+            gap: 28px;
+            flex-wrap: wrap;
+        }
+        .media-panels .panel {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            text-decoration: none;
+            flex: 1 1 26em;
+            height: 12em;
+            border-radius: 16px;
+            padding: 2em;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .media-panels .panel:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+        }
+        .media-panels .panel__title {
+            font-size: 1.6rem;
+            font-weight: bold;
+        }
+        .media-panels .panel__content p { font-size: 0.95rem; }
+        .media-panels .panel.media-discord {
+            background-color: #2e4ba0; color: #fff;
+        }
+        .media-panels .panel.media-twitter {
+            background-color: #292929; color: #fff;
+        }
+        .media-panels .panel.media-connpass {
+            background-color: #f2563e; color: #fff;
+        }
+        .media-panels .panel.media-coming-soon {
+            background-color: rgba(255,255,255,0.1);
+            color: rgba(255,255,255,0.5);
+            border: 1px dashed rgba(255,255,255,0.2);
+        }
+
+        /* ── フッター ── */
+        .footer {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-evenly;
+            height: 20em;
+            padding: 0 3%;
+        }
+        .footer__inner {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 50%;
+        }
+        .footer__inner .footer-logo {
+            display: block;
+            height: 80%;
+            text-align: center;
+        }
+        .footer__inner .footer-logo .logo-text {
+            font-size: 1.8rem;
+            font-weight: 900;
+            letter-spacing: 0.05em;
+        }
+        .footer__inner .footer-logo .logo-sub {
+            font-size: 0.75rem;
+            color: rgba(255,255,255,0.6);
+        }
+        .footer__inner .footer-links a.link-button {
+            display: block;
+            margin: 1em 0;
+            width: 18em;
+        }
+        .footer__copyright {
+            position: relative;
+            font-weight: bold;
+        }
+        .footer__copyright p { display: inline; }
+        .footer__copyright .legal-link {
+            position: absolute;
+            right: 3%;
+            display: inline;
+            color: #fff;
+            text-decoration: none;
+        }
+        .footer__copyright .legal-link:hover { opacity: 0.8; }
+
+        /* ── レスポンシブ ── */
+        @media screen and (max-width: 1200px) {
+            html, body { width: 100%; height: 100%; margin: 0; padding: 0; }
+            main { padding: 0 1rem; }
+            h1 { font-size: clamp(1.5rem, 10vw, 4rem); padding-top: 20px; }
+            h2 { font-size: clamp(2rem, 7vw, 5rem); }
+            .nav-item, .nav-menu-list, .nav-profile { display: none !important; }
+            .header-nav nav .nav-logo {
+                position: absolute;
+                top: 12%; left: 4%;
+                height: clamp(3rem, 18vw, 7rem);
+                width: clamp(4rem, 48vw, 16rem);
+                overflow: hidden;
+            }
+            .hamburger { display: block; }
+            .catchphrase-area {
+                position: relative;
+                justify-content: flex-start;
+                gap: 2rem;
+                height: calc(100vw / 1);
+            }
+            .catchphrase-area .catchphrase__text {
+                font-size: calc(100vw / 10);
+                height: auto;
+            }
+            .catchphrase-area__links {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                justify-content: center;
+                gap: 20px;
+                position: absolute;
+                width: 100%; bottom: 40px;
+            }
+            .catchphrase-area__links a.link-button {
+                margin: 0.5em 0;
+                font-size: calc(100vw / 22);
+                min-width: calc(100vw / 2.3);
+                min-height: 3rem;
+                align-content: center;
+            }
+            .area {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                padding: 3% 4%;
+            }
+            .area.panel { padding: 3% 35px; }
+            .area__header {
+                min-width: 100%;
+                text-align: left;
+                margin-bottom: 2em;
+            }
+            .area__content {
+                width: 100%;
+                text-align: left;
+            }
+            .area__content p {
+                font-weight: normal;
+                font-size: clamp(0.2rem, 4vw, 2rem);
+                padding-bottom: clamp(1rem, 5vw, 3rem);
+            }
+            .panel {
+                margin-right: 0; margin-left: 0;
+                padding-right: clamp(1rem, 5vw, 5rem);
+                padding-left: clamp(1rem, 5vw, 5rem);
+            }
+            .feature p { margin: 0.4rem 0; }
+            .greeting__message {
+                display: flex;
+                flex-direction: column;
+                width: 100%;
+            }
+            .greeting__message__image {
+                width: 60%;
+                margin: 0 auto 2em;
+            }
+            .greeting__message__text {
+                flex: 1;
+                padding: 0;
+                text-indent: 1rem;
+            }
+            .footer__inner { position: relative; height: 46%; }
+            .footer-links {
+                display: grid;
+                font-size: clamp(0.8rem, 2.5vw, 1rem);
+                width: 40%;
+            }
+            .footer__inner .footer-links a.link-button {
+                display: block;
+                margin: 0.5em 0;
+                width: 100%;
+            }
+            .footer__copyright .legal-link { top: 100%; left: 0; }
+        }
+        @media screen and (min-width: 700px) and (max-width: 1200px) {
+            .header-nav .nav-logo {
+                position: absolute;
+                top: 19%; left: 4%;
+                height: clamp(3rem, 18vw, 7rem) !important;
+                width: clamp(4rem, 48vw, 18rem) !important;
+                overflow: hidden;
+            }
+            .catchphrase-area { height: calc(100vw / 1.1); }
+        }
+    </style>
 </head>
 <body>
 
-<!-- ヘッダー -->
-<header class="hd" id="hd">
-  <a href="#" class="hd-logo">
-    <div class="hd-logo-mark">
-      <svg viewBox="0 0 24 24"><polygon points="12,2 22,8 22,16 12,22 2,16 2,8"/><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="8" x2="22" y2="8"/><line x1="2" y1="16" x2="22" y2="16"/></svg>
+<div class="polygon-background">
+    <div class="bg-polygon"></div>
+    <div class="bg-polygon"></div>
+</div>
+
+<header class="header-nav">
+    <div class="pc-menu" id="pcMenu">
+        <nav>
+            <div class="nav-logo">
+                <a href="/">
+                    <div class="logo-text">JGAIA</div>
+                    <div class="logo-sub">一般社団法人日本生成AI協会</div>
+                </a>
+            </div>
+            <div class="nav-item">
+                <ul class="nav-menu-list">
+                    <li class="nav-menu-list__item"><a href="/"><strong>Home</strong><span>ホーム</span></a></li>
+                    <li class="nav-menu-list__item dropdown">
+                        <a href="https://www.jgaia.org/company-info.php"><strong>About</strong><span>協会情報</span></a>
+                        <ul class="dropdown-menu">
+                            <li><a href="https://www.jgaia.org/company-info.php">協会概要</a></li>
+                            <li><a href="https://www.jgaia.org/team-members.php">協会メンバー紹介</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-menu-list__item dropdown">
+                        <a href="https://www.jgaia.org/course.php"><strong>Qualifications</strong><span>資格／試験講座</span></a>
+                        <ul class="dropdown-menu">
+                            <li><a href="https://www.jgaia.org/course.php">資格・認定講座</a></li>
+                            <li><a href="/vibe-coding">バイブコーディング講座</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-menu-list__item"><a href="https://www.jgaia.org/member.php"><strong>Association Members</strong><span>協会員一覧</span></a></li>
+                    <li class="nav-menu-list__item"><a href="https://www.jgaia.org/join_us.php"><strong>JoinUs</strong><span>協会員募集</span></a></li>
+                    <li class="nav-menu-list__item"><a href="https://www.jgaia.org/contact.php"><strong>Contact</strong><span>お問い合わせ</span></a></li>
+                </ul>
+                <div class="nav-profile">
+                    <a class="link-button nav-register" href="https://member.jgaia.org/auth/register">登録</a>
+                    <a class="link-button btn-white nav-login" href="https://member.jgaia.org/auth/login">ログイン</a>
+                </div>
+            </div>
+        </nav>
+        <div class="hamburger" onclick="toggleMenu()">&#9776;</div>
     </div>
-    <div class="hd-logo-text">
-      <div class="en">JGAIA</div>
-      <div class="ja">一般社団法人 日本生成AI協会</div>
+    <div class="mobile-menu" id="mobileMenu">
+        <div class="close-btn" onclick="toggleMenu()">&#10005;</div>
+        <ul class="mobile-menu-list">
+            <li class="mobile-nav-item"><a href="/">ホーム <span>Home</span></a></li>
+            <li class="mobile-nav-item"><a href="https://www.jgaia.org/company-info.php">協会情報 <span>About</span></a></li>
+            <li class="mobile-nav-item mobile-subitem"><a href="https://www.jgaia.org/team-members.php">協会メンバー紹介 <span>Member Introductions</span></a></li>
+            <li class="mobile-nav-item"><a href="https://www.jgaia.org/course.php">資格／試験講座 <span>Qualifications</span></a></li>
+            <li class="mobile-nav-item mobile-subitem"><a href="/vibe-coding">バイブコーディング講座 <span>Vibe Coding</span></a></li>
+            <li class="mobile-nav-item"><a href="https://www.jgaia.org/member.php">協会員一覧 <span>Association Members</span></a></li>
+            <li class="mobile-nav-item"><a href="https://www.jgaia.org/join_us.php">協会員募集 <span>JoinUs</span></a></li>
+            <li class="mobile-nav-item"><a href="https://www.jgaia.org/contact.php">お問い合わせ <span>Contact</span></a></li>
+            <li class="mobile-log-item">
+                <a class="link-button nav-register" href="https://member.jgaia.org/auth/register">登録</a>
+                <a class="link-button btn-white nav-login" href="https://member.jgaia.org/auth/login">ログイン</a>
+            </li>
+        </ul>
     </div>
-  </a>
-  <nav class="hd-nav">
-    <a href="#">ホーム</a>
-    <a href="#">協会情報</a>
-    <a href="/vibe-coding">資格・講座</a>
-    <a href="#">協会員一覧</a>
-    <a href="#">協会員募集</a>
-    <a href="#">お問い合わせ</a>
-  </nav>
-  <div class="hd-right">
-    <a href="#" class="btn-ghost">ログイン</a>
-    <a href="#" class="btn-solid">新規登録</a>
-  </div>
 </header>
 
-<!-- ヒーロー -->
-<section class="hero">
-  <div class="hero-bg"></div>
-  <div class="hero-content">
-    <div class="hero-eyebrow">JAPAN GENERATIVE AI ASSOCIATION</div>
-    <h1>生成AIで、<br><em>新しい時代を</em><br>デザインする。</h1>
-    <p class="hero-sub">
-      日本における生成AIの普及・教育・資格認定・産業連携を推進し、<br>
-      持続可能で豊かな社会の実現に貢献します。
-    </p>
-    <div class="hero-actions">
-      <a href="/vibe-coding" class="btn-hero-primary">資格・認定講座を見る <span>→</span></a>
-      <a href="#" class="btn-hero-ghost">イベント情報</a>
-    </div>
-  </div>
-  <div class="hero-scroll">
-    SCROLL
-    <div class="hero-scroll-line"></div>
-  </div>
-</section>
+<div class="particles-background" id="particlesJs"></div>
 
-<!-- 統計バー -->
-<div class="stats-bar">
-  <div class="stat">
-    <div class="stat-n">30<sup>+</sup></div>
-    <div class="stat-label">教育プログラム</div>
-    <div class="stat-desc">講座・セミナーを提供</div>
-  </div>
-  <div class="stat">
-    <div class="stat-n">5<sup>種</sup></div>
-    <div class="stat-label">資格認定</div>
-    <div class="stat-desc">認定資格を運用</div>
-  </div>
-  <div class="stat">
-    <div class="stat-n">120<sup>+</sup></div>
-    <div class="stat-label">産業連携</div>
-    <div class="stat-desc">企業・団体と連携</div>
-  </div>
-  <div class="stat">
-    <div class="stat-n">8K<sup>+</sup></div>
-    <div class="stat-label">コミュニティ</div>
-    <div class="stat-desc">会員・フォロワー</div>
-  </div>
-</div>
+<main class="content">
+    <!-- キャッチフレーズ -->
+    <div class="catchphrase-area">
+        <div class="catchphrase">
+            <span class="catchphrase__text" id="catchphrase">
+                s<del>*<ins>0</ins></del><ins>せ</ins>いs<del>*<ins>0</ins></del><ins>せいせ</ins>い<del>*<ins>0</ins></del><ins>生成</ins>AId<del>*<ins>0</ins></del><ins>生成AIで</ins><br/>あt<del>*<ins>0</ins></del><ins>生成AIで<br/>あた</ins>r<del>*<ins>0</ins></del><ins>生成AIで<br/>あたら</ins>s<del>*<ins>0</ins></del><ins>生成AIで<br/>あたらし</ins>い<del>*<ins>0</ins></del><ins>生成AIで<br/>新しい</ins>j<del>*<ins>0</ins></del><ins>生成AIで<br/>新しいじ</ins>d<del>*<ins>0</ins></del><ins>生成AIで<br/>新しいじだ</ins>いw<del>*<ins>0</ins></del><ins>生成AIで<br/>新しいじだいを</ins><del>*<ins>0</ins></del><ins>生成AIで<br/>新しい時代を</ins><br/>d<del>*<ins>0</ins></del><ins>生成AIで<br/>新しい時代を<br/>で</ins>z<del>*<ins>0</ins></del><ins>生成AIで<br/>新しい時代を<br/>でざ</ins>いn<del>*<ins>0</ins></del><ins>生成AIで<br/>新しい時代を<br/>でざいんs</ins><del>*<ins>0</ins></del><ins>生成AIで<br/>新しい時代を<br/>でざいんす</ins>r<del>*<ins>0</ins></del><ins>生成AIで<br/>新しい時代を<br/>でざいんする</ins><del>*<ins>0</ins></del><ins>生成AIで<br/>新しい時代を<br/>デザインする</ins>
+            </span>
+        </div>
+        <div class="catchphrase-area__links">
+            <div class="catchphrase-area__links__row">
+                <a class="link-button btn-rounded btn-white" href="https://www.jgaia.org/course.php">資格・認定講座</a>
+                <a class="link-button btn-rounded btn-white" href="https://connpass.com/user/jgaia/">イベント情報</a>
+            </div>
+            <div class="catchphrase-area__links__row">
+                <a class="link-button btn-rounded btn-white" href="https://www.jgaia.org/member.php">協会員一覧</a>
+                <a class="link-button btn-rounded btn-white" href="https://www.jgaia.org/contact.php">お問い合わせ</a>
+            </div>
+        </div>
+    </div>
 
-<!-- 私たちの強み -->
-<section>
-  <div class="strengths-header">
-    <div>
-      <div class="sec-label">OUR STRENGTHS</div>
-      <h2 class="sec-title">私たちの<br>強み</h2>
-    </div>
-    <p class="sec-desc">生成AI分野における4つの核心領域で、日本のAI社会実装を力強く推進します。各領域で業界最高水準の専門知識と実績を積み重ねています。</p>
-  </div>
-  <div class="strengths-grid">
-    <div class="strength-card">
-      <img src="static/img/strength-education.png" alt="教育">
-      <div class="strength-overlay">
-        <div class="strength-num">01</div>
-        <h3>教育</h3>
-        <p>実践的で体系的なカリキュラムを通じて、生成AIの知識とスキルを育成します。</p>
-        <span class="strength-link">詳しく見る →</span>
-      </div>
-    </div>
-    <div class="strength-card">
-      <img src="static/img/strength-certification.png" alt="資格検定">
-      <div class="strength-overlay">
-        <div class="strength-num">02</div>
-        <h3>資格検定</h3>
-        <p>信頼性の高い試験と認定制度で、スキルの可視化とキャリア形成を支援します。</p>
-        <span class="strength-link">詳しく見る →</span>
-      </div>
-    </div>
-    <div class="strength-card">
-      <img src="static/img/strength-industry.png" alt="人材・産業連携">
-      <div class="strength-overlay">
-        <div class="strength-num">03</div>
-        <h3>人材・産業連携</h3>
-        <p>産学官の連携により、AI人材の活躍機会を創出し、産業の発展に貢献します。</p>
-        <span class="strength-link">詳しく見る →</span>
-      </div>
-    </div>
-    <div class="strength-card">
-      <img src="static/img/strength-quantum.png" alt="量子技術 × AI">
-      <div class="strength-overlay">
-        <div class="strength-num">04</div>
-        <h3>量子技術 × AI</h3>
-        <p>量子技術とAIの融合による次世代のイノベーション創出を推進します。</p>
-        <span class="strength-link">詳しく見る →</span>
-      </div>
-    </div>
-  </div>
-</section>
+    <!-- Features -->
+    <div class="area panel">
+        <div class="area__header">
+            <h1>Features</h1>
+            <span class="area_title_jp">当協会の特徴</span>
+            <div class="area__header__button">
+                <a class="link-button" href="https://www.jgaia.org/company-info.php">協会情報</a>
+            </div>
+        </div>
+        <div class="area__content">
+            <div class="feature">
+                <h2>量子技術とAIの融合</h2>
+                <p>
+                    JGAIAは日本量子コンピューティング協会(JQCA)と戦略的提携を締結し、将来の重要技術である量子コンピューティングとAIの融合を目指しています。この連携により、両分野の知見を活かした革新的な取り組みを展開し、最先端技術の相乗効果を追求しています。量子技術とAIの連動した活動を通じて、従来の枠組みを超えた新たな可能性を探求し、技術革新の最前線を切り拓くことを目指しています。
+                </p>
+                <img src="static/img/strength-education.png" alt="量子技術とAIの融合">
+            </div>
 
-<!-- 最新のお知らせ -->
-<section style="padding-top:0">
-  <div class="news-section">
-    <div class="news-sticky">
-      <div class="sec-label">LATEST NEWS</div>
-      <h2 class="sec-title">最新の<br>お知らせ</h2>
-      <p class="sec-desc" style="margin-bottom:32px">協会からの最新情報、イベント、メディア掲載情報をお届けします。</p>
-      <a href="#" class="news-btn">すべて見る →</a>
+            <div class="feature">
+                <h2>包括的アプローチ</h2>
+                <p>
+                    JGAIAは、生成AI分野における「教育」「資格検定」「人材紹介」を一気通貫で提供します。最新の生成AI技術を学べる教育プログラムを実施し、習得したスキルを評価する資格検定制度を運営します。さらに、その専門性を活かせる職場への橋渡しも行います。この包括的なアプローチにより、生成AI産業で活躍できる人材の育成と、AI人材を必要とする企業様とのマッチングを目指します。JGAIAは、これらの活動を通じて日本の生成AI技術の発展に貢献します。
+                </p>
+                <img src="static/img/strength-certification.png" alt="教育、資格検定、人材紹介">
+            </div>
+        </div>
     </div>
-    <div>
-      <div class="news-list">
-        <a href="#" class="news-row">
-          <span class="news-date">2025.07.31</span>
-          <span class="news-tag tag-info">協会お知らせ</span>
-          <span class="news-row-title">生成AIエンジニア資格（初級・中級）試験の申込受付を開始</span>
-          <span class="news-arrow">→</span>
-        </a>
-        <a href="#" class="news-row">
-          <span class="news-date">2025.06.01</span>
-          <span class="news-tag tag-info">協会お知らせ</span>
-          <span class="news-row-title">生成AI講座の一部を無料公開しました</span>
-          <span class="news-arrow">→</span>
-        </a>
-        <a href="#" class="news-row">
-          <span class="news-date">2025.05.15</span>
-          <span class="news-tag tag-event">イベント</span>
-          <span class="news-row-title">Japan Generative AI Conference 2025 開催のお知らせ</span>
-          <span class="news-arrow">→</span>
-        </a>
-        <a href="#" class="news-row">
-          <span class="news-date">2025.04.20</span>
-          <span class="news-tag tag-media">メディア掲載</span>
-          <span class="news-row-title">当協会の取り組みが日経クロステックに掲載されました</span>
-          <span class="news-arrow">→</span>
-        </a>
-        <a href="#" class="news-row">
-          <span class="news-date">2025.03.10</span>
-          <span class="news-tag tag-news">ニュース</span>
-          <span class="news-row-title">産業省との連携協定締結のご報告</span>
-          <span class="news-arrow">→</span>
-        </a>
-      </div>
-    </div>
-  </div>
-</section>
 
-<!-- ミッション -->
-<section class="mission-section">
-  <div class="mission-bg"></div>
-  <div class="mission-content">
-    <div class="mission-header">
-      <div>
-        <div class="sec-label">OUR MISSION</div>
-        <h2 class="sec-title">私たちの<br>ミッション</h2>
-        <p class="sec-desc">生成AIの可能性を最大化し、人と技術が共創する未来を創るために、5つの柱を軸に活動しています。</p>
-      </div>
+    <!-- News -->
+    <div class="area">
+        <div class="area__header">
+            <h1>News</h1>
+            <span class="area_title_jp">新着情報</span>
+        </div>
+        <div class="area__content">
+            <ul class="panel panel-rounded news-list">
+                <li class="news-list__item">
+                    <div class="news-list__item__meta">
+                        <div class="news-date">2026.06.11</div>
+                        <div class="news-category">協会お知らせ</div>
+                    </div>
+                    <div class="news-list__item__title">
+                        <a href="https://jgaia.connpass.com/event/#2026-06">【講座視聴無料】6月試験開始のお知らせ</a>
+                    </div>
+                </li>
+                <li class="news-list__item">
+                    <div class="news-list__item__meta">
+                        <div class="news-date">2026.05.07</div>
+                        <div class="news-category">協会お知らせ</div>
+                    </div>
+                    <div class="news-list__item__title">
+                        <a href="https://jgaia.connpass.com/event/#2026-05">【講座視聴無料】5月試験開始のお知らせ</a>
+                    </div>
+                </li>
+                <li class="news-list__item">
+                    <div class="news-list__item__meta">
+                        <div class="news-date">2026.04.09</div>
+                        <div class="news-category">協会お知らせ</div>
+                    </div>
+                    <div class="news-list__item__title">
+                        <a href="https://jgaia.connpass.com/event/#2026-04">【講座視聴無料】4月試験開始のお知らせ</a>
+                    </div>
+                </li>
+                <li class="news-list__item">
+                    <div class="news-list__item__meta">
+                        <div class="news-date">2026.03.12</div>
+                        <div class="news-category">協会お知らせ</div>
+                    </div>
+                    <div class="news-list__item__title">
+                        <a href="https://jgaia.connpass.com/event/#2026-03">【講座視聴無料】3月試験開始のお知らせ</a>
+                    </div>
+                </li>
+                <li class="news-list__item">
+                    <div class="news-list__item__meta">
+                        <div class="news-date">2025.09.30</div>
+                        <div class="news-category">協会お知らせ</div>
+                    </div>
+                    <div class="news-list__item__title">
+                        <a href="https://qstar.jp/">量子技術による新産業創出協議会（Q-STAR）への入会のお知らせ</a>
+                    </div>
+                </li>
+            </ul>
+        </div>
     </div>
-    <div class="mission-pillars">
-      <div class="pillar">
-        <div class="pillar-num">01</div>
-        <div class="pillar-icon">📡</div>
-        <h4>普及と啓蒙</h4>
-        <p>生成AIの正しい理解と活用を社会に広めます。</p>
-      </div>
-      <div class="pillar">
-        <div class="pillar-num">02</div>
-        <div class="pillar-icon">🔬</div>
-        <h4>研究支援</h4>
-        <p>最先端の研究を支援し、知の発展に貢献します。</p>
-      </div>
-      <div class="pillar">
-        <div class="pillar-num">03</div>
-        <div class="pillar-icon">🏗️</div>
-        <h4>産業応用</h4>
-        <p>企業のAI導入を支援し、産業の進化を促します。</p>
-      </div>
-      <div class="pillar">
-        <div class="pillar-num">04</div>
-        <div class="pillar-icon">🌐</div>
-        <h4>国際連携</h4>
-        <p>グローバルな連携を通じて日本のプレゼンスを高めます。</p>
-      </div>
-      <div class="pillar">
-        <div class="pillar-num">05</div>
-        <div class="pillar-icon">🎓</div>
-        <h4>人材育成</h4>
-        <p>次世代を担うAI人材の育成に取り組みます。</p>
-      </div>
-    </div>
-  </div>
-</section>
 
-<!-- 代表理事ご挨拶 -->
-<div class="greeting-section">
-  <div class="greeting-photo-wrap">
-    <img src="static/img/representative.png" alt="代表理事">
-  </div>
-  <div class="greeting-text-wrap">
-    <div class="sec-label">GREETING</div>
-    <blockquote>
-      「技術の力で、<br>人と社会を<br>豊かにする。」
-    </blockquote>
-    <p class="greeting-body">
-      生成AIは、社会のあらゆる領域に革命をもたらす可能性を秘めています。私たちは、技術の力を人と社会のために活かすため、教育・資格・産業連携を通じて、健全なAIエコシステムの構築に取り組んでいます。<br><br>
-      皆さまと共に、より良い未来を創っていけることを願っています。AI技術が人類の可能性を広げ、すべての人が恩恵を受けられる社会の実現に向けて、共に歩んでまいりましょう。
-    </p>
-    <div class="greeting-sig">
-      <div class="greeting-sig-avatar">
-        <img src="static/img/representative.png" alt="">
-      </div>
-      <div>
-        <div class="greeting-sig-name">高野 秀隆</div>
-        <div class="greeting-sig-role">一般社団法人 日本生成AI協会 代表理事</div>
-      </div>
+    <!-- Mission -->
+    <div class="area panel">
+        <div class="area__header">
+            <h1>Mission</h1>
+            <span class="area_title_jp">目標</span>
+        </div>
+        <div class="area__content">
+            <p>日本生成AI協会は、生成AI技術の普及と発展をリードし、日本の産業や学術界における革新的な成長を促進することを使命とします。我々は、生成AIの可能性を広く認知し、研究、産業応用、国際交流、教育などの活動を通じて、日本がグローバルな生成AI技術のリーダーとなることを目指します。</p>
+            <ol class="card-list mission-list">
+                <li class="card-list__item">
+                    <div class="card-list__item__inner">
+                        <h4>生成AI技術の普及と啓蒙</h4>
+                        <span>生成AIの基本概念や可能性を広く一般の人々に啓蒙し、産業界や学術界、一般社会に生成AIの重要性を理解してもらうことを目標とします。</span>
+                    </div>
+                </li>
+                <li class="card-list__item">
+                    <div class="card-list__item__inner">
+                        <h4>生成AI技術の研究支援</h4>
+                        <span>日本国内の生成AIに関連する研究者や企業の支援を行い、研究成果の共有や新たな研究プロジェクトの推進を促進します。</span>
+                    </div>
+                </li>
+                <li class="card-list__item">
+                    <div class="card-list__item__inner">
+                        <h4>産業界との連携と実用化</h4>
+                        <span>産業界と緊密な連携を図り、生成AI技術の産業応用を推進します。産業界のニーズに合った研究や技術開発を支援し、生成AIの実用化に向けた一歩を踏み出します。</span>
+                    </div>
+                </li>
+                <li class="card-list__item">
+                    <div class="card-list__item__inner">
+                        <h4>国際的な連携と交流</h4>
+                        <span>国際的な生成AIコミュニティとの連携を強化し、最新の技術動向や知識の共有を通じて日本の生成AI技術の発展を国際的なレベルでリードします。</span>
+                    </div>
+                </li>
+                <li class="card-list__item">
+                    <div class="card-list__item__inner">
+                        <h4>生成AI人材の育成</h4>
+                        <span>学生や若手研究者を対象とした生成AI技術の教育プログラムを提供し、次世代のリーダーや専門家を育成します。生成AI技術に関する人材の不足に対処し、日本の人材育成に貢献します。</span>
+                    </div>
+                </li>
+            </ol>
+        </div>
     </div>
-  </div>
-</div>
 
-<!-- CTA -->
-<div class="cta-section">
-  <div class="cta-left">
-    <div class="sec-label">MEMBERSHIP</div>
-    <h2 class="sec-title">ともに未来を<br>創る仲間に</h2>
-    <p>会員になると、最新情報の取得やイベント参加、人材ネットワークなど多くのメリットがあります。組織・個人を問わず、AIの未来を共に築きましょう。</p>
-    <div class="cta-actions">
-      <a href="#" class="btn-cta-primary">お問い合わせ →</a>
-      <a href="#" class="btn-cta-ghost">入会案内を見る</a>
+    <!-- Greeting -->
+    <div class="area">
+        <div class="area__header">
+            <h1>Greeting</h1>
+            <span class="area_title_jp">代表者ご挨拶</span>
+        </div>
+        <div class="area__content">
+            <div class="panel panel-rounded greeting">
+                <div class="greeting__message">
+                    <div class="greeting__message__image">
+                        <img src="static/img/representative.png" alt="代表理事">
+                    </div>
+                    <div class="greeting__message__text">
+                        <p>
+                            当協会は、生成AI分野において日本の研究者、エンジニア、ビジネスパーソンの協力を促進し、革新的な技術とアプリケーション開発を推進します。この最先端の科学技術領域で、私たちは世界的リーダーシップの獲得を目指しています。
+                        </p>
+                        <p>
+                            生成AIは、従来不可能だった創造の扉を開きます。我々の使命は、その潜在能力を最大化し、社会に革新的価値をもたらすことです。これには、産官学の垣根を越えた連携と、知識・情熱の結集が不可欠です。
+                        </p>
+                        <p>
+                            当協会は、会員間の知識交換、情報共有、プロジェクト協力を促進し、相互成長の場を提供します。さらに、若手研究者の育成と啓発活動に注力し、次世代の生成AI人材育成にも取り組みます。
+                        </p>
+                    </div>
+                </div>
+                <div class="greeting__signature">
+                    <span>日本生成AI協会 代表理事</span>
+                </div>
+            </div>
+        </div>
     </div>
-  </div>
-  <div class="cta-right">
-    <div class="cta-item">
-      <div class="cta-item-num">01</div>
-      <h4>最新情報の提供</h4>
-      <p>業界動向や協会活動をいち早くお届け</p>
-    </div>
-    <div class="cta-item">
-      <div class="cta-item-num">02</div>
-      <h4>イベント参加</h4>
-      <p>セミナー・勉強会等に優先的にご招待</p>
-    </div>
-    <div class="cta-item">
-      <div class="cta-item-num">03</div>
-      <h4>会員ネットワーク</h4>
-      <p>企業・研究者との交流機会を創出</p>
-    </div>
-    <div class="cta-item">
-      <div class="cta-item-num">04</div>
-      <h4>教育支援</h4>
-      <p>講座割引や学習支援コンテンツを提供</p>
-    </div>
-  </div>
-</div>
 
-<!-- フッター -->
+    <!-- Media -->
+    <div class="area panel">
+        <div class="area__header">
+            <h1>Media</h1>
+            <span class="area_title_jp">情報発信</span>
+        </div>
+        <div class="area__content">
+            <div class="media-panels">
+                <a class="panel media-discord" href="https://discord.gg/cMF47nDj">
+                    <div class="panel__title">Discord</div>
+                    <div class="panel__content">
+                        <p>日本生成AI協会コミュニティー</p>
+                    </div>
+                </a>
+                <a class="panel media-twitter" href="https://x.com/jgaia_2024">
+                    <div class="panel__title">X</div>
+                    <div class="panel__content">
+                        <p>日本生成AI協会 公式アカウント</p>
+                    </div>
+                </a>
+                <a class="panel media-connpass" href="https://connpass.com/user/jgaia/">
+                    <div class="panel__title">connpass</div>
+                    <div class="panel__content">
+                        <p>日本生成AI協会 イベント情報</p>
+                    </div>
+                </a>
+                <div class="panel media-coming-soon">
+                    <div class="panel__title">Coming Soon</div>
+                    <div class="panel__content">
+                        <p>Coming Soon</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
 <footer class="footer">
-  <div class="footer-top">
-    <div>
-      <div class="footer-brand-name">JGAIA</div>
-      <div class="footer-brand-ja">一般社団法人 日本生成AI協会</div>
-      <p class="footer-brand-desc">生成AIの普及・教育・資格認定・産業連携を推進し、持続可能で豊かな社会の実現に貢献します。</p>
-      <div class="footer-socials">
-        <a href="#" class="footer-social">💬</a>
-        <a href="#" class="footer-social">𝕏</a>
-        <a href="#" class="footer-social">in</a>
-      </div>
+    <div class="footer__inner">
+        <div class="footer-logo">
+            <div class="logo-text">JGAIA</div>
+            <div class="logo-sub">Japan Generative AI Association</div>
+        </div>
+        <div class="footer-links">
+            <a class="link-button btn-rounded btn-white" href="https://www.jgaia.org/contact.php">お問い合わせ</a>
+            <a class="link-button btn-rounded btn-white" href="https://www.jgaia.org/company-info.php">協会情報</a>
+        </div>
     </div>
-    <div class="footer-col">
-      <h5>協会情報</h5>
-      <ul>
-        <li><a href="#">協会概要</a></li>
-        <li><a href="#">代表理事ご挨拶</a></li>
-        <li><a href="#">活動内容</a></li>
-        <li><a href="#">役員・組織</a></li>
-        <li><a href="#">アクセス</a></li>
-      </ul>
+    <div class="footer__copyright">
+        <p>&copy; 2024. 一般社団法人日本生成AI協会. All rights reserved.</p>
+        <a href="https://www.jgaia.org/tokutei.php" class="legal-link">特定商取引法に基づく表記</a>
     </div>
-    <div class="footer-col">
-      <h5>資格・講座</h5>
-      <ul>
-        <li><a href="/vibe-coding">バイブコーディング講座</a></li>
-        <li><a href="/vibe-coding/kids">子ども向け講座</a></li>
-        <li><a href="/vibe-coding/manufacturing">業種別講座</a></li>
-      </ul>
-    </div>
-    <div class="footer-col">
-      <h5>協会員</h5>
-      <ul>
-        <li><a href="#">協会員一覧</a></li>
-        <li><a href="#">協会員募集</a></li>
-        <li><a href="#">入会案内</a></li>
-      </ul>
-    </div>
-    <div class="footer-col">
-      <h5>サポート</h5>
-      <ul>
-        <li><a href="#">よくあるご質問</a></li>
-        <li><a href="#">お問い合わせ</a></li>
-        <li><a href="#">プライバシーポリシー</a></li>
-        <li><a href="#">サイト利用規約</a></li>
-      </ul>
-    </div>
-  </div>
-  <div class="footer-bottom">
-    <p>© 2025 JGAIA — 一般社団法人 日本生成AI協会. All rights reserved.</p>
-    <div class="footer-bottom-links">
-      <a href="#">プライバシーポリシー</a>
-      <a href="#">サイト利用規約</a>
-    </div>
-  </div>
 </footer>
 
 <script>
-// ヘッダースクロール
-const hd = document.getElementById('hd');
-window.addEventListener('scroll', () => {
-  hd.classList.toggle('scrolled', window.scrollY > 20);
-}, { passive: true });
+    // particles.js 背景
+    particlesJS("particlesJs", {
+        "particles": {
+            "number": { "value": 80, "density": { "enable": true, "value_area": 800 } },
+            "color": { "value": "#ffffff" },
+            "shape": { "type": "circle", "stroke": { "width": 0, "color": "#000000" } },
+            "opacity": { "value": 0.3, "random": false, "anim": { "enable": false } },
+            "size": { "value": 3, "random": true, "anim": { "enable": false } },
+            "line_linked": { "enable": true, "distance": 150, "color": "#ffffff", "opacity": 0.17, "width": 1 },
+            "move": { "enable": true, "speed": 2.5, "direction": "none", "random": false, "straight": false, "out_mode": "out" }
+        },
+        "interactivity": {
+            "detect_on": "canvas",
+            "events": {
+                "onhover": { "enable": false },
+                "onclick": { "enable": true, "mode": "push" },
+                "resize": true
+            },
+            "modes": { "push": { "particles_nb": 4 } }
+        },
+        "retina_detect": true
+    });
 
-// スクロールフェードイン
-const io = new IntersectionObserver((entries) => {
-  entries.forEach(e => {
-    if (e.isIntersecting) {
-      e.target.style.opacity = '1';
-      e.target.style.transform = 'none';
-      io.unobserve(e.target);
+    // モバイルメニュー
+    function toggleMenu() {
+        document.getElementById("mobileMenu").classList.toggle("active");
     }
-  });
-}, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
 
-document.querySelectorAll(
-  '.stat, .strength-card, .pillar, .cta-item, .news-row'
-).forEach((el, i) => {
-  el.style.cssText += `
-    opacity:0;
-    transform:translateY(24px);
-    transition:opacity 0.6s ${i * 0.06}s cubic-bezier(0.16,1,0.3,1),
-               transform 0.6s ${i * 0.06}s cubic-bezier(0.16,1,0.3,1);
-  `;
-  io.observe(el);
-});
+    // タイピングアニメーション
+    window.addEventListener('load', function () {
+        $('#catchphrase').t({speed: 50, delay: 0});
+    });
 </script>
+
 </body>
 </html>
