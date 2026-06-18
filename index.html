@@ -390,6 +390,47 @@
         .feature p { margin: 2.6em 0; }
         .feature img { max-width: 100%; border-radius: 12px; }
 
+        /* ── Flowchart diagrams ── */
+        .flowchart {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0;
+            margin: 2em 0;
+            flex-wrap: wrap;
+        }
+        .flowchart__box {
+            background: #041f4e;
+            color: #fff;
+            padding: 2em 2.5em;
+            border-radius: 4px;
+            text-align: center;
+            min-width: 180px;
+            flex: 1;
+            max-width: 320px;
+        }
+        .flowchart__box__title {
+            font-size: 1.6em;
+            font-weight: 700;
+            margin-bottom: .4em;
+        }
+        .flowchart__box__sub {
+            font-size: .85em;
+            opacity: .85;
+        }
+        .flowchart__arrow {
+            font-size: 1.4em;
+            color: #041f4e;
+            padding: 0 .8em;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+        @media (max-width: 600px) {
+            .flowchart { flex-direction: column; gap: 0; }
+            .flowchart__arrow { transform: rotate(90deg); padding: .4em 0; }
+            .flowchart__box { max-width: 100%; width: 100%; }
+        }
+
         /* ── News ── */
         .news-list {
             margin: 0;
@@ -762,7 +803,17 @@
                 <p>
                     JGAIAは日本量子コンピューティング協会(JQCA)と戦略的提携を締結し、将来の重要技術である量子コンピューティングとAIの融合を目指しています。この連携により、両分野の知見を活かした革新的な取り組みを展開し、最先端技術の相乗効果を追求しています。量子技術とAIの連動した活動を通じて、従来の枠組みを超えた新たな可能性を探求し、技術革新の最前線を切り拓くことを目指しています。
                 </p>
-                <img src="static/img/strength-education.png" alt="量子技術とAIの融合">
+                <div class="flowchart">
+                    <div class="flowchart__box">
+                        <div class="flowchart__box__title">量子技術</div>
+                        <div class="flowchart__box__sub">日本量子コンピューティング協会</div>
+                    </div>
+                    <div class="flowchart__arrow">提携</div>
+                    <div class="flowchart__box">
+                        <div class="flowchart__box__title">AI</div>
+                        <div class="flowchart__box__sub">日本生成AI協会</div>
+                    </div>
+                </div>
             </div>
 
             <div class="feature">
@@ -770,7 +821,19 @@
                 <p>
                     JGAIAは、生成AI分野における「教育」「資格検定」「人材紹介」を一気通貫で提供します。最新の生成AI技術を学べる教育プログラムを実施し、習得したスキルを評価する資格検定制度を運営します。さらに、その専門性を活かせる職場への橋渡しも行います。この包括的なアプローチにより、生成AI産業で活躍できる人材の育成と、AI人材を必要とする企業様とのマッチングを目指します。JGAIAは、これらの活動を通じて日本の生成AI技術の発展に貢献します。
                 </p>
-                <img src="static/img/strength-certification.png" alt="教育、資格検定、人材紹介">
+                <div class="flowchart">
+                    <div class="flowchart__box">
+                        <div class="flowchart__box__title">教育</div>
+                    </div>
+                    <div class="flowchart__arrow">→</div>
+                    <div class="flowchart__box">
+                        <div class="flowchart__box__title">資格検定</div>
+                    </div>
+                    <div class="flowchart__arrow">→</div>
+                    <div class="flowchart__box">
+                        <div class="flowchart__box__title">人材紹介</div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

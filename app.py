@@ -74,32 +74,41 @@ def contact():
                 body_lines = [
                     f"氏名: {name}",
                     f"メール: {email}",
-                    f"会社名: {company}" if company else None,
-                    f"お問い合わせ内容:\n{message}" if message else None,
                 ]
-                body_text = "\n".join(line for line in body_lines if line)
+                if company:
+                    body_lines.append(f"会社名: {company}")
+                if message:
+                    body_lines.append(f"お問い合わせ内容:\n{message}")
+                body_html = "<br>".join(
+                    line.replace("\n", "<br>") for line in body_lines
+                )
 
                 resend.Emails.send({
-                    "from": FROM_EMAIL,
+                    "from": f"JGAIA <{FROM_EMAIL}>",
                     "to": [NOTIFY_EMAIL],
                     "subject": f"【JGAIA】お問い合わせ: {name}様",
-                    "text": body_text,
+                    "html": (
+                        '<html><head><meta charset="utf-8"></head><body>'
+                        f"{body_html}</body></html>"
+                    ),
                 })
 
                 resend.Emails.send({
-                    "from": FROM_EMAIL,
+                    "from": f"JGAIA <{FROM_EMAIL}>",
                     "to": [email],
                     "subject": "【JGAIA】お問い合わせありがとうございます",
-                    "text": (
-                        f"{name} 様\n\n"
-                        "一般社団法人日本生成AI協会（JGAIA）へお問い合わせいただき"
-                        "ありがとうございます。\n\n"
-                        "内容を確認の上、担当者より2営業日以内にご連絡いたします。\n\n"
-                        "---\n"
-                        "一般社団法人日本生成AI協会（JGAIA）\n"
-                        "〒104-0061 東京都中央区銀座1-22-11 銀座大竹ビジデンス2階\n"
-                        "info@jgaia.org\n"
-                        "https://www.jgaia.org/"
+                    "html": (
+                        '<html><head><meta charset="utf-8"></head><body>'
+                        f"<p>{name} 様</p>"
+                        "<p>一般社団法人日本生成AI協会（JGAIA）へお問い合わせいただき"
+                        "ありがとうございます。</p>"
+                        "<p>内容を確認の上、担当者より2営業日以内にご連絡いたします。</p>"
+                        "<hr>"
+                        "<p>一般社団法人日本生成AI協会（JGAIA）<br>"
+                        "〒104-0061 東京都中央区銀座1-22-11 銀座大竹ビジデンス2階<br>"
+                        "info@jgaia.org<br>"
+                        "https://www.jgaia.org/</p>"
+                        "</body></html>"
                     ),
                 })
             except Exception:
