@@ -118,6 +118,11 @@ def contact():
     return render_template("contact.html", sent=False)
 
 
+@app.route("/gpu-guide")
+def gpu_guide():
+    return render_template("gpu_guide.html")
+
+
 @app.route("/tokutei")
 def tokutei():
     return render_template("tokutei.html")

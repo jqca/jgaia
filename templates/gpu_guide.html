@@ -1,0 +1,737 @@
+{% extends "base.html" %}
+{% block title %}GPU・計算環境ガイド{% endblock %}
+{% block description %}生成AIの開発・学習に最適なGPU製品を用途別にご紹介。個人学習からデータセンターまで、JGAIAが最適な計算環境選びをサポートします。{% endblock %}
+
+{% block extra_css %}
+/* ── GPU Guide ── */
+.gpu-intro {
+    font-size: 1.05rem;
+    line-height: 1.9;
+    color: #333;
+    margin-bottom: 2em;
+}
+.gpu-category {
+    margin-top: 3em;
+}
+.gpu-category-title {
+    display: flex;
+    align-items: center;
+    gap: 0.6em;
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #041f4e;
+    margin-bottom: 0.3em;
+}
+.gpu-category-title .cat-icon {
+    font-size: 1.6em;
+    line-height: 1;
+}
+.gpu-category-sub {
+    font-size: 0.9rem;
+    color: #666;
+    margin-bottom: 1.5em;
+    padding-bottom: 1em;
+    border-bottom: 2px solid #e0e0e0;
+}
+.gpu-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5em;
+}
+.gpu-card {
+    background: #f7f8fc;
+    border-radius: 16px;
+    padding: 1.8em;
+    border: 1px solid #e8eaf0;
+    transition: box-shadow 0.2s, transform 0.15s;
+    display: flex;
+    flex-direction: column;
+}
+.gpu-card:hover {
+    box-shadow: 0 8px 28px rgba(4, 31, 78, 0.1);
+    transform: translateY(-2px);
+}
+.gpu-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.8em;
+}
+.gpu-card-name {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #041f4e;
+    line-height: 1.3;
+}
+.gpu-card-badge {
+    display: inline-block;
+    padding: 0.2em 0.7em;
+    border-radius: 2em;
+    font-size: 0.72rem;
+    font-weight: 700;
+    white-space: nowrap;
+    flex-shrink: 0;
+    margin-left: 0.5em;
+}
+.badge-popular {
+    background: #ef4444;
+    color: #fff;
+}
+.badge-pro {
+    background: #041f4e;
+    color: #fff;
+}
+.badge-new {
+    background: #059669;
+    color: #fff;
+}
+.badge-value {
+    background: #d97706;
+    color: #fff;
+}
+.gpu-card-maker {
+    font-size: 0.82rem;
+    color: #888;
+    margin-bottom: 1em;
+    font-weight: 500;
+}
+.gpu-specs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.6em;
+    margin-bottom: 1.2em;
+}
+.gpu-spec-item {
+    background: #fff;
+    border-radius: 10px;
+    padding: 0.6em 0.8em;
+    text-align: center;
+}
+.gpu-spec-label {
+    font-size: 0.7rem;
+    color: #888;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+.gpu-spec-value {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #041f4e;
+    margin-top: 0.15em;
+}
+.gpu-usecase {
+    font-size: 0.88rem;
+    color: #555;
+    line-height: 1.6;
+    margin-bottom: 1.2em;
+    flex: 1;
+}
+.gpu-price {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #041f4e;
+    margin-bottom: 1em;
+}
+.gpu-price small {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #888;
+}
+.gpu-cta {
+    display: block;
+    width: 100%;
+    padding: 0.7em;
+    background: #041f4e;
+    color: #fff;
+    border: none;
+    border-radius: 2em;
+    font-size: 0.9rem;
+    font-weight: 700;
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.gpu-cta:hover {
+    background: #0a3a8a;
+}
+
+/* Cloud section */
+.cloud-banner {
+    background: linear-gradient(135deg, #041f4e 0%, #0a3a8a 100%);
+    border-radius: 16px;
+    padding: 2.5em;
+    color: #fff;
+    margin-top: 3em;
+    display: flex;
+    gap: 2em;
+    align-items: center;
+}
+.cloud-banner-content { flex: 1; }
+.cloud-banner-content h3 {
+    font-size: 1.4rem;
+    font-weight: 800;
+    margin-bottom: 0.5em;
+    color: #fff;
+}
+.cloud-banner-content p {
+    font-size: 0.95rem;
+    line-height: 1.7;
+    opacity: 0.9;
+    margin-bottom: 1em;
+}
+.cloud-features {
+    display: flex;
+    gap: 1.5em;
+    flex-wrap: wrap;
+    margin-bottom: 1.5em;
+}
+.cloud-feature {
+    font-size: 0.88rem;
+    font-weight: 600;
+}
+.cloud-cta {
+    display: inline-block;
+    padding: 0.8em 2.5em;
+    background: #fff;
+    color: #041f4e;
+    border-radius: 2em;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 0.95rem;
+    transition: opacity 0.2s;
+}
+.cloud-cta:hover { opacity: 0.9; }
+
+/* Bottom CTA */
+.gpu-bottom-cta {
+    text-align: center;
+    margin-top: 3em;
+    padding: 3em 2em;
+    background: #f0f2f7;
+    border-radius: 16px;
+}
+.gpu-bottom-cta h3 {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: #041f4e;
+    margin-bottom: 0.5em;
+}
+.gpu-bottom-cta p {
+    font-size: 0.95rem;
+    color: #555;
+    margin-bottom: 1.5em;
+    line-height: 1.7;
+}
+
+/* Note */
+.gpu-note {
+    margin-top: 2em;
+    font-size: 0.82rem;
+    color: #888;
+    line-height: 1.7;
+}
+
+@media screen and (max-width: 1200px) {
+    .gpu-grid { grid-template-columns: 1fr; }
+    .gpu-specs { grid-template-columns: 1fr 1fr; }
+    .cloud-banner { flex-direction: column; }
+    .cloud-features { flex-direction: column; gap: 0.5em; }
+}
+{% endblock %}
+
+{% block content %}
+<main class="content">
+    <div class="page-hero">
+        <h1>GPU / Computing Guide</h1>
+        <div class="page-hero__sub">GPU・計算環境ガイド</div>
+    </div>
+
+    <div class="page-section" style="max-width: 1100px;">
+        <div class="panel panel-rounded">
+
+            <p class="gpu-intro">
+                生成AIの開発・学習には、用途に合ったGPU選びが重要です。<br>
+                JGAIAでは、バイブコーディング講座の受講者・会員の皆様に最適な計算環境をご提案しています。<br>
+                個人学習用からデータセンター向けまで、ご要望に応じてお取り次ぎいたします。
+            </p>
+
+            <!-- ===== 個人・学習者向け ===== -->
+            <div class="gpu-category">
+                <div class="gpu-category-title">
+                    <span class="cat-icon">&#x1F4BB;</span>
+                    個人・学習者向けGPU
+                </div>
+                <p class="gpu-category-sub">バイブコーディング・画像生成・ローカルLLM推論に。はじめての1枚にも最適です。</p>
+
+                <div class="gpu-grid">
+
+                    <div class="gpu-card">
+                        <div class="gpu-card-header">
+                            <div class="gpu-card-name">GeForce RTX 5070 Ti</div>
+                            <span class="gpu-card-badge badge-popular">人気</span>
+                        </div>
+                        <div class="gpu-card-maker">NVIDIA / Blackwell</div>
+                        <div class="gpu-specs">
+                            <div class="gpu-spec-item">
+                                <div class="gpu-spec-label">VRAM</div>
+                                <div class="gpu-spec-value">16 GB</div>
+                            </div>
+                            <div class="gpu-spec-item">
+                                <div class="gpu-spec-label">CUDA Cores</div>
+                                <div class="gpu-spec-value">8,960</div>
+                            </div>
+                            <div class="gpu-spec-item">
+                                <div class="gpu-spec-label">TDP</div>
+                                <div class="gpu-spec-value">300W</div>
+                            </div>
+                            <div class="gpu-spec-item">
+                                <div class="gpu-spec-label">世代</div>
+                                <div class="gpu-spec-value">第5世代</div>
+                            </div>
+                        </div>
+                        <p class="gpu-usecase">16GB VRAMでStable Diffusion・LoRAファインチューニング・13Bモデル推論に十分対応。入門者から中級者まで最もバランスの取れた1枚。</p>
+                        <div class="gpu-price">&#165;170,000 ~ &#165;230,000 <small>（税込・参考価格）</small></div>
+                        <a href="/contact" class="gpu-cta">お問い合わせ・お見積り</a>
+                    </div>
+
+                    <div class="gpu-card">
+                        <div class="gpu-card-header">
+                            <div class="gpu-card-name">GeForce RTX 5090</div>
+                            <span class="gpu-card-badge badge-new">最上位</span>
+                        </div>
+                        <div class="gpu-card-maker">NVIDIA / Blackwell</div>
+                        <div class="gpu-specs">
+                            <div class="gpu-spec-item">
+                                <div class="gpu-spec-label">VRAM</div>
+                                <div class="gpu-spec-value">32 GB</div>
+                            </div>
+                            <div class="gpu-spec-item">
+                                <div class="gpu-spec-label">FP16</div>
+                                <div class="gpu-spec-value">209.5 TF</div>
+                            </div>
+                            <div class="gpu-spec-item">
+                                <div class="gpu-spec-label">CUDA Cores</div>
+                                <div class="gpu-spec-value">21,760</div>
+                            </div>
+                            <div class="gpu-spec-item">
+                                <div class="gpu-spec-label">TDP</div>
+                                <div class="gpu-spec-value">575W</div>
+                            </div>
+                        </div>
+                        <p class="gpu-usecase">32GB VRAMで70Bパラメータモデル（量子化版）もローカル推論可能。コンシューマー最強のAI開発カード。</p>
+                        <div class="gpu-price">&#165;550,000 ~ &#165;750,000 <small>（税込・参考価格）</small></div>
+                        <a href="/contact" class="gpu-cta">お問い合わせ・お見積り</a>
+                    </div>
+
+                    <div class="gpu-card">
+                        <div class="gpu-card-header">
+                            <div class="gpu-card-name">GeForce RTX 5080</div>
+                        </div>
+                        <div class="gpu-card-maker">NVIDIA / Blackwell</div>
+                        <div class="gpu-specs">
+                            <div class="gpu-spec-item">
+                                <div class="gpu-spec-label">VRAM</div>
+                                <div class="gpu-spec-value">16 GB</div>
+                            </div>
+                            <div class="gpu-spec-item">
+                                <div class="gpu-spec-label">FP16</div>
+                                <div class="gpu-spec-value">112.6 TF</div>
+                            </div>
+                            <div class="gpu-spec-item">
+                                <div class="gpu-spec-label">CUDA Cores</div>
+                                <div class="gpu-spec-value">10,752</div>
+                            </div>
+                            <div class="gpu-spec-item">
+                                <div class="gpu-spec-label">TDP</div>
+                                <div class="gpu-spec-value">360W</div>
+                            </div>
+                        </div>
+                        <p class="gpu-usecase">16GB VRAM＋高い演算性能。5070 Tiより高性能を求めるが5090までは不要という方に最適なミドルハイクラス。</p>
+                        <div class="gpu-price">&#165;220,000 ~ &#165;350,000 <small>（税込・参考価格）</small></div>
+                        <a href="/contact" class="gpu-cta">お問い合わせ・お見積り</a>
+                    </div>
+
+                    <div class="gpu-card">
+                        <div class="gpu-card-header">
+                            <div class="gpu-card-name">GeForce RTX 5070</div>
+                            <span class="gpu-card-badge badge-value">コスパ</span>
+                        </div>
+                        <div class="gpu-card-maker">NVIDIA / Blackwell</div>
+                        <div class="gpu-specs">
+                            <div class="gpu-spec-item">
+                                <div class="gpu-spec-label">VRAM</div>
+                                <div class="gpu-spec-value">12 GB</div>
+                            </div>
+                            <div class="gpu-spec-item">
+                                <div class="gpu-spec-label">FP16</div>
+                                <div class="gpu-spec-value">61.7 TF</div>
+                            </div>
+                            <div class="gpu-spec-item">
+                                <div class="gpu-spec-label">CUDA Cores</div>
+                                <div class="gpu-spec-value">6,144</div>
+                            </div>
+                            <div class="gpu-spec-item">
+                                <div class="gpu-spec-label">TDP</div>
+                                <div class="gpu-spec-value">250W</div>
+                            </div>
+                        </div>
+                        <p class="gpu-usecase">12GB VRAMで入門用途・小規模モデル推論に最適。第5世代Tensor Core搭載でFP4対応。最もリーズナブルなBlackwell世代GPU。</p>
+                        <div class="gpu-price">&#165;100,000 ~ &#165;150,000 <small>（税込・参考価格）</small></div>
+                        <a href="/contact" class="gpu-cta">お問い合わせ・お見積り</a>
+                    </div>
+
+                    <div class="gpu-card">
+                        <div class="gpu-card-header">
+                            <div class="gpu-card-name">Radeon RX 9070 XT</div>
+                        </div>
+                        <div class="gpu-card-maker">AMD / RDNA 4</div>
+                        <div class="gpu-specs">
+                            <div class="gpu-spec-item">
+                                <div class="gpu-spec-label">VRAM</div>
+                                <div class="gpu-spec-value">16 GB</div>
+                            </div>
+                            <div class="gpu-spec-item">
+                                <div class="gpu-spec-label">AI性能</div>
+                                <div class="gpu-spec-value">1,557 TOPS</div>
+                            </div>
+                            <div class="gpu-spec-item">
+                                <div class="gpu-spec-label">Stream Proc.</div>
+                                <div class="gpu-spec-value">4,096</div>
+                            </div>
+                            <div class="gpu-spec-item">
+                                <div class="gpu-spec-label">対応</div>
+                                <div class="gpu-spec-value">ROCm</div>
+                            </div>
+                        </div>
+                        <p class="gpu-usecase">AMD初のAI専用テンソルコア搭載。16GB VRAMでRTX 5070より大容量。ROCm対応のPyTorch環境でコスト重視の方に。</p>
+                        <div class="gpu-price">&#165;90,000 ~ &#165;130,000 <small>（税込・参考価格）</small></div>
+                        <a href="/contact" class="gpu-cta">お問い合わせ・お見積り</a>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- ===== プロフェッショナル・企業向け ===== -->
+            <div class="gpu-category">
+                <div class="gpu-category-title">
+                    <span class="cat-icon">&#x1F3E2;</span>
+                    プロフェッショナル・企業向けGPU
+                </div>
+                <p class="gpu-category-sub">ワークステーション用途・ISV認証・ECC対応。企業のAI開発チームに。</p>
+
+                <div class="gpu-grid">
+
+                    <div class="gpu-card">
+                        <div class="gpu-card-header">
+                            <div class="gpu-card-name">RTX PRO 6000<br>Blackwell</div>
+                            <span class="gpu-card-badge badge-new">2026年注目</span>
+                        </div>
+                        <div class="gpu-card-maker">NVIDIA / Blackwell / ワークステーション</div>
+                        <div class="gpu-specs">
+                            <div class="gpu-spec-item">
+                                <div class="gpu-spec-label">VRAM</div>
+                                <div class="gpu-spec-value">96 GB</div>
+                            </div>
+                            <div class="gpu-spec-item">
+                                <div class="gpu-spec-label">FP32</div>
+                                <div class="gpu-spec-value">125 TF</div>
+                            </div>
+                            <div class="gpu-spec-item">
+                                <div class="gpu-spec-label">Tensor Cores</div>
+                                <div class="gpu-spec-value">752基</div>
+                            </div>
+                            <div class="gpu-spec-item">
+                                <div class="gpu-spec-label">帯域幅</div>
+                                <div class="gpu-spec-value">1,792 GB/s</div>
+                            </div>
+                        </div>
+                        <p class="gpu-usecase">96GB GDDR7で70Bフルモデルが1枚に載る唯一のワークステーションGPU。企業AI開発の本命。ECC対応・ISV認証。</p>
+                        <div class="gpu-price">$13,250 ~ <small>（約200万円〜・参考価格）</small></div>
+                        <a href="/contact" class="gpu-cta">お問い合わせ・お見積り</a>
+                    </div>
+
+                    <div class="gpu-card">
+                        <div class="gpu-card-header">
+                            <div class="gpu-card-name">RTX 6000 Ada</div>
+                            <span class="gpu-card-badge badge-pro">実績豊富</span>
+                        </div>
+                        <div class="gpu-card-maker">NVIDIA / Ada Lovelace / ワークステーション</div>
+                        <div class="gpu-specs">
+                            <div class="gpu-spec-item">
+                                <div class="gpu-spec-label">VRAM</div>
+                                <div class="gpu-spec-value">48 GB</div>
+                            </div>
+                            <div class="gpu-spec-item">
+                                <div class="gpu-spec-label">帯域幅</div>
+                                <div class="gpu-spec-value">960 GB/s</div>
+                            </div>
+                            <div class="gpu-spec-item">
+                                <div class="gpu-spec-label">Tensor Cores</div>
+                                <div class="gpu-spec-value">568基</div>
+                            </div>
+                            <div class="gpu-spec-item">
+                                <div class="gpu-spec-label">世代</div>
+                                <div class="gpu-spec-value">第4世代</div>
+                            </div>
+                        </div>
+                        <p class="gpu-usecase">48GB VRAMの安定供給モデル。大規模モデルの推論・ファインチューニングに十分な容量。多数の導入実績あり。</p>
+                        <div class="gpu-price">$7,350 ~ <small>（約110万円〜・参考価格）</small></div>
+                        <a href="/contact" class="gpu-cta">お問い合わせ・お見積り</a>
+                    </div>
+
+                    <div class="gpu-card">
+                        <div class="gpu-card-header">
+                            <div class="gpu-card-name">RTX 5000 Ada</div>
+                        </div>
+                        <div class="gpu-card-maker">NVIDIA / Ada Lovelace / ワークステーション</div>
+                        <div class="gpu-specs">
+                            <div class="gpu-spec-item">
+                                <div class="gpu-spec-label">VRAM</div>
+                                <div class="gpu-spec-value">32 GB</div>
+                            </div>
+                            <div class="gpu-spec-item">
+                                <div class="gpu-spec-label">世代</div>
+                                <div class="gpu-spec-value">第4世代</div>
+                            </div>
+                            <div class="gpu-spec-item">
+                                <div class="gpu-spec-label">ECC</div>
+                                <div class="gpu-spec-value">対応</div>
+                            </div>
+                            <div class="gpu-spec-item">
+                                <div class="gpu-spec-label">ISV認証</div>
+                                <div class="gpu-spec-value">対応</div>
+                            </div>
+                        </div>
+                        <p class="gpu-usecase">32GB VRAMのエントリーワークステーションGPU。ISV認証が必要な業務用途でコストを抑えたい企業に。</p>
+                        <div class="gpu-price">$4,000 ~ <small>（約60万円〜・参考価格）</small></div>
+                        <a href="/contact" class="gpu-cta">お問い合わせ・お見積り</a>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- ===== データセンター向け ===== -->
+            <div class="gpu-category">
+                <div class="gpu-category-title">
+                    <span class="cat-icon">&#x1F5A5;</span>
+                    データセンター・サーバー向けGPU
+                </div>
+                <p class="gpu-category-sub">大規模学習・推論基盤の構築に。長大クオンタム推進部のDC事業とも連携可能です。</p>
+
+                <div class="gpu-grid">
+
+                    <div class="gpu-card">
+                        <div class="gpu-card-header">
+                            <div class="gpu-card-name">NVIDIA B200</div>
+                            <span class="gpu-card-badge badge-new">最新</span>
+                        </div>
+                        <div class="gpu-card-maker">NVIDIA / Blackwell / データセンター</div>
+                        <div class="gpu-specs">
+                            <div class="gpu-spec-item">
+                                <div class="gpu-spec-label">VRAM</div>
+                                <div class="gpu-spec-value">192 GB</div>
+                            </div>
+                            <div class="gpu-spec-item">
+                                <div class="gpu-spec-label">FP8</div>
+                                <div class="gpu-spec-value">4,500 TF</div>
+                            </div>
+                            <div class="gpu-spec-item">
+                                <div class="gpu-spec-label">FP16/BF16</div>
+                                <div class="gpu-spec-value">2,250 TF</div>
+                            </div>
+                            <div class="gpu-spec-item">
+                                <div class="gpu-spec-label">帯域幅</div>
+                                <div class="gpu-spec-value">8,000 GB/s</div>
+                            </div>
+                        </div>
+                        <p class="gpu-usecase">Blackwell世代の最新DCグレード。H100比2.2倍の学習性能、FP8対応で推論効率も倍増。次世代AI基盤の本命。</p>
+                        <div class="gpu-price">$30,000 ~ $50,000 <small>（参考価格）</small></div>
+                        <a href="/contact" class="gpu-cta">お問い合わせ・お見積り</a>
+                    </div>
+
+                    <div class="gpu-card">
+                        <div class="gpu-card-header">
+                            <div class="gpu-card-name">NVIDIA H200</div>
+                        </div>
+                        <div class="gpu-card-maker">NVIDIA / Hopper / データセンター</div>
+                        <div class="gpu-specs">
+                            <div class="gpu-spec-item">
+                                <div class="gpu-spec-label">VRAM</div>
+                                <div class="gpu-spec-value">141 GB</div>
+                            </div>
+                            <div class="gpu-spec-item">
+                                <div class="gpu-spec-label">FP16</div>
+                                <div class="gpu-spec-value">1,979 TF</div>
+                            </div>
+                            <div class="gpu-spec-item">
+                                <div class="gpu-spec-label">帯域幅</div>
+                                <div class="gpu-spec-value">4,800 GB/s</div>
+                            </div>
+                            <div class="gpu-spec-item">
+                                <div class="gpu-spec-label">HBM3e</div>
+                                <div class="gpu-spec-value">対応</div>
+                            </div>
+                        </div>
+                        <p class="gpu-usecase">H100のメモリ強化版。141GB HBM3eで大規模モデルの推論に圧倒的なメモリ容量。安定した供給体制。</p>
+                        <div class="gpu-price">$30,000 ~ $40,000 <small>（参考価格）</small></div>
+                        <a href="/contact" class="gpu-cta">お問い合わせ・お見積り</a>
+                    </div>
+
+                    <div class="gpu-card">
+                        <div class="gpu-card-header">
+                            <div class="gpu-card-name">NVIDIA H100 SXM5</div>
+                            <span class="gpu-card-badge badge-pro">定番</span>
+                        </div>
+                        <div class="gpu-card-maker">NVIDIA / Hopper / データセンター</div>
+                        <div class="gpu-specs">
+                            <div class="gpu-spec-item">
+                                <div class="gpu-spec-label">VRAM</div>
+                                <div class="gpu-spec-value">80 GB</div>
+                            </div>
+                            <div class="gpu-spec-item">
+                                <div class="gpu-spec-label">FP16</div>
+                                <div class="gpu-spec-value">1,979 TF</div>
+                            </div>
+                            <div class="gpu-spec-item">
+                                <div class="gpu-spec-label">帯域幅</div>
+                                <div class="gpu-spec-value">3,350 GB/s</div>
+                            </div>
+                            <div class="gpu-spec-item">
+                                <div class="gpu-spec-label">HBM3</div>
+                                <div class="gpu-spec-value">対応</div>
+                            </div>
+                        </div>
+                        <p class="gpu-usecase">AI DCの定番。豊富な導入実績と安定供給。クラウド利用も$2〜4/hrと手頃。まずはH100で基盤構築したい企業に。</p>
+                        <div class="gpu-price">$25,000 ~ $40,000 <small>（参考価格）</small></div>
+                        <a href="/contact" class="gpu-cta">お問い合わせ・お見積り</a>
+                    </div>
+
+                    <div class="gpu-card">
+                        <div class="gpu-card-header">
+                            <div class="gpu-card-name">NVIDIA GB200 NVL72</div>
+                            <span class="gpu-card-badge badge-new">超大規模</span>
+                        </div>
+                        <div class="gpu-card-maker">NVIDIA / Blackwell + Grace / ラックスケール</div>
+                        <div class="gpu-specs">
+                            <div class="gpu-spec-item">
+                                <div class="gpu-spec-label">構成</div>
+                                <div class="gpu-spec-value">72×B200</div>
+                            </div>
+                            <div class="gpu-spec-item">
+                                <div class="gpu-spec-label">GPU性能</div>
+                                <div class="gpu-spec-value">2,500 TF/基</div>
+                            </div>
+                            <div class="gpu-spec-item">
+                                <div class="gpu-spec-label">NVLink</div>
+                                <div class="gpu-spec-value">1.8 TB/s/基</div>
+                            </div>
+                            <div class="gpu-spec-item">
+                                <div class="gpu-spec-label">CPU</div>
+                                <div class="gpu-spec-value">36×Grace</div>
+                            </div>
+                        </div>
+                        <p class="gpu-usecase">72基のB200をNVLink5で接続するラックスケールシステム。兆パラメータモデルの学習に。データセンター建設支援もご相談ください。</p>
+                        <div class="gpu-price">ラック単位 <small>（個別お見積り）</small></div>
+                        <a href="/contact" class="gpu-cta">お問い合わせ・お見積り</a>
+                    </div>
+
+                    <div class="gpu-card">
+                        <div class="gpu-card-header">
+                            <div class="gpu-card-name">AMD MI300X</div>
+                            <span class="gpu-card-badge badge-value">VRAM最大級</span>
+                        </div>
+                        <div class="gpu-card-maker">AMD / CDNA 3 / データセンター</div>
+                        <div class="gpu-specs">
+                            <div class="gpu-spec-item">
+                                <div class="gpu-spec-label">VRAM</div>
+                                <div class="gpu-spec-value">192 GB</div>
+                            </div>
+                            <div class="gpu-spec-item">
+                                <div class="gpu-spec-label">帯域幅</div>
+                                <div class="gpu-spec-value">5,300 GB/s</div>
+                            </div>
+                            <div class="gpu-spec-item">
+                                <div class="gpu-spec-label">TDP</div>
+                                <div class="gpu-spec-value">750W</div>
+                            </div>
+                            <div class="gpu-spec-item">
+                                <div class="gpu-spec-label">クラウド</div>
+                                <div class="gpu-spec-value">$0.95~/hr</div>
+                            </div>
+                        </div>
+                        <p class="gpu-usecase">192GB HBM3でH100（80GB）の2.4倍のメモリ。大規模LLMをGPUメモリに丸ごとロード可能。クラウド最安$0.95/hr。</p>
+                        <div class="gpu-price">個別お見積り <small>（クラウド: $0.95~/hr）</small></div>
+                        <a href="/contact" class="gpu-cta">お問い合わせ・お見積り</a>
+                    </div>
+
+                    <div class="gpu-card">
+                        <div class="gpu-card-header">
+                            <div class="gpu-card-name">AMD MI325X</div>
+                            <span class="gpu-card-badge badge-new">256GB</span>
+                        </div>
+                        <div class="gpu-card-maker">AMD / CDNA 3 / データセンター</div>
+                        <div class="gpu-specs">
+                            <div class="gpu-spec-item">
+                                <div class="gpu-spec-label">VRAM</div>
+                                <div class="gpu-spec-value">256 GB</div>
+                            </div>
+                            <div class="gpu-spec-item">
+                                <div class="gpu-spec-label">帯域幅</div>
+                                <div class="gpu-spec-value">6,000 GB/s</div>
+                            </div>
+                            <div class="gpu-spec-item">
+                                <div class="gpu-spec-label">vs MI300X</div>
+                                <div class="gpu-spec-value">+33% メモリ</div>
+                            </div>
+                            <div class="gpu-spec-item">
+                                <div class="gpu-spec-label">クラウド</div>
+                                <div class="gpu-spec-value">$2.00~/hr</div>
+                            </div>
+                        </div>
+                        <p class="gpu-usecase">256GB HBM3eは現行最大級のVRAM容量。MI300Xからメモリ33%増・帯域13%向上。超大規模モデルの推論基盤に。</p>
+                        <div class="gpu-price">個別お見積り <small>（クラウド: $2.00~/hr）</small></div>
+                        <a href="/contact" class="gpu-cta">お問い合わせ・お見積り</a>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- ===== MiraiCloudia GPUクラウド ===== -->
+            <div class="cloud-banner">
+                <div class="cloud-banner-content">
+                    <h3>MiraiCloudia GPUクラウド</h3>
+                    <p>
+                        GPU購入前の検証や、短期プロジェクトでの利用に最適。<br>
+                        オンプレミス導入前の試験運用としてもご活用いただけます。
+                    </p>
+                    <div class="cloud-features">
+                        <span class="cloud-feature">&#x2714; 初期費用不要</span>
+                        <span class="cloud-feature">&#x2714; 月額制で柔軟に</span>
+                        <span class="cloud-feature">&#x2714; 技術サポート付き</span>
+                    </div>
+                    <a href="/contact" class="cloud-cta">GPUクラウドのお問い合わせ</a>
+                </div>
+            </div>
+
+            <!-- ===== お問い合わせCTA ===== -->
+            <div class="gpu-bottom-cta">
+                <h3>最適なGPU環境をご提案します</h3>
+                <p>
+                    「どのGPUを選べばいいかわからない」「予算に合った構成を相談したい」<br>
+                    お気軽にお問い合わせください。用途・予算に応じて最適な構成をご提案いたします。
+                </p>
+                <a href="/contact" class="gpu-cta" style="display: inline-block; width: auto; padding: 0.8em 3em;">お問い合わせはこちら</a>
+            </div>
+
+            <p class="gpu-note">
+                ※ 掲載価格は2026年6月時点の参考価格です。為替変動・在庫状況により変動する場合があります。<br>
+                ※ JGAIAは販売代理店ではなく、パートナー企業を通じたお取り次ぎとなります。<br>
+                ※ データセンター向け製品の導入については、設置環境の設計・構築支援もご相談いただけます。
+            </p>
+
+        </div>
+    </div>
+</main>
+{% endblock %}
