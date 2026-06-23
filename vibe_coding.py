@@ -421,6 +421,7 @@ button{cursor:pointer;border:none;background:none;font-family:inherit}
             </ul>
             <button class="toggle-btn" onclick="toggleApply(this)">このコースに申し込む →</button>
             <div class="apply-wrap" data-course="A: AIアプリ開発 入門（¥19,800）"></div>
+            <a href="/vibe-coding/course-ga" class="toggle-btn" style="display:inline-flex;margin-top:8px;color:#3b82f6">コース詳細を見る →</a>
           </div>
         </div>
       </div>
@@ -444,6 +445,7 @@ button{cursor:pointer;border:none;background:none;font-family:inherit}
             </ul>
             <button class="toggle-btn" onclick="toggleApply(this)">このコースに申し込む →</button>
             <div class="apply-wrap" data-course="B: AIアプリ開発 実践（¥49,800）"></div>
+            <a href="/vibe-coding/course-gb" class="toggle-btn" style="display:inline-flex;margin-top:8px;color:#3b82f6">コース詳細を見る →</a>
           </div>
         </div>
       </div>
@@ -467,6 +469,7 @@ button{cursor:pointer;border:none;background:none;font-family:inherit}
             </ul>
             <button class="toggle-btn" onclick="toggleApply(this)">このコースに申し込む →</button>
             <div class="apply-wrap" data-course="C: AIセキュリティ＆ガバナンス（¥49,800）"></div>
+            <a href="/vibe-coding/course-gc" class="toggle-btn" style="display:inline-flex;margin-top:8px;color:#3b82f6">コース詳細を見る →</a>
           </div>
         </div>
       </div>
@@ -490,8 +493,24 @@ button{cursor:pointer;border:none;background:none;font-family:inherit}
             </ul>
             <button class="toggle-btn" onclick="toggleApply(this)">このコースに申し込む →</button>
             <div class="apply-wrap" data-course="D: AIエンジニアリング マスター（¥128,000）"></div>
+            <a href="/vibe-coding/course-gd" class="toggle-btn" style="display:inline-flex;margin-top:8px;color:#3b82f6">コース詳細を見る →</a>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- 追加コース案内 -->
+    <div style="margin-top:40px;padding:32px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0">
+      <h3 style="font-size:18px;font-weight:700;color:#0d1b3e;margin-bottom:8px">その他のコース</h3>
+      <p style="font-size:14px;color:#64748b;margin-bottom:20px">AIクリエイティブデザイン、子ども向け、業種特化型コースもご用意しています。</p>
+      <div style="display:flex;flex-wrap:wrap;gap:12px">
+        <a href="/vibe-coding/course-ge" style="display:inline-flex;align-items:center;gap:6px;padding:10px 20px;background:#fff;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;font-weight:600;color:#0d1b3e;transition:all .2s;text-decoration:none">🎨 AIクリエイティブデザイン</a>
+        <a href="/vibe-coding/kids" style="display:inline-flex;align-items:center;gap:6px;padding:10px 20px;background:#fff;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;font-weight:600;color:#0d1b3e;transition:all .2s;text-decoration:none">👦 子ども向けコース</a>
+        <a href="/vibe-coding/manufacturing" style="display:inline-flex;align-items:center;gap:6px;padding:10px 20px;background:#fff;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;font-weight:600;color:#0d1b3e;transition:all .2s;text-decoration:none">🏭 製造業特化</a>
+        <a href="/vibe-coding/healthcare" style="display:inline-flex;align-items:center;gap:6px;padding:10px 20px;background:#fff;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;font-weight:600;color:#0d1b3e;transition:all .2s;text-decoration:none">🏥 医療・ヘルスケア特化</a>
+        <a href="/vibe-coding/finance" style="display:inline-flex;align-items:center;gap:6px;padding:10px 20px;background:#fff;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;font-weight:600;color:#0d1b3e;transition:all .2s;text-decoration:none">💰 金融特化</a>
+        <a href="/vibe-coding/logistics" style="display:inline-flex;align-items:center;gap:6px;padding:10px 20px;background:#fff;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;font-weight:600;color:#0d1b3e;transition:all .2s;text-decoration:none">🚚 物流特化</a>
+        <a href="/vibe-coding/construction" style="display:inline-flex;align-items:center;gap:6px;padding:10px 20px;background:#fff;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;font-weight:600;color:#0d1b3e;transition:all .2s;text-decoration:none">🏗️ 建設特化</a>
       </div>
     </div>
 

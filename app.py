@@ -18,6 +18,9 @@ import os
 from flask import Flask, send_file, render_template, request
 
 from vibe_coding import register_vibe_coding_routes
+from vibe_coding_courses import register_vibe_coding_course_routes
+from vibe_coding_kids import register_vibe_coding_kids_routes
+from vibe_coding_industry import register_vibe_coding_industry_routes
 
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 FROM_EMAIL = "info@jgaia.org"
@@ -26,6 +29,9 @@ NOTIFY_EMAIL = "takano.hidetaka@gmail.com"
 app = Flask(__name__, static_folder="static", static_url_path="/static")
 
 register_vibe_coding_routes(app)
+register_vibe_coding_course_routes(app)
+register_vibe_coding_kids_routes(app)
+register_vibe_coding_industry_routes(app)
 
 
 @app.route("/")
