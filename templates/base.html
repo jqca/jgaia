@@ -5,10 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}一般社団法人日本生成AI協会{% endblock %} | JGAIA</title>
     <meta name="description" content="{% block description %}日本生成AI協会は、生成AI技術の普及と進展を主導し、日本の産業界や学術界の革新的な発展を推進することを使命としています。{% endblock %}">
+    <meta property="og:title" content="{% block og_title %}一般社団法人日本生成AI協会 | JGAIA{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}生成AI技術の普及と進展を主導し、日本の産業界や学術界の革新的な発展を推進します。{% endblock %}">
+    <meta property="og:type" content="{% block og_type %}website{% endblock %}">
+    <meta property="og:url" content="{% block og_url %}https://www.jgaia.org/{% endblock %}">
+    <meta property="og:image" content="{% block og_image %}https://www.jgaia.org/static/img/ogp.png{% endblock %}">
+    <meta property="og:site_name" content="JGAIA - 一般社団法人日本生成AI協会">
+    <meta property="og:locale" content="ja_JP">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{% block tw_title %}一般社団法人日本生成AI協会 | JGAIA{% endblock %}">
+    <meta name="twitter:description" content="{% block tw_description %}生成AI技術の普及と進展を主導し、日本の産業界や学術界の革新的な発展を推進します。{% endblock %}">
+    <meta name="twitter:image" content="{% block tw_image %}https://www.jgaia.org/static/img/ogp.png{% endblock %}">
+    <link rel="canonical" href="{% block canonical %}https://www.jgaia.org/{% endblock %}">
     <link rel="stylesheet" href="https://unpkg.com/modern-css-reset/dist/reset.min.css"/>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@100..900&display=swap">
     <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-H7XQ25E8YN"></script>
+    <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-H7XQ25E8YN');</script>
     {% block extra_head %}{% endblock %}
     <style>
         :root {
@@ -820,6 +834,7 @@
 
 {% block content %}{% endblock %}
 
+{% block footer %}
 <footer class="footer">
     <div class="footer__inner">
         <div class="footer-logo">
@@ -836,6 +851,7 @@
         <a href="/tokutei" class="legal-link">特定商取引法に基づく表記</a>
     </div>
 </footer>
+{% endblock %}
 
 <script>
     particlesJS("particlesJs", {

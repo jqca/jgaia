@@ -36,7 +36,7 @@ register_vibe_coding_industry_routes(app)
 
 @app.route("/")
 def index():
-    return send_file("index.html")
+    return render_template("index.html")
 
 
 @app.route("/company-info")
@@ -132,6 +132,16 @@ def gpu_guide():
 @app.route("/tokutei")
 def tokutei():
     return render_template("tokutei.html")
+
+
+@app.route("/sitemap.xml")
+def sitemap():
+    return send_file("static/sitemap.xml", mimetype="application/xml")
+
+
+@app.route("/robots.txt")
+def robots():
+    return send_file("static/robots.txt", mimetype="text/plain")
 
 
 @app.route("/healthz")
