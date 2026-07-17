@@ -1,0 +1,523 @@
+{% extends "base.html" %}
+
+{% block title %}{{ c.code }}: {{ c.title }} | 一人会社AI経営講座{% endblock %}
+{% block description %}{{ c.subtitle }}。JGAIA認定 一人会社AI経営講座。{% endblock %}
+
+{% block extra_head %}
+<meta property="og:title" content="{{ c.code }}: {{ c.title }} | JGAIA">
+<meta property="og:description" content="{{ c.subtitle }}">
+<meta property="og:type" content="website">
+<link rel="canonical" href="https://www.jgaia.org/solo-ceo/course-{{ c.id }}">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"Course","name":"{{ c.code }}: {{ c.title }}","description":"{{ c.subtitle }}","provider":{"@type":"Organization","name":"JGAIA 日本生成AI協会","url":"https://www.jgaia.org/"},"offers":{"@type":"Offer","price":"{{ c.price_num }}","priceCurrency":"JPY"}}
+</script>
+{% endblock %}
+
+{% block extra_css %}
+/* ── Course detail ── */
+.cd-hero {
+    text-align: center;
+    padding: 1rem 24px 4rem;
+}
+.cd-hero .cd-breadcrumb {
+    font-size: 13px;
+    color: rgba(255,255,255,.55);
+    margin-bottom: 24px;
+}
+.cd-hero .cd-breadcrumb a {
+    color: rgba(255,255,255,.55);
+    text-decoration: none;
+    transition: color .2s;
+}
+.cd-hero .cd-breadcrumb a:hover { color: rgba(255,255,255,.85); }
+.cd-hero .cd-code {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .15em;
+    color: {{ c.accent_light }};
+    border: 1px solid {{ c.accent_light }}44;
+    padding: 5px 18px;
+    border-radius: 20px;
+    margin-bottom: 20px;
+}
+.cd-hero h1 {
+    font-size: clamp(24px, 4vw, 42px);
+    font-weight: 900;
+    color: #fff;
+    line-height: 1.35;
+    margin-bottom: 14px;
+    text-wrap: balance;
+}
+.cd-hero .cd-sub {
+    font-size: 15px;
+    color: rgba(255,255,255,.7);
+    max-width: 560px;
+    margin: 0 auto 28px;
+    line-height: 1.8;
+}
+.cd-hero .cd-meta-bar {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 20px;
+    margin-bottom: 32px;
+}
+.cd-hero .cd-meta-item {
+    font-size: 13px;
+    color: rgba(255,255,255,.7);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.cd-hero .cd-meta-item strong { color: #fff; font-weight: 700; }
+.cd-hero .cd-price-block {
+    margin-bottom: 28px;
+}
+.cd-hero .cd-price {
+    font-size: 36px;
+    font-weight: 800;
+    color: #fff;
+    font-variant-numeric: tabular-nums;
+}
+.cd-hero .cd-price small {
+    font-size: 16px;
+    font-weight: 400;
+    color: rgba(255,255,255,.6);
+}
+.cd-hero .cd-subsidy-tag {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: 4px;
+    background: #fef3c7;
+    color: #92400e;
+    margin-top: 8px;
+}
+.cd-hero .cd-actions {
+    display: flex;
+    justify-content: center;
+    gap: 14px;
+    flex-wrap: wrap;
+}
+
+/* ── Reuse LP styles ── */
+.sc-btn-primary {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 15px; font-weight: 700; color: #0d1b3e;
+    background: #fff; padding: 14px 32px; border-radius: 4px;
+    transition: all .2s; box-shadow: 0 2px 8px rgba(0,0,0,.15);
+    text-decoration: none; border: none; cursor: pointer;
+}
+.sc-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,.25); }
+.sc-btn-outline {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 15px; font-weight: 500; color: #fff;
+    padding: 14px 28px; border-radius: 4px;
+    border: 1px solid rgba(255,255,255,.3); transition: all .2s;
+    text-decoration: none; background: transparent; cursor: pointer;
+}
+.sc-btn-outline:hover { background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.55); }
+
+/* ── Body ── */
+.cd-body {
+    background: #fff;
+    color: #1a1a2e;
+    font-family: 'Noto Sans JP', sans-serif;
+    line-height: 1.7;
+}
+.cd-body a { color: inherit; }
+.cd-wrap { max-width: 800px; margin: 0 auto; padding: 0 24px; }
+
+.cd-section { padding: 56px 0; }
+.cd-section + .cd-section { border-top: 1px solid #edf2f7; }
+.cd-section.cd-alt { background: #f8fafc; }
+.cd-section h2 {
+    font-size: 22px;
+    font-weight: 800;
+    color: #0f172a;
+    margin-bottom: 28px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.cd-section h2 .sec-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: {{ c.accent }}11;
+    color: {{ c.accent }};
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+/* ── Curriculum ── */
+.cd-curriculum-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    counter-reset: cur;
+}
+.cd-curriculum-list li {
+    counter-increment: cur;
+    padding: 20px 0;
+    border-bottom: 1px solid #edf2f7;
+    display: grid;
+    grid-template-columns: 40px 1fr;
+    gap: 16px;
+    align-items: start;
+}
+.cd-curriculum-list li::before {
+    content: counter(cur, decimal-leading-zero);
+    font-size: 14px;
+    font-weight: 800;
+    color: {{ c.accent }};
+    padding-top: 2px;
+}
+.cd-curriculum-list li h3 {
+    font-size: 15px;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 6px;
+}
+.cd-curriculum-list li p {
+    font-size: 14px;
+    color: #64748b;
+    line-height: 1.7;
+}
+
+/* ── Outcomes ── */
+.cd-outcome-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 20px;
+}
+.cd-outcome-card {
+    padding: 24px 20px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    background: #fff;
+}
+.cd-outcome-card h3 {
+    font-size: 15px;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 8px;
+}
+.cd-outcome-card p {
+    font-size: 13px;
+    color: #64748b;
+    line-height: 1.7;
+}
+
+/* ── FAQ ── */
+.cd-faq-item {
+    border-bottom: 1px solid #e2e8f0;
+    padding: 18px 0;
+}
+.cd-faq-item summary {
+    font-size: 15px;
+    font-weight: 700;
+    color: #0f172a;
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.cd-faq-item summary::before {
+    content: "Q";
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: {{ c.accent }};
+    color: #fff;
+    font-size: 12px;
+    font-weight: 800;
+    flex-shrink: 0;
+}
+.cd-faq-item summary::-webkit-details-marker { display: none; }
+.cd-faq-item[open] summary { margin-bottom: 10px; }
+.cd-faq-item .faq-answer {
+    font-size: 14px;
+    color: #475569;
+    line-height: 1.8;
+    padding-left: 36px;
+}
+
+/* ── CTA section ── */
+.cd-cta {
+    background: linear-gradient(135deg, #0f172a, #1e3a5f);
+    color: #fff;
+    padding: 56px 24px;
+    text-align: center;
+}
+.cd-cta h2 { color: #fff; justify-content: center; margin-bottom: 12px; }
+.cd-cta p {
+    font-size: 15px;
+    color: rgba(255,255,255,.7);
+    margin-bottom: 28px;
+}
+
+/* ── Form (same as LP) ── */
+.sc-form-wrap { max-width: 480px; margin: 0 auto; text-align: left; }
+.sc-form-wrap label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: rgba(255,255,255,.85); }
+.sc-form-wrap input, .sc-form-wrap select, .sc-form-wrap textarea {
+    display: block; width: 100%; padding: 12px 14px;
+    border: 1px solid rgba(255,255,255,.2); border-radius: 6px;
+    font-size: 15px; font-family: inherit; margin-bottom: 16px;
+    background: rgba(255,255,255,.08); color: #fff; transition: border-color .2s;
+}
+.sc-form-wrap input::placeholder, .sc-form-wrap textarea::placeholder { color: rgba(255,255,255,.4); }
+.sc-form-wrap input:focus, .sc-form-wrap select:focus, .sc-form-wrap textarea:focus {
+    outline: none; border-color: #93c5fd; box-shadow: 0 0 0 3px rgba(147,197,253,.2);
+}
+.sc-form-wrap select { appearance: auto; }
+.sc-form-wrap select option { color: #0f172a; background: #fff; }
+.sc-form-wrap textarea { min-height: 80px; resize: vertical; }
+.sc-form-wrap .form-note { font-size: 12px; color: rgba(255,255,255,.5); text-align: center; margin-top: 12px; }
+.sc-form-wrap .sc-submit {
+    display: block; width: 100%; padding: 14px;
+    background: #fff; color: #0f172a; font-size: 15px; font-weight: 700;
+    border: none; border-radius: 6px; cursor: pointer; transition: all .2s; margin-top: 8px;
+}
+.sc-form-wrap .sc-submit:hover { background: #e2e8f0; transform: translateY(-1px); }
+.sc-form-wrap .sc-submit:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+.sc-form-success { text-align: center; padding: 32px; }
+.sc-form-success .check-icon { font-size: 48px; margin-bottom: 16px; }
+.sc-form-success h3 { font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 8px; }
+.sc-form-success p { font-size: 14px; color: rgba(255,255,255,.7); }
+
+/* ── Other courses ── */
+.cd-other-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 16px;
+}
+.cd-other-card {
+    display: block;
+    padding: 20px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    text-decoration: none;
+    transition: box-shadow .2s, transform .2s;
+}
+.cd-other-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.06); transform: translateY(-2px); }
+.cd-other-card .oc-code { font-size: 12px; font-weight: 700; letter-spacing: .1em; margin-bottom: 4px; }
+.cd-other-card h3 { font-size: 15px; font-weight: 700; color: #0f172a; margin-bottom: 6px; }
+.cd-other-card .oc-price { font-size: 14px; color: #64748b; }
+
+/* ── Sticky mobile CTA ── */
+.cd-sticky {
+    display: none;
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 900;
+    padding: 12px 16px;
+    background: rgba(15,23,42,.96);
+    backdrop-filter: blur(8px);
+    border-top: 1px solid rgba(255,255,255,.1);
+}
+.cd-sticky a {
+    display: block; text-align: center; padding: 14px;
+    background: #fff; color: #0f172a; font-weight: 700; font-size: 15px;
+    border-radius: 6px; text-decoration: none;
+}
+
+@media (max-width: 768px) {
+    .cd-hero .cd-meta-bar { flex-direction: column; align-items: center; gap: 8px; }
+    .cd-outcome-grid { grid-template-columns: 1fr; }
+    .cd-other-grid { grid-template-columns: 1fr; }
+    .cd-sticky { display: block; }
+}
+{% endblock %}
+
+{% block content %}
+<main>
+
+<!-- ━━ Hero ━━ -->
+<section class="cd-hero">
+    <div class="cd-breadcrumb">
+        <a href="/solo-ceo">一人会社AI経営講座</a> / {{ c.code }}
+    </div>
+    <div class="cd-code">{{ c.code }}</div>
+    <h1>{{ c.title }}</h1>
+    <p class="cd-sub">{{ c.subtitle }}</p>
+
+    <div class="cd-meta-bar">
+        <div class="cd-meta-item"><strong>{{ c.duration }}</strong></div>
+        <div class="cd-meta-item"><strong>{{ c.format }}</strong></div>
+        <div class="cd-meta-item">定員 <strong>{{ c.capacity }}</strong></div>
+        <div class="cd-meta-item">{{ c.schedule }}</div>
+    </div>
+
+    <div class="cd-price-block">
+        <div class="cd-price">¥{{ c.price }}<small>（税込）</small></div>
+        {% if c.subsidy %}
+        <div class="cd-subsidy-tag">{{ c.subsidy_text }}</div>
+        {% endif %}
+    </div>
+
+    <div class="cd-actions">
+        <a href="#inquiry" class="sc-btn-primary">無料で相談する →</a>
+        <a href="#curriculum" class="sc-btn-outline">カリキュラムを見る</a>
+    </div>
+</section>
+
+</main>
+
+<!-- ━━ Body ━━ -->
+<div class="cd-body">
+
+<!-- ━━ Curriculum ━━ -->
+<section class="cd-section" id="curriculum">
+    <div class="cd-wrap">
+        <h2><span class="sec-icon">📖</span> カリキュラム</h2>
+        <ul class="cd-curriculum-list">
+            {% for title, desc in c.curriculum %}
+            <li>
+                <div>
+                    <h3>{{ title }}</h3>
+                    <p>{{ desc }}</p>
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+</section>
+
+<!-- ━━ Outcomes ━━ -->
+<section class="cd-section cd-alt" id="outcomes">
+    <div class="cd-wrap">
+        <h2><span class="sec-icon">🎯</span> 受講で得られること</h2>
+        <div class="cd-outcome-grid">
+            {% for title, desc in c.outcomes %}
+            <div class="cd-outcome-card">
+                <h3>{{ title }}</h3>
+                <p>{{ desc }}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<!-- ━━ Target ━━ -->
+<section class="cd-section">
+    <div class="cd-wrap">
+        <h2><span class="sec-icon">👤</span> 対象者</h2>
+        <p style="font-size:15px;color:#475569;">{{ c.target }}</p>
+        <ul style="margin-top:12px;padding-left:20px;color:#475569;font-size:14px;line-height:2;">
+            <li>一人で会社・事業を経営している方</li>
+            <li>AIで業務を効率化したいフリーランス・個人事業主</li>
+            <li>副業で法人を立ち上げたい会社員</li>
+            <li>人を雇わずに事業を拡大したい経営者</li>
+        </ul>
+    </div>
+</section>
+
+<!-- ━━ FAQ ━━ -->
+<section class="cd-section cd-alt" id="faq">
+    <div class="cd-wrap">
+        <h2><span class="sec-icon">❓</span> よくある質問</h2>
+        {% for q, a in c.faq %}
+        <details class="cd-faq-item">
+            <summary>{{ q }}</summary>
+            <div class="faq-answer">{{ a }}</div>
+        </details>
+        {% endfor %}
+    </div>
+</section>
+
+<!-- ━━ Other courses ━━ -->
+<section class="cd-section">
+    <div class="cd-wrap">
+        <h2><span class="sec-icon">📚</span> 他のコース</h2>
+        <div class="cd-other-grid">
+            {% for key, oc in courses.items() %}
+            {% if oc.id != c.id %}
+            <a href="/solo-ceo/course-{{ oc.id }}" class="cd-other-card">
+                <div class="oc-code" style="color:{{ oc.accent }};">{{ oc.code }}</div>
+                <h3>{{ oc.title }}</h3>
+                <div class="oc-price">¥{{ oc.price }}（税込）/ {{ oc.duration }}</div>
+            </a>
+            {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+</div><!-- /.cd-body -->
+
+<!-- ━━ CTA + Form ━━ -->
+<section class="cd-cta" id="inquiry">
+    <h2>{{ c.code }} について相談する</h2>
+    <p>お気軽にお問い合わせください。営業電話は一切いたしません。</p>
+
+    <div class="sc-form-wrap" id="inquiryForm">
+        <form id="courseInquiryForm" onsubmit="return submitCourseInquiry(event)">
+            <label for="fi-name">お名前 <span style="color:#f87171;">*</span></label>
+            <input type="text" id="fi-name" name="name" placeholder="山田 太郎" required>
+
+            <label for="fi-email">メールアドレス <span style="color:#f87171;">*</span></label>
+            <input type="email" id="fi-email" name="email" placeholder="taro@example.com" required>
+
+            <label for="fi-message">ご質問・ご相談（任意）</label>
+            <textarea id="fi-message" name="message" placeholder="聞きたいことがあればご記入ください"></textarea>
+
+            <input type="hidden" id="fi-course" value="{{ c.code }}: {{ c.title }}">
+
+            <button type="submit" class="sc-submit" id="submitBtn">無料で相談する</button>
+            <div class="form-note">2営業日以内にご連絡いたします。</div>
+        </form>
+    </div>
+
+    <div class="sc-form-success" id="inquirySuccess" style="display:none;">
+        <div class="check-icon">✓</div>
+        <h3>お問い合わせを受け付けました</h3>
+        <p>2営業日以内に担当者よりご連絡いたします。</p>
+    </div>
+</section>
+
+<!-- ━━ Sticky mobile CTA ━━ -->
+<div class="cd-sticky">
+    <a href="#inquiry">無料で相談する →</a>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function submitCourseInquiry(e) {
+    e.preventDefault();
+    var btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.textContent = '送信中…';
+    var data = {
+        name: document.getElementById('fi-name').value.trim(),
+        email: document.getElementById('fi-email').value.trim(),
+        course: document.getElementById('fi-course').value,
+        message: document.getElementById('fi-message').value.trim()
+    };
+    fetch('/api/solo-inquiry', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+    })
+    .then(function(r) { return r.json(); })
+    .then(function() {
+        document.getElementById('inquiryForm').style.display = 'none';
+        document.getElementById('inquirySuccess').style.display = 'block';
+    })
+    .catch(function() {
+        btn.disabled = false;
+        btn.textContent = '無料で相談する';
+        alert('送信に失敗しました。info@jgaia.org まで直接ご連絡ください。');
+    });
+    return false;
+}
+</script>
+{% endblock %}

@@ -1,0 +1,1124 @@
+{% extends "base.html" %}
+
+{% block title %}一人会社AI経営講座{% endblock %}
+{% block description %}29名のAIチームで一人会社を経営する方法を学ぶ。秘書・経理・営業・開発をAIで構築し、月商100万円を目指す実践講座。JGAIA認定。{% endblock %}
+
+{% block extra_head %}
+<meta property="og:title" content="一人会社AI経営講座 | JGAIA 日本生成AI協会">
+<meta property="og:description" content="AIだけで会社を回す。秘書・経理・営業・開発、29名のAIチームを構築する実践講座。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://www.jgaia.org/solo-ceo">
+<link rel="canonical" href="https://www.jgaia.org/solo-ceo">
+<script type="application/ld+json">
+[
+  {"@context":"https://schema.org","@type":"Course","name":"SP-A: AI経営 入門1日","description":"一人会社AI経営の全体像を1日で掴む入門講座。","provider":{"@type":"Organization","name":"JGAIA 日本生成AI協会","url":"https://www.jgaia.org/"},"offers":{"@type":"Offer","price":"49800","priceCurrency":"JPY"}},
+  {"@context":"https://schema.org","@type":"Course","name":"SP-B: AI経営 実践3日間マスター","description":"3日間でAIが回す経営システムを自社に実装する集中講座。","provider":{"@type":"Organization","name":"JGAIA 日本生成AI協会","url":"https://www.jgaia.org/"},"offers":{"@type":"Offer","price":"128000","priceCurrency":"JPY"}},
+  {"@context":"https://schema.org","@type":"Course","name":"SP-C: AI経営 夜間マスター全5回","description":"働きながら5週間でAI経営スキルを体系的に習得する夜間講座。","provider":{"@type":"Organization","name":"JGAIA 日本生成AI協会","url":"https://www.jgaia.org/"},"offers":{"@type":"Offer","price":"68000","priceCurrency":"JPY"}}
+]
+</script>
+{% endblock %}
+
+{% block extra_css %}
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   一人会社AI経営講座 LP
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+/* ── Hero ── */
+.sc-hero {
+    text-align: center;
+    padding: 1rem 24px 5rem;
+}
+.sc-hero .hero-eyebrow {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .18em;
+    color: rgba(255,255,255,.65);
+    border: 1px solid rgba(255,255,255,.18);
+    padding: 6px 22px;
+    border-radius: 20px;
+    margin-bottom: 28px;
+}
+.sc-hero h1 {
+    font-size: clamp(26px, 4.5vw, 48px);
+    font-weight: 900;
+    color: #fff;
+    line-height: 1.35;
+    margin-bottom: 20px;
+    text-wrap: balance;
+}
+.sc-hero h1 em {
+    font-style: normal;
+    color: #93c5fd;
+}
+.sc-hero .hero-sub {
+    font-size: 16px;
+    font-weight: 300;
+    color: rgba(255,255,255,.72);
+    line-height: 1.85;
+    max-width: 600px;
+    margin: 0 auto 36px;
+}
+.sc-hero .hero-actions {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+/* ── Buttons ── */
+.sc-btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+    font-weight: 700;
+    color: #0d1b3e;
+    background: #fff;
+    padding: 14px 32px;
+    border-radius: 4px;
+    transition: all .2s;
+    box-shadow: 0 2px 8px rgba(0,0,0,.15);
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+}
+.sc-btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0,0,0,.25);
+}
+.sc-btn-outline {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+    font-weight: 500;
+    color: #fff;
+    padding: 14px 28px;
+    border-radius: 4px;
+    border: 1px solid rgba(255,255,255,.3);
+    transition: all .2s;
+    text-decoration: none;
+    background: transparent;
+    cursor: pointer;
+}
+.sc-btn-outline:hover {
+    background: rgba(255,255,255,.08);
+    border-color: rgba(255,255,255,.55);
+}
+
+/* ── White body wrapper ── */
+.sc-body {
+    background: #fff;
+    color: #1a1a2e;
+    font-family: 'Noto Sans JP', sans-serif;
+    line-height: 1.7;
+}
+.sc-body a { color: inherit; }
+.sc-body img { display: block; max-width: 100%; }
+.sc-wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+
+/* ── Stats bar ── */
+.sc-stats { background: #f0f4f8; border-bottom: 1px solid #e2e8f0; }
+.sc-stats-inner {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 24px;
+}
+.sc-stat { text-align: center; padding: 0 16px; }
+.sc-stat + .sc-stat { border-left: 1px solid #d1d9e6; }
+.sc-stat .num {
+    font-size: clamp(28px, 4vw, 40px);
+    font-weight: 800;
+    color: #1e3a5f;
+    font-variant-numeric: tabular-nums;
+}
+.sc-stat .label {
+    font-size: 13px;
+    color: #64748b;
+    margin-top: 4px;
+}
+
+/* ── Section common ── */
+.sc-section {
+    padding: 72px 0;
+}
+.sc-section + .sc-section { border-top: 1px solid #edf2f7; }
+.sc-section.sc-alt { background: #f8fafc; }
+.sc-section-head {
+    text-align: center;
+    margin-bottom: 48px;
+}
+.sc-section-head .sec-eyebrow {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    color: #2563eb;
+    margin-bottom: 10px;
+}
+.sc-section-head h2 {
+    font-size: clamp(22px, 3vw, 32px);
+    font-weight: 800;
+    color: #0f172a;
+    line-height: 1.4;
+    text-wrap: balance;
+}
+.sc-section-head p {
+    font-size: 15px;
+    color: #64748b;
+    margin-top: 12px;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* ── Trust logos ── */
+.sc-trust {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 36px;
+    flex-wrap: wrap;
+    padding: 24px;
+    border-top: 1px solid rgba(255,255,255,.1);
+    border-bottom: 1px solid rgba(255,255,255,.1);
+}
+.sc-trust span {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: .08em;
+    color: rgba(255,255,255,.55);
+}
+
+/* ── Pain points ── */
+.sc-pain-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px;
+    max-width: 900px;
+    margin: 0 auto;
+}
+.sc-pain-card {
+    padding: 28px 24px;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    background: #fff;
+}
+.sc-pain-card .pain-icon {
+    font-size: 28px;
+    margin-bottom: 12px;
+}
+.sc-pain-card h3 {
+    font-size: 16px;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 8px;
+}
+.sc-pain-card p {
+    font-size: 14px;
+    color: #64748b;
+    line-height: 1.7;
+}
+
+/* ── Before / After ── */
+.sc-ba-grid {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 0;
+    max-width: 900px;
+    margin: 0 auto;
+    align-items: stretch;
+}
+.sc-ba-col {
+    padding: 32px 28px;
+    border-radius: 12px;
+}
+.sc-ba-col.before {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+}
+.sc-ba-col.after {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+}
+.sc-ba-col h3 {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: .1em;
+    margin-bottom: 16px;
+}
+.sc-ba-col.before h3 { color: #991b1b; }
+.sc-ba-col.after h3 { color: #166534; }
+.sc-ba-col ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+.sc-ba-col ul li {
+    font-size: 14px;
+    line-height: 1.7;
+    padding: 6px 0;
+    color: #374151;
+}
+.sc-ba-col ul li::before {
+    margin-right: 8px;
+    font-weight: 600;
+}
+.sc-ba-col.before ul li::before { content: "✕"; color: #dc2626; }
+.sc-ba-col.after ul li::before { content: "✓"; color: #16a34a; }
+.sc-ba-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 16px;
+    font-size: 28px;
+    color: #94a3b8;
+}
+
+/* ── Course cards (bento grid) ── */
+.sc-course-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 24px;
+    max-width: 1000px;
+    margin: 0 auto;
+}
+.sc-course-card {
+    border-radius: 16px;
+    overflow: hidden;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    transition: box-shadow .25s, transform .25s;
+    display: flex;
+    flex-direction: column;
+}
+.sc-course-card:hover {
+    box-shadow: 0 8px 30px rgba(0,0,0,.08);
+    transform: translateY(-3px);
+}
+.sc-course-card .card-header {
+    padding: 28px 24px 20px;
+    color: #fff;
+}
+.sc-course-card .card-header .card-code {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .12em;
+    opacity: .8;
+    margin-bottom: 8px;
+}
+.sc-course-card .card-header h3 {
+    font-size: 20px;
+    font-weight: 800;
+    line-height: 1.3;
+    margin: 0;
+}
+.sc-course-card .card-body {
+    padding: 20px 24px 24px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+.sc-course-card .card-body p {
+    font-size: 14px;
+    color: #475569;
+    line-height: 1.7;
+    margin-bottom: 16px;
+    flex: 1;
+}
+.sc-course-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+.sc-course-meta .meta-tag {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 4px;
+    background: #f1f5f9;
+    color: #475569;
+}
+.sc-course-card .card-price {
+    font-size: 24px;
+    font-weight: 800;
+    color: #0f172a;
+    margin-bottom: 4px;
+    font-variant-numeric: tabular-nums;
+}
+.sc-course-card .card-price small {
+    font-size: 14px;
+    font-weight: 400;
+    color: #94a3b8;
+}
+.sc-subsidy-badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 3px;
+    background: #fef3c7;
+    color: #92400e;
+    margin-bottom: 12px;
+}
+.sc-course-card .card-link {
+    display: block;
+    text-align: center;
+    padding: 12px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #2563eb;
+    text-decoration: none;
+    border-top: 1px solid #e2e8f0;
+    transition: background .2s;
+}
+.sc-course-card .card-link:hover { background: #f8fafc; }
+
+/* ── Instructor ── */
+.sc-instructor {
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    gap: 40px;
+    max-width: 800px;
+    margin: 0 auto;
+    align-items: start;
+}
+.sc-instructor-photo {
+    width: 180px;
+    height: 180px;
+    border-radius: 50%;
+    background: #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    color: #94a3b8;
+    flex-shrink: 0;
+}
+.sc-instructor-info h3 {
+    font-size: 22px;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 4px;
+}
+.sc-instructor-info .inst-role {
+    font-size: 14px;
+    color: #64748b;
+    margin-bottom: 16px;
+}
+.sc-instructor-info p {
+    font-size: 14px;
+    color: #475569;
+    line-height: 1.8;
+}
+.sc-credential-list {
+    list-style: none;
+    margin: 16px 0 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.sc-credential-list li {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 12px;
+    background: #eff6ff;
+    color: #1e40af;
+    border-radius: 4px;
+}
+
+/* ── Testimonials ── */
+.sc-testimonials {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px;
+    max-width: 900px;
+    margin: 0 auto;
+}
+.sc-testimonial {
+    padding: 28px 24px;
+    background: #f8fafc;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+}
+.sc-testimonial blockquote {
+    font-size: 14px;
+    line-height: 1.8;
+    color: #334155;
+    margin: 0 0 16px;
+    font-style: normal;
+}
+.sc-testimonial .testi-author {
+    font-size: 13px;
+    font-weight: 600;
+    color: #64748b;
+}
+
+/* ── FAQ ── */
+.sc-faq-list {
+    max-width: 760px;
+    margin: 0 auto;
+}
+.sc-faq-item {
+    border-bottom: 1px solid #e2e8f0;
+    padding: 20px 0;
+}
+.sc-faq-item summary {
+    font-size: 15px;
+    font-weight: 700;
+    color: #0f172a;
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.sc-faq-item summary::before {
+    content: "Q";
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #2563eb;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 800;
+    flex-shrink: 0;
+}
+.sc-faq-item summary::-webkit-details-marker { display: none; }
+.sc-faq-item[open] summary { margin-bottom: 12px; }
+.sc-faq-item .faq-answer {
+    font-size: 14px;
+    color: #475569;
+    line-height: 1.8;
+    padding-left: 40px;
+}
+
+/* ── CTA section ── */
+.sc-cta-section {
+    background: linear-gradient(135deg, #0f172a, #1e3a5f);
+    color: #fff;
+    padding: 72px 24px;
+    text-align: center;
+}
+.sc-cta-section h2 {
+    font-size: clamp(22px, 3vw, 32px);
+    font-weight: 800;
+    margin-bottom: 12px;
+    color: #fff;
+}
+.sc-cta-section p {
+    font-size: 15px;
+    color: rgba(255,255,255,.72);
+    margin-bottom: 36px;
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* ── Inquiry form ── */
+.sc-form-wrap {
+    max-width: 480px;
+    margin: 0 auto;
+    text-align: left;
+}
+.sc-form-wrap label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+.sc-cta-section .sc-form-wrap label { color: rgba(255,255,255,.85); }
+.sc-form-wrap input,
+.sc-form-wrap select,
+.sc-form-wrap textarea {
+    display: block;
+    width: 100%;
+    padding: 12px 14px;
+    border: 1px solid rgba(255,255,255,.2);
+    border-radius: 6px;
+    font-size: 15px;
+    font-family: inherit;
+    margin-bottom: 16px;
+    background: rgba(255,255,255,.08);
+    color: #fff;
+    transition: border-color .2s;
+}
+.sc-form-wrap input::placeholder,
+.sc-form-wrap textarea::placeholder { color: rgba(255,255,255,.4); }
+.sc-form-wrap input:focus,
+.sc-form-wrap select:focus,
+.sc-form-wrap textarea:focus {
+    outline: none;
+    border-color: #93c5fd;
+    box-shadow: 0 0 0 3px rgba(147,197,253,.2);
+}
+.sc-form-wrap select { appearance: auto; }
+.sc-form-wrap select option { color: #0f172a; background: #fff; }
+.sc-form-wrap textarea { min-height: 80px; resize: vertical; }
+.sc-form-wrap .form-note {
+    font-size: 12px;
+    color: rgba(255,255,255,.5);
+    text-align: center;
+    margin-top: 12px;
+}
+.sc-form-wrap .sc-submit {
+    display: block;
+    width: 100%;
+    padding: 14px;
+    background: #fff;
+    color: #0f172a;
+    font-size: 15px;
+    font-weight: 700;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all .2s;
+    margin-top: 8px;
+}
+.sc-form-wrap .sc-submit:hover {
+    background: #e2e8f0;
+    transform: translateY(-1px);
+}
+.sc-form-wrap .sc-submit:disabled {
+    opacity: .6;
+    cursor: not-allowed;
+    transform: none;
+}
+.sc-form-success {
+    text-align: center;
+    padding: 32px;
+}
+.sc-form-success .check-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+}
+.sc-form-success h3 {
+    font-size: 20px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 8px;
+}
+.sc-form-success p {
+    font-size: 14px;
+    color: rgba(255,255,255,.7);
+}
+
+/* ── Inline form (white bg) ── */
+.sc-body .sc-form-wrap label { color: #0f172a; }
+.sc-body .sc-form-wrap input,
+.sc-body .sc-form-wrap select,
+.sc-body .sc-form-wrap textarea {
+    background: #fff;
+    color: #0f172a;
+    border: 1px solid #d1d5db;
+}
+.sc-body .sc-form-wrap input::placeholder,
+.sc-body .sc-form-wrap textarea::placeholder { color: #9ca3af; }
+.sc-body .sc-form-wrap input:focus,
+.sc-body .sc-form-wrap select:focus,
+.sc-body .sc-form-wrap textarea:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37,99,235,.12);
+}
+.sc-body .sc-form-wrap .sc-submit {
+    background: #2563eb;
+    color: #fff;
+}
+.sc-body .sc-form-wrap .sc-submit:hover { background: #1d4ed8; }
+.sc-body .sc-form-wrap .form-note { color: #94a3b8; }
+
+/* ── Sticky mobile CTA ── */
+.sc-sticky-cta {
+    display: none;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 900;
+    padding: 12px 16px;
+    background: rgba(15, 23, 42, .96);
+    backdrop-filter: blur(8px);
+    border-top: 1px solid rgba(255,255,255,.1);
+}
+.sc-sticky-cta a {
+    display: block;
+    text-align: center;
+    padding: 14px;
+    background: #fff;
+    color: #0f172a;
+    font-weight: 700;
+    font-size: 15px;
+    border-radius: 6px;
+    text-decoration: none;
+}
+
+/* ── Subsidy section ── */
+.sc-subsidy-info {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 28px 32px;
+    border: 1px solid #bfdbfe;
+    border-radius: 12px;
+    background: #eff6ff;
+}
+.sc-subsidy-info h3 {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1e40af;
+    margin-bottom: 12px;
+}
+.sc-subsidy-info p {
+    font-size: 14px;
+    color: #1e3a5f;
+    line-height: 1.7;
+}
+.sc-subsidy-info .subsidy-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0 0;
+    font-size: 13px;
+}
+.sc-subsidy-info .subsidy-table th,
+.sc-subsidy-info .subsidy-table td {
+    padding: 8px 12px;
+    border: 1px solid #bfdbfe;
+    text-align: left;
+}
+.sc-subsidy-info .subsidy-table th {
+    background: #dbeafe;
+    font-weight: 600;
+    color: #1e3a5f;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+    .sc-stats-inner { grid-template-columns: 1fr; gap: 20px; }
+    .sc-stat + .sc-stat { border-left: none; border-top: 1px solid #d1d9e6; padding-top: 20px; }
+    .sc-ba-grid { grid-template-columns: 1fr; gap: 16px; }
+    .sc-ba-arrow { transform: rotate(90deg); padding: 8px 0; }
+    .sc-course-grid { grid-template-columns: 1fr; }
+    .sc-instructor { grid-template-columns: 1fr; text-align: center; }
+    .sc-instructor-photo { margin: 0 auto; }
+    .sc-credential-list { justify-content: center; }
+    .sc-testimonials { grid-template-columns: 1fr; }
+    .sc-sticky-cta { display: block; }
+    .sc-section { padding: 48px 0; }
+}
+{% endblock %}
+
+{% block content %}
+<main>
+
+<!-- ━━ 1. Hero ━━ -->
+<section class="sc-hero">
+    <div class="hero-eyebrow">JGAIA 認定講座</div>
+    <h1><em>29名のAIチーム</em>で<br>一人会社を経営する方法</h1>
+    <p class="hero-sub">
+        秘書・経理・営業・開発 ── すべてをAIで構築し、<br>
+        一人でも月商100万円を目指せる経営システムを学ぶ。
+    </p>
+    <div class="hero-actions">
+        <a href="#inquiry" class="sc-btn-primary">無料で相談する →</a>
+        <a href="#courses" class="sc-btn-outline">コース一覧を見る</a>
+    </div>
+</section>
+
+<!-- ━━ 2. Trust logos ━━ -->
+<div class="sc-trust">
+    <span>関連組織</span>
+    <span style="font-size:15px;color:rgba(255,255,255,.8);font-weight:700;">JQCA</span>
+    <span style="font-size:15px;color:rgba(255,255,255,.8);font-weight:700;">JGAIA</span>
+    <span style="font-size:15px;color:rgba(255,255,255,.8);font-weight:700;">Q-STAR</span>
+    <span style="font-size:15px;color:rgba(255,255,255,.8);font-weight:700;">長大</span>
+    <span style="font-size:15px;color:rgba(255,255,255,.8);font-weight:700;">人・夢・技術グループ</span>
+</div>
+
+</main>
+
+<!-- ━━ White body ━━ -->
+<div class="sc-body">
+
+<!-- ━━ Stats ━━ -->
+<div class="sc-stats">
+    <div class="sc-stats-inner">
+        <div class="sc-stat">
+            <div class="num">500万+</div>
+            <div class="label">国内一人会社経営者数</div>
+        </div>
+        <div class="sc-stat">
+            <div class="num">29名</div>
+            <div class="label">AIチーム体制（実績）</div>
+        </div>
+        <div class="sc-stat">
+            <div class="num">11部門</div>
+            <div class="label">AI化済み経営機能</div>
+        </div>
+    </div>
+</div>
+
+<!-- ━━ 3. Pain points ━━ -->
+<section class="sc-section" id="pain">
+    <div class="sc-wrap">
+        <div class="sc-section-head">
+            <div class="sec-eyebrow">CHALLENGES</div>
+            <h2>一人会社経営者の3つの壁</h2>
+            <p>人を雇えない。でも一人では時間が足りない。そんな経営者に共通する課題。</p>
+        </div>
+        <div class="sc-pain-grid">
+            <div class="sc-pain-card">
+                <div class="pain-icon">⏰</div>
+                <h3>時間が足りない</h3>
+                <p>経理・営業・事務を全部一人でこなし、本業に集中できない。気づけば毎日12時間労働。</p>
+            </div>
+            <div class="sc-pain-card">
+                <div class="pain-icon">💰</div>
+                <h3>人を雇う余裕がない</h3>
+                <p>正社員を一人雇えば年間400万円。外注すれば品質管理に時間を取られる。</p>
+            </div>
+            <div class="sc-pain-card">
+                <div class="pain-icon">📈</div>
+                <h3>売上が頭打ちになる</h3>
+                <p>自分の稼働時間が売上の上限。仕組みがないから、休めば売上が止まる。</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ━━ 4. Before/After ━━ -->
+<section class="sc-section sc-alt" id="solution">
+    <div class="sc-wrap">
+        <div class="sc-section-head">
+            <div class="sec-eyebrow">SOLUTION</div>
+            <h2>AI経営で、何が変わるのか</h2>
+        </div>
+        <div class="sc-ba-grid">
+            <div class="sc-ba-col before">
+                <h3>BEFORE — AI導入前</h3>
+                <ul>
+                    <li>経費処理に毎月5時間</li>
+                    <li>提案書を1本作るのに丸1日</li>
+                    <li>メール返信で午前が終わる</li>
+                    <li>SNS投稿が続かない</li>
+                    <li>月商の上限 = 自分の労働時間</li>
+                </ul>
+            </div>
+            <div class="sc-ba-arrow">→</div>
+            <div class="sc-ba-col after">
+                <h3>AFTER — AI経営導入後</h3>
+                <ul>
+                    <li>経費処理はAIが自動仕訳</li>
+                    <li>提案書はAIが下書き、30分で完成</li>
+                    <li>AIが優先度判定し返信ドラフト作成</li>
+                    <li>SNSはAIが毎日投稿＋分析</li>
+                    <li>AIが24時間稼働、売上の天井が消える</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ━━ 5. Courses (bento grid) ━━ -->
+<section class="sc-section" id="courses">
+    <div class="sc-wrap">
+        <div class="sc-section-head">
+            <div class="sec-eyebrow">COURSES</div>
+            <h2>3つのコースから選べます</h2>
+            <p>あなたのペースと目標に合わせた3つの学び方。</p>
+        </div>
+        <div class="sc-course-grid">
+            {% for key, c in courses.items() %}
+            <div class="sc-course-card">
+                <div class="card-header" style="background:{{ c.gradient }}">
+                    <div class="card-code">{{ c.code }}</div>
+                    <h3>{{ c.title }}</h3>
+                </div>
+                <div class="card-body">
+                    <p>{{ c.subtitle }}</p>
+                    <div class="sc-course-meta">
+                        <span class="meta-tag">{{ c.duration }}</span>
+                        <span class="meta-tag">{{ c.format }}</span>
+                        <span class="meta-tag">定員{{ c.capacity }}</span>
+                    </div>
+                    {% if c.subsidy %}
+                    <div class="sc-subsidy-badge">助成金対象</div>
+                    {% endif %}
+                    <div class="card-price">¥{{ c.price }}<small>（税込）</small></div>
+                </div>
+                <a href="/solo-ceo/course-{{ c.id }}" class="card-link">詳細を見る →</a>
+            </div>
+            {% endfor %}
+        </div>
+        <div style="text-align:center;margin-top:36px;">
+            <a href="#inquiry" class="sc-btn-primary" style="background:#2563eb;color:#fff;">無料で相談する →</a>
+        </div>
+    </div>
+</section>
+
+<!-- ━━ 6. Instructor ━━ -->
+<section class="sc-section sc-alt" id="instructor">
+    <div class="sc-wrap">
+        <div class="sc-section-head">
+            <div class="sec-eyebrow">INSTRUCTOR</div>
+            <h2>講師紹介</h2>
+        </div>
+        <div class="sc-instructor">
+            <div class="sc-instructor-photo">実写写真</div>
+            <div class="sc-instructor-info">
+                <h3>高野 秀隆</h3>
+                <div class="inst-role">JQCA 代表理事 / JGAIA 代表理事 / 長大 クオンタム推進部 部長</div>
+                <p>
+                    29名のAIチームで11部門の経営システムを構築・運用する「一人会社AI経営」の実践者。
+                    量子コンピューティングとAIの両領域で国家プロジェクト（NEDO・SIP）を主導しながら、
+                    一人会社の経営をAIで自動化するシステムを開発・運用中。
+                    バイブコーディング講座の累計受講者への指導実績を持つ。
+                </p>
+                <ul class="sc-credential-list">
+                    <li>NEDO サイバー・フィジカル研究開発</li>
+                    <li>SIP 量子コンピューティング</li>
+                    <li>Q-STAR 部会長</li>
+                    <li>国家予算 1.49億円 獲得実績</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ━━ 7. Testimonials ━━ -->
+<section class="sc-section" id="testimonials">
+    <div class="sc-wrap">
+        <div class="sc-section-head">
+            <div class="sec-eyebrow">TESTIMONIALS</div>
+            <h2>受講者の声</h2>
+            <p>一人会社AI経営講座を受講された方々のフィードバック。</p>
+        </div>
+        <div class="sc-testimonials">
+            <div class="sc-testimonial">
+                <blockquote>
+                    「経理に毎月10時間かけていたのが、AI導入後は1時間で終わるようになりました。
+                    講座で学んだ仕組みをそのまま自社に適用できたのが大きかったです。」
+                </blockquote>
+                <div class="testi-author">— コンサルティング会社 代表（開講後に掲載予定）</div>
+            </div>
+            <div class="sc-testimonial">
+                <blockquote>
+                    「一人でやっていると営業が手薄になりがちでしたが、AIに提案書作成とSNS投稿を
+                    任せることで、本業のデザインに集中できるようになりました。」
+                </blockquote>
+                <div class="testi-author">— デザイン事務所 代表（開講後に掲載予定）</div>
+            </div>
+            <div class="sc-testimonial">
+                <blockquote>
+                    「夜間コースで仕事と両立しながら受講できたのが決め手でした。
+                    5週間で自分の事業のAI化プランが完成し、すぐに実行に移せました。」
+                </blockquote>
+                <div class="testi-author">— EC運営 個人事業主（開講後に掲載予定）</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ━━ 8. Curriculum overview ━━ -->
+<section class="sc-section sc-alt" id="curriculum">
+    <div class="sc-wrap">
+        <div class="sc-section-head">
+            <div class="sec-eyebrow">CURRICULUM</div>
+            <h2>学べること</h2>
+            <p>全コース共通で身につく6つのAI経営スキル。</p>
+        </div>
+        <div class="sc-pain-grid">
+            <div class="sc-pain-card">
+                <h3>AI組織設計</h3>
+                <p>秘書・経理・営業・開発の4部門をAIで構築する組織設計の方法論を学びます。</p>
+            </div>
+            <div class="sc-pain-card">
+                <h3>バイブコーディング</h3>
+                <p>コードを書かずにAIへの指示だけで業務アプリを開発するスキルを習得します。</p>
+            </div>
+            <div class="sc-pain-card">
+                <h3>AI秘書・経理の構築</h3>
+                <p>スケジュール管理、経費処理、請求書発行をAIで自動化する方法を実践します。</p>
+            </div>
+            <div class="sc-pain-card">
+                <h3>営業・マーケティング自動化</h3>
+                <p>提案書自動生成、SNS運用、メルマガ配信をAIで効率化する仕組みを構築します。</p>
+            </div>
+            <div class="sc-pain-card">
+                <h3>経営ダッシュボード</h3>
+                <p>全部門のKPIを一元管理するコックピットの設計と運用方法を学びます。</p>
+            </div>
+            <div class="sc-pain-card">
+                <h3>セキュリティ・法務</h3>
+                <p>AI活用に伴うリスク管理、機密情報保護、著作権対策を実践的に学びます。</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ━━ 9. Subsidy ━━ -->
+<section class="sc-section" id="subsidy">
+    <div class="sc-wrap">
+        <div class="sc-section-head">
+            <div class="sec-eyebrow">SUBSIDY</div>
+            <h2>助成金で受講料を抑えられます</h2>
+        </div>
+        <div class="sc-subsidy-info">
+            <h3>東京しごと財団「事業外スキルアップ助成金」</h3>
+            <p>
+                都内中小企業の従業員（代表者除く）が対象。受講料の最大2/3（上限¥25,000/人）が助成されます。
+                SP-Aコース（6時間）が助成金対象です。
+            </p>
+            <table class="subsidy-table">
+                <thead>
+                    <tr><th>企業規模</th><th>助成率</th><th>SP-A 実質負担</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>小規模企業</td><td>受講料の2/3（上限¥25,000）</td><td>¥24,800〜</td></tr>
+                    <tr><td>中小企業</td><td>受講料の1/2（上限¥25,000）</td><td>¥24,800〜</td></tr>
+                </tbody>
+            </table>
+            <p style="margin-top:12px;font-size:13px;color:#64748b;">
+                ※ Jグランツで1ヶ月前に事前申請が必要です。詳しい手続きは申込時にご案内します。
+            </p>
+        </div>
+    </div>
+</section>
+
+<!-- ━━ 10. FAQ ━━ -->
+<section class="sc-section sc-alt" id="faq">
+    <div class="sc-wrap">
+        <div class="sc-section-head">
+            <div class="sec-eyebrow">FAQ</div>
+            <h2>よくある質問</h2>
+        </div>
+        <div class="sc-faq-list">
+            <details class="sc-faq-item">
+                <summary>一人会社とは何ですか？フリーランスと違いますか？</summary>
+                <div class="faq-answer">
+                    一人会社とは、社員を雇わずに経営者一人で運営する法人（株式会社・合同会社等）や個人事業を指します。
+                    フリーランスも含む広い概念で、本講座では法人・個人事業主・副業経営者すべてを対象としています。
+                </div>
+            </details>
+            <details class="sc-faq-item">
+                <summary>プログラミング経験がなくても受講できますか？</summary>
+                <div class="faq-answer">
+                    はい、プログラミング経験は一切不要です。AIへの指示（プロンプト）を書く力を養う講座です。
+                    パソコンの基本操作（ブラウザでの文字入力）ができれば問題ありません。
+                </div>
+            </details>
+            <details class="sc-faq-item">
+                <summary>AIツールの月額コストはどれくらいかかりますか？</summary>
+                <div class="faq-answer">
+                    講座で使用するAIツールは月額2,000〜5,000円程度から始められます。
+                    人を一人雇う場合のコスト（年間400万円〜）と比較すると、圧倒的に低コストでスタートできます。
+                </div>
+            </details>
+            <details class="sc-faq-item">
+                <summary>どのコースを選べばよいですか？</summary>
+                <div class="faq-answer">
+                    まずはSP-A（入門1日）で全体像を掴むことをおすすめします。
+                    本格的にシステムを構築したい方はSP-B（実践3日間）、
+                    働きながら学びたい方はSP-C（夜間5回）が最適です。
+                    迷われた場合は無料相談でご案内します。
+                </div>
+            </details>
+            <details class="sc-faq-item">
+                <summary>受講後のサポートはありますか？</summary>
+                <div class="faq-answer">
+                    全コース共通で、受講後30日間のメールサポートと修了者限定コミュニティへの招待を提供しています。
+                    SP-Cは3ヶ月間のサポート付きです。
+                </div>
+            </details>
+            <details class="sc-faq-item">
+                <summary>法人研修として実施できますか？</summary>
+                <div class="faq-answer">
+                    はい、法人向けカスタマイズ研修も承っています。
+                    貴社の業務内容に合わせたカリキュラム設計が可能です。お問い合わせフォームからご連絡ください。
+                </div>
+            </details>
+        </div>
+    </div>
+</section>
+
+</div><!-- /.sc-body -->
+
+<!-- ━━ 11. CTA + Form ━━ -->
+<section class="sc-cta-section" id="inquiry">
+    <h2>まずは無料で相談する</h2>
+    <p>コース選びに迷ったら、お気軽にご相談ください。<br>営業電話は一切いたしません。</p>
+
+    <div class="sc-form-wrap" id="inquiryForm">
+        <form id="soloInquiryForm" onsubmit="return submitSoloInquiry(event)">
+            <label for="fi-name">お名前 <span style="color:#f87171;">*</span></label>
+            <input type="text" id="fi-name" name="name" placeholder="山田 太郎" required>
+
+            <label for="fi-email">メールアドレス <span style="color:#f87171;">*</span></label>
+            <input type="email" id="fi-email" name="email" placeholder="taro@example.com" required>
+
+            <label for="fi-course">関心のあるコース</label>
+            <select id="fi-course" name="course">
+                <option value="">選択してください（任意）</option>
+                <option value="SP-A: AI経営 入門1日">SP-A: AI経営 入門1日（¥49,800）</option>
+                <option value="SP-B: AI経営 実践3日間">SP-B: AI経営 実践3日間マスター（¥128,000）</option>
+                <option value="SP-C: AI経営 夜間5回">SP-C: AI経営 夜間マスター全5回（¥68,000）</option>
+                <option value="法人研修">法人向けカスタマイズ研修</option>
+                <option value="まだ決めていない">まだ決めていない</option>
+            </select>
+
+            <button type="submit" class="sc-submit" id="submitBtn">無料で相談する</button>
+            <div class="form-note">2営業日以内にご連絡いたします。営業電話は一切いたしません。</div>
+        </form>
+    </div>
+
+    <div class="sc-form-success" id="inquirySuccess" style="display:none;">
+        <div class="check-icon">✓</div>
+        <h3>お問い合わせを受け付けました</h3>
+        <p>2営業日以内に担当者よりご連絡いたします。</p>
+    </div>
+</section>
+
+<!-- ━━ Sticky mobile CTA ━━ -->
+<div class="sc-sticky-cta">
+    <a href="#inquiry">無料で相談する →</a>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function submitSoloInquiry(e) {
+    e.preventDefault();
+    var btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.textContent = '送信中…';
+    var data = {
+        name: document.getElementById('fi-name').value.trim(),
+        email: document.getElementById('fi-email').value.trim(),
+        course: document.getElementById('fi-course').value,
+    };
+    fetch('/api/solo-inquiry', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+    })
+    .then(function(r) { return r.json(); })
+    .then(function() {
+        document.getElementById('inquiryForm').style.display = 'none';
+        document.getElementById('inquirySuccess').style.display = 'block';
+    })
+    .catch(function() {
+        btn.disabled = false;
+        btn.textContent = '無料で相談する';
+        alert('送信に失敗しました。お手数ですが info@jgaia.org まで直接ご連絡ください。');
+    });
+    return false;
+}
+</script>
+{% endblock %}
