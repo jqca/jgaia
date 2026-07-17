@@ -175,24 +175,6 @@
     margin-right: auto;
 }
 
-/* ── Trust logos ── */
-.sc-trust {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 36px;
-    flex-wrap: wrap;
-    padding: 24px;
-    border-top: 1px solid rgba(255,255,255,.1);
-    border-bottom: 1px solid rgba(255,255,255,.1);
-}
-.sc-trust span {
-    font-size: 13px;
-    font-weight: 600;
-    letter-spacing: .08em;
-    color: rgba(255,255,255,.55);
-}
-
 /* ── Pain points ── */
 .sc-pain-grid {
     display: grid;
@@ -377,60 +359,6 @@
     transition: background .2s;
 }
 .sc-course-card .card-link:hover { background: #f8fafc; }
-
-/* ── Instructor ── */
-.sc-instructor {
-    display: grid;
-    grid-template-columns: 180px 1fr;
-    gap: 40px;
-    max-width: 800px;
-    margin: 0 auto;
-    align-items: start;
-}
-.sc-instructor-photo {
-    width: 180px;
-    height: 180px;
-    border-radius: 50%;
-    background: #e2e8f0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;
-    color: #94a3b8;
-    flex-shrink: 0;
-}
-.sc-instructor-info h3 {
-    font-size: 22px;
-    font-weight: 700;
-    color: #0f172a;
-    margin-bottom: 4px;
-}
-.sc-instructor-info .inst-role {
-    font-size: 14px;
-    color: #64748b;
-    margin-bottom: 16px;
-}
-.sc-instructor-info p {
-    font-size: 14px;
-    color: #475569;
-    line-height: 1.8;
-}
-.sc-credential-list {
-    list-style: none;
-    margin: 16px 0 0;
-    padding: 0;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-}
-.sc-credential-list li {
-    font-size: 12px;
-    font-weight: 600;
-    padding: 4px 12px;
-    background: #eff6ff;
-    color: #1e40af;
-    border-radius: 4px;
-}
 
 /* ── Testimonials ── */
 .sc-testimonials {
@@ -705,9 +633,6 @@
     .sc-ba-grid { grid-template-columns: 1fr; gap: 16px; }
     .sc-ba-arrow { transform: rotate(90deg); padding: 8px 0; }
     .sc-course-grid { grid-template-columns: 1fr; }
-    .sc-instructor { grid-template-columns: 1fr; text-align: center; }
-    .sc-instructor-photo { margin: 0 auto; }
-    .sc-credential-list { justify-content: center; }
     .sc-testimonials { grid-template-columns: 1fr; }
     .sc-sticky-cta { display: block; }
     .sc-section { padding: 48px 0; }
@@ -730,16 +655,6 @@
         <a href="#courses" class="sc-btn-outline">コース一覧を見る</a>
     </div>
 </section>
-
-<!-- ━━ 2. Trust logos ━━ -->
-<div class="sc-trust">
-    <span>関連組織</span>
-    <span style="font-size:15px;color:rgba(255,255,255,.8);font-weight:700;">JQCA</span>
-    <span style="font-size:15px;color:rgba(255,255,255,.8);font-weight:700;">JGAIA</span>
-    <span style="font-size:15px;color:rgba(255,255,255,.8);font-weight:700;">Q-STAR</span>
-    <span style="font-size:15px;color:rgba(255,255,255,.8);font-weight:700;">長大</span>
-    <span style="font-size:15px;color:rgba(255,255,255,.8);font-weight:700;">人・夢・技術グループ</span>
-</div>
 
 </main>
 
@@ -858,35 +773,6 @@
         </div>
         <div style="text-align:center;margin-top:36px;">
             <a href="#inquiry" class="sc-btn-primary" style="background:#2563eb;color:#fff;">無料で相談する →</a>
-        </div>
-    </div>
-</section>
-
-<!-- ━━ 6. Instructor ━━ -->
-<section class="sc-section sc-alt" id="instructor">
-    <div class="sc-wrap">
-        <div class="sc-section-head">
-            <div class="sec-eyebrow">INSTRUCTOR</div>
-            <h2>講師紹介</h2>
-        </div>
-        <div class="sc-instructor">
-            <div class="sc-instructor-photo">実写写真</div>
-            <div class="sc-instructor-info">
-                <h3>高野 秀隆</h3>
-                <div class="inst-role">JQCA 代表理事 / JGAIA 代表理事 / 長大 クオンタム推進部 部長</div>
-                <p>
-                    29名のAIチームで11部門の経営システムを構築・運用する「一人会社AI経営」の実践者。
-                    量子コンピューティングとAIの両領域で国家プロジェクト（NEDO・SIP）を主導しながら、
-                    一人会社の経営をAIで自動化するシステムを開発・運用中。
-                    バイブコーディング講座の累計受講者への指導実績を持つ。
-                </p>
-                <ul class="sc-credential-list">
-                    <li>NEDO サイバー・フィジカル研究開発</li>
-                    <li>SIP 量子コンピューティング</li>
-                    <li>Q-STAR 部会長</li>
-                    <li>国家予算 1.49億円 獲得実績</li>
-                </ul>
-            </div>
         </div>
     </div>
 </section>
