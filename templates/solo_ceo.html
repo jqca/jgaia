@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 
 {% block title %}一人会社AI経営講座{% endblock %}
-{% block description %}29名のAIチームで一人会社を経営する方法を学ぶ。秘書・経理・営業・開発をAIで構築し、経営を仕組み化する実践講座。JGAIA認定。{% endblock %}
+{% block description %}AIチームで一人会社を経営する方法を学ぶ。秘書・経理・営業・開発をAIで構築し、経営を仕組み化する実践講座。JGAIA認定。{% endblock %}
 
 {% block extra_head %}
 <meta property="og:title" content="一人会社AI経営講座 | JGAIA 日本生成AI協会">
-<meta property="og:description" content="AIだけで会社を回す。秘書・経理・営業・開発、29名のAIチームを構築する実践講座。">
+<meta property="og:description" content="AIだけで会社を回す。秘書・経理・営業・開発をAIで構築する実践講座。">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://www.jgaia.org/solo-ceo">
 <link rel="canonical" href="https://www.jgaia.org/solo-ceo">
@@ -118,29 +118,6 @@ main { padding: 0 !important; margin-top: 0 !important; min-height: 0 !important
 .sc-body a { color: inherit; }
 .sc-body img { display: block; max-width: 100%; }
 .sc-wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
-
-/* ── Stats bar ── */
-.sc-stats { background: #f0f4f8; border-bottom: 1px solid #e2e8f0; }
-.sc-stats-inner {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    max-width: 900px;
-    margin: 0 auto;
-    padding: 40px 24px;
-}
-.sc-stat { text-align: center; padding: 0 16px; }
-.sc-stat + .sc-stat { border-left: 1px solid #d1d9e6; }
-.sc-stat .num {
-    font-size: clamp(28px, 4vw, 40px);
-    font-weight: 800;
-    color: #1e3a5f;
-    font-variant-numeric: tabular-nums;
-}
-.sc-stat .label {
-    font-size: 13px;
-    color: #64748b;
-    margin-top: 4px;
-}
 
 /* ── Section common ── */
 .sc-section {
@@ -581,8 +558,6 @@ main { padding: 0 !important; margin-top: 0 !important; min-height: 0 !important
 
 /* ── Responsive ── */
 @media (max-width: 768px) {
-    .sc-stats-inner { grid-template-columns: 1fr; gap: 20px; }
-    .sc-stat + .sc-stat { border-left: none; border-top: 1px solid #d1d9e6; padding-top: 20px; }
     .sc-ba-grid { grid-template-columns: 1fr; gap: 16px; }
     .sc-ba-arrow { transform: rotate(90deg); padding: 8px 0; }
     .sc-course-grid { grid-template-columns: 1fr; }
@@ -598,7 +573,7 @@ main { padding: 0 !important; margin-top: 0 !important; min-height: 0 !important
 <!-- ━━ 1. Hero ━━ -->
 <section class="sc-hero">
     <div class="hero-eyebrow">JGAIA 認定講座</div>
-    <h1><em>29名のAIチーム</em>で<br>一人会社を経営する方法</h1>
+    <h1><em>AIチーム</em>で<br>一人会社を経営する方法</h1>
     <p class="hero-sub">
         秘書・経理・営業・開発 ── すべてをAIで構築し、<br>
         一人でも回せる経営システムの作り方を学ぶ。
@@ -613,24 +588,6 @@ main { padding: 0 !important; margin-top: 0 !important; min-height: 0 !important
 
 <!-- ━━ White body ━━ -->
 <div class="sc-body">
-
-<!-- ━━ Stats ━━ -->
-<div class="sc-stats">
-    <div class="sc-stats-inner">
-        <div class="sc-stat">
-            <div class="num">500万+</div>
-            <div class="label">国内一人会社経営者数</div>
-        </div>
-        <div class="sc-stat">
-            <div class="num">29名</div>
-            <div class="label">AIチーム体制（実績）</div>
-        </div>
-        <div class="sc-stat">
-            <div class="num">11部門</div>
-            <div class="label">AI化済み経営機能</div>
-        </div>
-    </div>
-</div>
 
 <!-- ━━ 3. Pain points ━━ -->
 <section class="sc-section" id="pain">
