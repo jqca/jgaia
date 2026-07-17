@@ -32,8 +32,8 @@ COURSES = {
         "format": "会場＋オンライン同時開催",
         "capacity": "20名",
         "schedule": "10:00〜17:00（昼休憩1時間）",
-        "subsidy": True,
-        "subsidy_text": "東京しごと財団 助成金対象（実質 ¥24,800〜）",
+        "subsidy": False,
+        "subsidy_text": "",
         "curriculum": [
             ("一人会社AI経営の全体設計",
              "なぜ今「AI×一人会社」なのか。29名AIチーム体制の実例から、組織設計の考え方と導入ステップを学びます。"),
