@@ -507,15 +507,30 @@ function submitCourseInquiry(e) {
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify(data)
     })
-    .then(function(r) { return r.json(); })
-    .then(function() {
-        document.getElementById('inquiryForm').style.display = 'none';
-        document.getElementById('inquirySuccess').style.display = 'block';
+    // 受付できたときだけ「受け付けました」を出す（r.ok を見ずに成功表示していた）。
+    .then(function(r) {
+        return r.json().catch(function() { return {}; }).then(function(j) {
+            if (!r.ok || j.ok !== true) { throw new Error(j.message || 'failed'); }
+            return j;
+        });
     })
-    .catch(function() {
+    .then(function(j) {
+        document.getElementById('inquiryForm').style.display = 'none';
+        var box = document.getElementById('inquirySuccess');
+        box.style.display = 'block';
+        if (j.mail_sent === false) {
+            var note = document.createElement('p');
+            note.style.cssText = 'margin-top:12px;font-size:14px;line-height:1.7;opacity:.85;';
+            note.textContent = '※ご入力内容は受け付けましたが、確認メールの自動送信ができませんでした。'
+                + 'お急ぎの場合は info@jgaia.org まで直接ご連絡ください。';
+            box.appendChild(note);
+        }
+    })
+    .catch(function(e) {
         btn.disabled = false;
         btn.textContent = '無料で相談する';
-        alert('送信に失敗しました。info@jgaia.org まで直接ご連絡ください。');
+        alert((e && e.message ? e.message : '送信に失敗しました。')
+            + '\nお手数ですが info@jgaia.org まで直接ご連絡ください。');
     });
     return false;
 }

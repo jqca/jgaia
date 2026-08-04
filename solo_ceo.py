@@ -12,6 +12,8 @@ import os
 
 from flask import render_template, request
 
+from inquiry_store import save_inquiry
+
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 FROM_EMAIL = "info@jgaia.org"
 NOTIFY_EMAIL = "takano.hidetaka@gmail.com"
@@ -59,12 +61,10 @@ COURSES = {
         "faq": [
             ("プログラミング経験がなくても大丈夫ですか？",
              "はい、プログラミング経験は一切不要です。AIへの指示（プロンプト）を書く力を養う講座です。"),
-            ("どのような業種の方が受講されていますか？",
-             "コンサルタント、士業、デザイナー、EC運営者など幅広い業種の一人会社経営者に受講いただいています。"),
+            ("どのような業種の方を想定していますか？",
+             "コンサルタント、士業、デザイナー、EC運営者など、人を雇わずに事業を運営されている方を想定した内容です。"),
             ("受講後のサポートはありますか？",
              "受講後30日間のメールサポートと、修了者限定コミュニティへの招待を提供しています。"),
-            ("助成金を利用する場合の手続きは？",
-             "東京しごと財団「事業外スキルアップ助成金」の対象です。Jグランツで1ヶ月前に事前申請が必要です。"),
         ],
     },
     "spb": {
@@ -196,12 +196,35 @@ def register_solo_ceo_routes(app):
         if not name or not email:
             return {"error": "name and email are required"}, 400
 
-        if not RESEND_API_KEY:
-            return {"ok": True, "note": "Resend未設定のためメール送信をスキップしました"}
+        # 1) まず保存する。メールより先。
+        #    メール送信が唯一の記録手段だと、鍵が無い・送信に失敗しただけで
+        #    申込が痕跡ごと消え、何件失ったのかも数えられない（2026-07-30に実際に発生）。
+        try:
+            save_inquiry("solo-ceo", {
+                "name": name,
+                "email": email,
+                "course": course,
+                "message": message,
+            })
+        except Exception:
+            app.logger.exception("[solo-inquiry] 保存に失敗＝受付を成立させない")
+            return {
+                "error": "save_failed",
+                "message": "受付処理に失敗しました。お手数ですが info@jgaia.org まで直接ご連絡ください。",
+            }, 500
+
+        # 2) そのうえでメールを送る。送れなくても受付自体は成立している（保存済み）。
+        #    ただし「確認メールを送った」とは言わない。
+        api_key = os.environ.get("RESEND_API_KEY", "") or RESEND_API_KEY
+        if not api_key:
+            app.logger.error(
+                "[solo-inquiry] RESEND_API_KEY が未設定です。"
+                "申込は保存済みですが通知メールは送れていません: %s <%s>", name, email)
+            return {"ok": True, "mail_sent": False}
 
         try:
             import resend
-            resend.api_key = RESEND_API_KEY
+            resend.api_key = api_key
 
             body_lines = [
                 f"氏名: {name}",
@@ -235,6 +258,9 @@ def register_solo_ceo_routes(app):
                 ),
             })
         except Exception:
-            pass
+            # 握り潰さない。保存は済んでいるのでログから復旧できる。
+            app.logger.exception(
+                "[solo-inquiry] メール送信に失敗。申込は保存済み: %s <%s>", name, email)
+            return {"ok": True, "mail_sent": False}
 
-        return {"ok": True}
+        return {"ok": True, "mail_sent": True}

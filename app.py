@@ -146,9 +146,38 @@ def robots():
     return send_file("static/robots.txt", mimetype="text/plain")
 
 
+@app.route("/llms.txt")
+def llms_txt():
+    """AIの回答に引用されるための要約ファイル（llms.txt）。
+
+    検索の入口がAIの回答に移り、ユーザーはAIが挙げた名前から流入する。
+    HTMLを読ませるより、何の団体で・どの講座が・いくらで・何時間かを
+    機械が読める1枚にまとめたほうが正確に引用される。
+    金額・時間は各ページの掲載値と一致させること（食い違うと誤案内になる）。
+    """
+    return send_file("static/llms.txt", mimetype="text/plain")
+
+
 @app.route("/healthz")
 def healthz():
-    return "ok"
+    """稼働確認に加えて、申込を受け取れる状態かどうかを返す。
+
+    ページが200で開いてもメールの設定が無ければ申込は届かない。
+    それを外から検知できるようにする（SoloOSの申込導線カナリアが毎時見る）。
+    秘密は出さない。設定の有無と受付件数だけ。
+    """
+    from flask import jsonify
+    from inquiry_store import count_inquiries
+    mailer = bool(os.environ.get("RESEND_API_KEY"))
+    try:
+        saved = count_inquiries()
+    except Exception:
+        saved = None
+    return jsonify({
+        "status": "ok",
+        "mailer": "configured" if mailer else "missing",
+        "inquiries_saved": saved,
+    })
 
 
 if __name__ == "__main__":
