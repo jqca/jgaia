@@ -827,8 +827,11 @@ function submitSoloInquiry(e) {
         if (j.mail_sent === false) {
             var note = document.createElement('p');
             note.style.cssText = 'margin-top:12px;font-size:14px;line-height:1.7;opacity:.85;';
-            note.textContent = '※ご入力内容は受け付けましたが、確認メールの自動送信ができませんでした。'
-                + 'お急ぎの場合は info@jgaia.org まで直接ご連絡ください。';
+            // お客様には「壊れている」ではなく「どうなるか」を伝える。
+            // 実際に受付は成立しており担当に渡っている。ただし確認メールは
+            // 出ていないので、届くとは書かない（嘘をつかない）。
+            note.textContent = '※自動の確認メールはお送りしておりません。'
+                + 'お急ぎの場合は info@jgaia.org までご連絡ください。';
             box.appendChild(note);
         }
     })
