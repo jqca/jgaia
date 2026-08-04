@@ -56,3 +56,28 @@ def count_inquiries():
         return 0
     with open(path, encoding='utf-8') as f:
         return sum(1 for line in f if line.strip())
+
+
+def read_inquiries(limit=200):
+    """保存済みの申込を新しい順に返す。
+
+    メールが送れないときの唯一の受け取り口になる。メール送信は外部サービスの
+    日次上限で落ちることがあり（2026-08-04に実際に発生）、そのとき保存だけが
+    残る。取り出せなければ保存している意味がない。
+    """
+    path = _log_path()
+    if not os.path.exists(path):
+        return []
+    rows = []
+    with open(path, encoding='utf-8') as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                rows.append(json.loads(line))
+            except Exception:
+                # 壊れた行があっても残りは読めるようにする（黙って全件失わない）
+                rows.append({'_unparsed': line})
+    rows.reverse()
+    return rows[:limit]

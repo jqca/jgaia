@@ -173,9 +173,19 @@ def healthz():
         saved = count_inquiries()
     except Exception:
         saved = None
+    # 鍵の有無だけでは足りない。設定済みでも日次上限などで実際には
+    # 送れていないことがある（2026-08-04に発生）。直近の失敗も返す。
+    try:
+        from solo_ceo import LAST_MAIL_ERROR
+        mail_error = LAST_MAIL_ERROR.get("kind")
+        mail_error_at = LAST_MAIL_ERROR.get("at")
+    except Exception:
+        mail_error = mail_error_at = None
     return jsonify({
         "status": "ok",
         "mailer": "configured" if mailer else "missing",
+        "mail_last_error": mail_error,
+        "mail_last_error_at": mail_error_at,
         "inquiries_saved": saved,
     })
 

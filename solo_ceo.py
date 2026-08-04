@@ -15,6 +15,17 @@ from flask import render_template, request
 from inquiry_store import save_inquiry
 
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
+
+# 直近のメール送信失敗。/healthz から見えるようにして、
+# 「鍵はあるのに実際は送れていない」状態を外から検知する。
+# 2026-08-04: 鍵は設定済みなのに日次上限で送信が落ちていた。
+# 設定の有無だけを見ていると正常に見えてしまう。
+LAST_MAIL_ERROR = {"at": None, "kind": None}
+
+
+def _now_jst():
+    from datetime import datetime, timezone, timedelta
+    return datetime.now(timezone(timedelta(hours=9))).strftime("%Y-%m-%d %H:%M:%S")
 FROM_EMAIL = "info@jgaia.org"
 NOTIFY_EMAIL = "takano.hidetaka@gmail.com"
 
@@ -181,6 +192,30 @@ def register_solo_ceo_routes(app):
             return "コースが見つかりません", 404
         return render_template("solo_ceo_course.html", c=course, courses=COURSES)
 
+    @app.route("/admin/inquiries")
+    def admin_inquiries():
+        """保存済みの申込を取り出す。メールが送れないときの受け取り口。
+
+        メール送信は外部サービスの日次上限で落ちることがある。そのとき申込は
+        保存されているが誰も気づけないため、取り出す口をここに用意する。
+        合言葉（環境変数 INQUIRY_ADMIN_TOKEN）が未設定なら機能ごと閉じる＝
+        設定し忘れで中身が誰でも見える状態にはしない。
+        """
+        import hmac
+        from inquiry_store import read_inquiries
+
+        expected = os.environ.get("INQUIRY_ADMIN_TOKEN", "")
+        if not expected:
+            return {"error": "disabled",
+                    "message": "INQUIRY_ADMIN_TOKEN が未設定のため無効です。"}, 503
+
+        given = request.args.get("token") or request.headers.get("X-Admin-Token") or ""
+        if not hmac.compare_digest(given, expected):
+            return {"error": "forbidden"}, 403
+
+        rows = read_inquiries()
+        return {"count": len(rows), "inquiries": rows}
+
     @app.route("/api/solo-inquiry", methods=["POST"])
     def solo_inquiry():
         try:
@@ -220,6 +255,8 @@ def register_solo_ceo_routes(app):
             app.logger.error(
                 "[solo-inquiry] RESEND_API_KEY が未設定です。"
                 "申込は保存済みですが通知メールは送れていません: %s <%s>", name, email)
+            LAST_MAIL_ERROR["at"] = _now_jst()
+            LAST_MAIL_ERROR["kind"] = "NoApiKey"
             return {"ok": True, "mail_sent": False}
 
         try:
@@ -257,10 +294,14 @@ def register_solo_ceo_routes(app):
                     "https://www.jgaia.org/\n"
                 ),
             })
-        except Exception:
+        except Exception as e:
             # 握り潰さない。保存は済んでいるのでログから復旧できる。
             app.logger.exception(
                 "[solo-inquiry] メール送信に失敗。申込は保存済み: %s <%s>", name, email)
+            LAST_MAIL_ERROR["at"] = _now_jst()
+            LAST_MAIL_ERROR["kind"] = type(e).__name__
             return {"ok": True, "mail_sent": False}
 
+        LAST_MAIL_ERROR["at"] = None
+        LAST_MAIL_ERROR["kind"] = None
         return {"ok": True, "mail_sent": True}
