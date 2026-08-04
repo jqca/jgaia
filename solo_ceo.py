@@ -13,6 +13,7 @@ import os
 from flask import render_template, request
 
 from inquiry_store import save_inquiry
+from mail_helper import send_via_smtp, smtp_configured
 
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 
@@ -265,50 +266,50 @@ def register_solo_ceo_routes(app):
 
         # 2) そのうえでメールを送る。送れなくても受付自体は成立している（保存済み）。
         #    ただし「確認メールを送った」とは言わない。
+        #    送信は自前のSMTP（さくら）が既定。外部APIの無料枠に依存しない。
+        body_lines = [
+            f"氏名: {name}",
+            f"メール: {email}",
+            f"関心コース: {course}" if course else None,
+            f"ご質問・ご相談:\n{message}" if message else None,
+        ]
+        body_text = "\n".join(line for line in body_lines if line)
+        notify_subject = f"【JGAIA AI経営講座】お問い合わせ: {name}様"
+        reply_subject = "【JGAIA】一人会社AI経営講座 お問い合わせありがとうございます"
+        reply_body = (
+            f"{name} 様\n\n"
+            "一般社団法人日本生成AI協会（JGAIA）の一人会社AI経営講座に"
+            "ご関心をお寄せいただきありがとうございます。\n\n"
+            "担当者より2営業日以内にご連絡いたします。\n\n"
+            "---\n"
+            "一般社団法人日本生成AI協会（JGAIA）\n"
+            "〒104-0061 東京都中央区銀座1-22-11 銀座大竹ビジデンス2階\n"
+            "info@jgaia.org\n"
+            "https://www.jgaia.org/\n"
+        )
+
         api_key = os.environ.get("RESEND_API_KEY", "") or RESEND_API_KEY
-        if not api_key:
+        if not (smtp_configured() or api_key):
             app.logger.error(
-                "[solo-inquiry] RESEND_API_KEY が未設定です。"
+                "[solo-inquiry] 送信手段が未設定です（SMTP・外部APIとも）。"
                 "申込は保存済みですが通知メールは送れていません: %s <%s>", name, email)
             LAST_MAIL_ERROR["at"] = _now_jst()
-            LAST_MAIL_ERROR["kind"] = "NoApiKey"
+            LAST_MAIL_ERROR["kind"] = "NoMailer"
             return {"ok": True, "mail_sent": False}
 
         try:
-            import resend
-            resend.api_key = api_key
-
-            body_lines = [
-                f"氏名: {name}",
-                f"メール: {email}",
-                f"関心コース: {course}" if course else None,
-                f"ご質問・ご相談:\n{message}" if message else None,
-            ]
-            body_text = "\n".join(line for line in body_lines if line)
-
-            resend.Emails.send({
-                "from": FROM_EMAIL,
-                "to": [NOTIFY_EMAIL],
-                "subject": f"【JGAIA AI経営講座】お問い合わせ: {name}様",
-                "text": body_text,
-            })
-
-            resend.Emails.send({
-                "from": FROM_EMAIL,
-                "to": [email],
-                "subject": "【JGAIA】一人会社AI経営講座 お問い合わせありがとうございます",
-                "text": (
-                    f"{name} 様\n\n"
-                    "一般社団法人日本生成AI協会（JGAIA）の一人会社AI経営講座に"
-                    "ご関心をお寄せいただきありがとうございます。\n\n"
-                    "担当者より2営業日以内にご連絡いたします。\n\n"
-                    "---\n"
-                    "一般社団法人日本生成AI協会（JGAIA）\n"
-                    "〒104-0061 東京都中央区銀座1-22-11 銀座大竹ビジデンス2階\n"
-                    "info@jgaia.org\n"
-                    "https://www.jgaia.org/\n"
-                ),
-            })
+            if smtp_configured():
+                # 本命。自ドメインのメールサーバーから出す。
+                send_via_smtp(NOTIFY_EMAIL, notify_subject, body_text, reply_to=email)
+                send_via_smtp(email, reply_subject, reply_body)
+            else:
+                # SMTP未設定のときだけの保険。通数上限で落ちることがある。
+                import resend
+                resend.api_key = api_key
+                resend.Emails.send({"from": FROM_EMAIL, "to": [NOTIFY_EMAIL],
+                                    "subject": notify_subject, "text": body_text})
+                resend.Emails.send({"from": FROM_EMAIL, "to": [email],
+                                    "subject": reply_subject, "text": reply_body})
         except Exception as e:
             # 握り潰さない。保存は済んでいるのでログから復旧できる。
             app.logger.exception(

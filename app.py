@@ -168,7 +168,16 @@ def healthz():
     """
     from flask import jsonify
     from inquiry_store import count_inquiries
-    mailer = bool(os.environ.get("RESEND_API_KEY"))
+    # どの経路で送るかまで返す。「設定はある」だけでは、どこから出ているのか
+    # 分からないまま片方が壊れていることがある。
+    from mail_helper import smtp_configured
+    if smtp_configured():
+        mailer_kind = "smtp"
+    elif os.environ.get("RESEND_API_KEY"):
+        mailer_kind = "resend"
+    else:
+        mailer_kind = "missing"
+    mailer = mailer_kind != "missing"
     try:
         saved = count_inquiries()
     except Exception:
@@ -184,6 +193,7 @@ def healthz():
     return jsonify({
         "status": "ok",
         "mailer": "configured" if mailer else "missing",
+        "mailer_kind": mailer_kind,
         "mail_last_error": mail_error,
         "mail_last_error_at": mail_error_at,
         "inquiries_saved": saved,
