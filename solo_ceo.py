@@ -45,6 +45,10 @@ COURSES = {
         "format": "会場＋オンライン同時開催",
         "capacity": "20名",
         "schedule": "10:00〜17:00（昼休憩1時間）",
+        # 開催日。決まったらここに "2026年9月12日（土）" のように書けば
+        # LPとコース詳細の両方に出る。空のままなら「調整中」と表示する。
+        # ⛔ 未定を空欄のまま隠さないこと（日程が見つからないと問い合わせ前に離脱する）
+        "next_date": "",
         "subsidy": False,
         "subsidy_text": "",
         "curriculum": [
@@ -93,6 +97,7 @@ COURSES = {
         "format": "会場開催",
         "capacity": "15名",
         "schedule": "10:00〜17:00 × 3日間（昼休憩1時間）",
+        "next_date": "",
         "subsidy": False,
         "subsidy_text": "",
         "curriculum": [
@@ -143,6 +148,7 @@ COURSES = {
         "format": "オンライン（Zoom）",
         "capacity": "30名",
         "schedule": "毎週水曜 19:00〜21:30（全5回）",
+        "next_date": "",
         "subsidy": False,
         "subsidy_text": "",
         "curriculum": [

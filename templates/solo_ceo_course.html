@@ -355,6 +355,17 @@
         <div class="cd-meta-item">{{ c.schedule }}</div>
     </div>
 
+    {# 開催日 — 未定なら「未定」と書く。何も書かないと、見た人は
+       日程を探して見つけられず、問い合わせる前に離脱する。 #}
+    <div class="cd-meta-bar" style="margin-top:10px;">
+        <div class="cd-meta-item">
+            開催日：<strong>{{ c.next_date if c.next_date else '調整中' }}</strong>
+            {% if not c.next_date %}
+            <span style="opacity:.8;">（決まり次第このページでご案内します。ご希望の時期は無料相談で承ります）</span>
+            {% endif %}
+        </div>
+    </div>
+
     <div class="cd-price-block">
         <div class="cd-price">¥{{ c.price }}<small>（税込）</small></div>
         {% if c.subsidy %}

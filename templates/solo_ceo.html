@@ -643,6 +643,7 @@ main { padding: 0 !important; margin-top: 0 !important; min-height: 0 !important
                         <span class="meta-tag">{{ c.duration }}</span>
                         <span class="meta-tag">{{ c.format }}</span>
                         <span class="meta-tag">定員{{ c.capacity }}</span>
+                        <span class="meta-tag">開催日 {{ c.next_date if c.next_date else '調整中' }}</span>
                     </div>
                     <div class="card-price">¥{{ c.price }}<small>（税込）</small></div>
                 </div>
