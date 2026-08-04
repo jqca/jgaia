@@ -210,13 +210,22 @@ def register_solo_ceo_routes(app):
         import hmac
         from inquiry_store import read_inquiries
 
-        expected = os.environ.get("INQUIRY_ADMIN_TOKEN", "")
+        # 値の前後の空白とBOMを落としてから比べる。
+        # 環境変数の設定経路によっては先頭にBOM(EF BB BF)が入り、
+        # 画面で見えないまま一致しなくなる（2026-08-04に実際に発生）。
+        # さらに hmac.compare_digest は str だと非ASCIIで例外を投げるため、
+        # bytes に変換して比べる（合言葉の違いを500エラーで返さない）。
+        def _clean(s):
+            return (s or "").strip().lstrip("﻿").strip()
+
+        expected = _clean(os.environ.get("INQUIRY_ADMIN_TOKEN", ""))
         if not expected:
             return {"error": "disabled",
                     "message": "INQUIRY_ADMIN_TOKEN が未設定のため無効です。"}, 503
 
-        given = request.args.get("token") or request.headers.get("X-Admin-Token") or ""
-        if not hmac.compare_digest(given, expected):
+        given = _clean(request.args.get("token")
+                       or request.headers.get("X-Admin-Token"))
+        if not hmac.compare_digest(given.encode("utf-8"), expected.encode("utf-8")):
             return {"error": "forbidden"}, 403
 
         rows = read_inquiries()
