@@ -532,10 +532,15 @@ function submitCourseInquiry(e) {
         if (j.mail_sent === false) {
             var note = document.createElement('p');
             note.style.cssText = 'margin-top:12px;font-size:14px;line-height:1.7;opacity:.85;';
-            // お客様には「壊れている」ではなく「どうなるか」を伝える。
-            // 受付は成立しているが確認メールは出ていないので、届くとは書かない。
             note.textContent = '※自動の確認メールはお送りしておりません。'
                 + 'お急ぎの場合は info@jgaia.org までご連絡ください。';
+        } else if (j.mail_sent === 'deferred') {
+            // 確認メールは数分以内に別経路（自社メールサーバー）から出る。
+            var d = document.createElement('p');
+            d.style.cssText = 'margin-top:12px;font-size:14px;line-height:1.7;opacity:.85;';
+            d.textContent = '※確認メールを数分以内にお送りします。'
+                + '届かない場合は info@jgaia.org までご連絡ください。';
+            box.appendChild(d);
             box.appendChild(note);
         }
     })

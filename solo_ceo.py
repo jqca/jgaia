@@ -288,6 +288,14 @@ def register_solo_ceo_routes(app):
             "https://www.jgaia.org/\n"
         )
 
+        # Railwayは外向きSMTPを遮断しており、HTTP APIの送信サービスも枠切れ
+        # （2026-08-06 実測: 587/465ともTimeout、Resend 429、SendGrid credits超過）。
+        # 確認メールは SoloOS（自宅PC）が さくら経由で数分以内に送る。
+        # ⛔ ここで送信を試さないこと。必ずタイムアウトし、その30秒ぶん
+        #    利用者のフォーム送信が固まる。
+        if os.environ.get("MAIL_DEFERRED") == "1":
+            return {"ok": True, "mail_sent": "deferred"}
+
         api_key = os.environ.get("RESEND_API_KEY", "") or RESEND_API_KEY
         if not (smtp_configured() or api_key):
             app.logger.error(
