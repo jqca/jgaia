@@ -24,7 +24,10 @@
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-H7XQ25E8YN"></script>
     <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-H7XQ25E8YN');</script>
     {% if hcaptcha_sitekey %}
-    <script src="https://js.hcaptcha.com/1/api.js" async defer></script>
+    {# 明示レンダリング。⛔自動レンダリングに任せないこと。ウィジェットは
+       読み込み後にJSで差し込むので、api.js の自動描画には間に合わない。 #}
+    <script src="https://js.hcaptcha.com/1/api.js?render=explicit&onload=jgaiaHcaptchaReady"
+            async defer></script>
     {% endif %}
     <script>
     // ── スパム対策（2026-08-06）────────────────────────────────
@@ -58,8 +61,57 @@
       }
       function arm(form) { put(form, HP, '', true); put(form, 'ts', TS, false); }
 
+      // ── hCaptcha（鍵が設定されているときだけ）──────────────────
+      // ⛔ ウィジェットを置き忘れないこと。api.js を読むだけでは何も表示されず、
+      //    利用者は解きようがないのに、サーバーは「未回答」として弾く＝
+      //    **正規の送信が全部落ちる**。鍵を入れた瞬間に事故になる。
+      var SITEKEY = "{{ hcaptcha_sitekey }}";
+      function putCaptcha(form) {
+        if (!SITEKEY) return;
+        if (form.querySelector('.h-captcha')) return;
+        var d = document.createElement('div');
+        d.className = 'h-captcha';
+        d.setAttribute('data-sitekey', SITEKEY);
+        d.style.margin = '12px 0';
+        // 送信ボタンの直前に置く（押す前に目に入る位置）
+        var btn = form.querySelector('button[type="submit"], input[type="submit"],'
+                                     + ' .btn-submit, .submit-btn, .form-submit');
+        if (btn && btn.parentElement) btn.parentElement.insertBefore(d, btn);
+        else form.appendChild(d);
+        if (window.hcaptcha && window.hcaptcha.render) {
+          try { window.hcaptcha.render(d); } catch (e) { /* 二重描画は無視 */ }
+        }
+      }
+      // api.js の読み込み完了時に呼ばれる（render=explicit のため必須）
+      window.jgaiaHcaptchaReady = function () {
+        Array.prototype.forEach.call(document.querySelectorAll('.h-captcha'),
+          function (d) {
+            if (d.dataset.rendered) return;
+            try { window.hcaptcha.render(d); d.dataset.rendered = '1'; } catch (e) {}
+          });
+      };
+
       document.addEventListener('DOMContentLoaded', function () {
-        Array.prototype.forEach.call(document.querySelectorAll('form'), arm);
+        Array.prototype.forEach.call(document.querySelectorAll('form'), function (f) {
+          arm(f); putCaptcha(f);
+        });
+        // 後から作られるフォーム（vibe_coding_lp の「申し込む」欄）にも付ける。
+        // ⛔ 送信直前では手遅れ。利用者が解く時間が無い。
+        if (SITEKEY && window.MutationObserver) {
+          new MutationObserver(function (muts) {
+            muts.forEach(function (m) {
+              Array.prototype.forEach.call(m.addedNodes, function (n) {
+                if (n.nodeType !== 1) return;
+                if (n.tagName === 'FORM') { arm(n); putCaptcha(n); }
+                else if (n.querySelectorAll) {
+                  Array.prototype.forEach.call(n.querySelectorAll('form'), function (f) {
+                    arm(f); putCaptcha(f);
+                  });
+                }
+              });
+            });
+          }).observe(document.body, {childList: true, subtree: true});
+        }
       });
       // 捕捉フェーズで走るので、フォーム自身の onsubmit より前に入る
       document.addEventListener('submit', function (e) {
