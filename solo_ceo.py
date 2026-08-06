@@ -229,6 +229,32 @@ def register_solo_ceo_routes(app):
         if not hmac.compare_digest(given.encode("utf-8"), expected.encode("utf-8")):
             return {"error": "forbidden"}, 403
 
+        # ?kind=spam で、遮断したぶんの中身を見る。
+        # ⛔ 件数だけでは「本物を落としていないか」が分からない。
+        #    誤判定は売上の損失なので、中身を読めるようにしておく。
+        if request.args.get('kind') == 'spam':
+            import json as _json
+            import os as _os
+            d = _os.environ.get('INQUIRY_LOG_DIR') or _os.path.join(
+                _os.path.dirname(_os.path.abspath(__file__)), 'data')
+            path = _os.path.join(d, 'spam.log')
+            rows = []
+            if _os.path.exists(path):
+                for line in open(path, encoding='utf-8'):
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        rows.append(_json.loads(line))
+                    except Exception:
+                        rows.append({'_unparsed': line})
+            rows.reverse()
+            # 判定理由ごとの内訳も返す（どの防御が効いているかが分かる）
+            by_reason = {}
+            for r in rows:
+                by_reason[r.get('reason', '?')] = by_reason.get(r.get('reason', '?'), 0) + 1
+            return {"count": len(rows), "by_reason": by_reason, "blocked": rows[:200]}
+
         rows = read_inquiries()
         return {"count": len(rows), "inquiries": rows}
 
