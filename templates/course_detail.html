@@ -1,0 +1,668 @@
+{% extends "base.html" %}
+
+{% block title %}{{ c.title }} | JGAIA バイブコーディング講座{% endblock %}
+{% block description %}{{ c.subtitle }}。受講料¥{{ c.price }}（税込）。{{ c.target }}向け。{% endblock %}
+
+{% block extra_css %}
+/* ── base.html のダークテーマ上書き（白テーマ化） ── */
+.particles-background { display:none !important; }
+body { background:#ffffff !important; }
+.header-nav {
+  background:rgba(255,255,255,0.95) !important;
+  backdrop-filter:blur(24px);
+  border-bottom:1px solid #e2e8f0;
+  position:fixed !important;
+  top:0 !important;
+  z-index:100;
+}
+.header-nav nav .nav-logo .logo-text { color:#1a1a2e !important; }
+.header-nav nav .nav-logo .logo-sub { color:#4a5568 !important; }
+.nav-menu-list__item a { color:#1a1a2e !important; }
+.nav-menu-list__item a:hover { opacity:0.7; }
+.nav-menu-list__item a span { color:#64748b !important; }
+.nav-profile .nav-register {
+  color:#fff !important;
+  background:#6366f1 !important;
+  border-color:#6366f1 !important;
+}
+.nav-profile .nav-login {
+  color:#1a1a2e !important;
+  background:transparent !important;
+  border-color:#d1d9e6 !important;
+}
+.hamburger { color:#1a1a2e !important; }
+main { padding:0 !important; margin-top:0 !important; }
+.footer { background:#f8fafc; }
+.footer__inner { border-top:1px solid #e2e8f0; }
+.footer .logo-text { color:#1a1a2e !important; }
+.footer .logo-sub { color:#64748b !important; }
+.footer__copyright { color:#64748b !important; }
+.footer__copyright p { color:#64748b !important; }
+.footer .link-button { color:#4a5568 !important; border-color:#d1d9e6 !important; }
+.footer .link-button:hover { color:#1a1a2e !important; }
+.footer .legal-link { color:#64748b !important; }
+.nav-menu-list .dropdown-menu {
+  background:rgba(255,255,255,0.97) !important;
+  border-color:#e2e8f0 !important;
+  box-shadow:0 8px 24px rgba(0,0,0,0.1) !important;
+}
+.nav-menu-list .dropdown-menu::after {
+  background:rgba(255,255,255,0.97) !important;
+  border-color:#e2e8f0 !important;
+}
+.nav-menu-list .dropdown-menu a {
+  color:#1a1a2e !important;
+}
+.nav-menu-list .dropdown-menu a:hover {
+  background:rgba(99,102,241,0.1) !important;
+  color:#6366f1 !important;
+}
+
+/* ── コース詳細ページ ── */
+:root {
+  --c-accent: {{ c.accent }};
+  --c-accent-l: {{ c.accent_light }};
+  --c-gradient: {{ c.gradient }};
+  --c-ink: #ffffff;
+  --c-ink-s: #f8fafc;
+  --c-ink-m: #f0f4f8;
+  --c-text: #1a1a2e;
+  --c-text-s: #4a5568;
+  --c-text-m: #64748b;
+  --c-border: #e2e8f0;
+  --c-border-l: #d1d9e6;
+  --c-font-d: 'Syne','Noto Sans JP',sans-serif;
+  --c-font: 'DM Sans','Noto Sans JP',sans-serif;
+}
+
+/* ── ヒーロー ── */
+.course-hero {
+  position:relative;
+  padding:140px 80px 80px;
+  overflow:hidden;
+  min-height:480px;
+  display:flex;align-items:flex-end;
+}
+.course-hero-bg {
+  position:absolute;inset:0;
+  {{ c.gradient }};
+  opacity:0.25;
+}
+.course-hero-bg::after {
+  content:'';position:absolute;inset:0;
+  background:
+    linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.1) 100%),
+    linear-gradient(to right, rgba(0,0,0,0.5) 0%, transparent 60%);
+}
+.course-hero-grid {
+  position:absolute;inset:0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+  background-size:64px 64px;
+}
+.course-hero-content {
+  position:relative;z-index:1;
+  max-width:800px;
+}
+.course-hero-badge {
+  display:inline-flex;align-items:center;gap:8px;
+  font-size:11px;font-weight:700;letter-spacing:.18em;
+  text-transform:uppercase;
+  padding:6px 16px;border-radius:4px;
+  {{ c.gradient }};
+  color:#fff;margin-bottom:20px;
+}
+.course-hero h1 {
+  font-family:var(--c-font-d);
+  font-size:clamp(36px,5vw,60px);
+  font-weight:800;line-height:1.1;
+  color:#fff;letter-spacing:-.03em;
+  margin-bottom:16px;
+}
+.course-hero-sub {
+  font-size:16px;font-weight:300;
+  color:rgba(255,255,255,0.7);
+  line-height:1.8;max-width:600px;
+  margin-bottom:32px;
+}
+.course-hero-meta {
+  display:flex;flex-wrap:wrap;gap:12px;
+}
+.course-hero-tag {
+  font-size:12px;font-weight:500;
+  padding:6px 14px;border-radius:4px;
+  background:rgba(255,255,255,0.08);
+  border:1px solid rgba(255,255,255,0.12);
+  color:rgba(255,255,255,0.8);
+}
+.course-hero-price {
+  font-family:var(--c-font-d);
+  font-size:clamp(28px,4vw,42px);
+  font-weight:800;color:#fff;
+  margin-top:24px;
+}
+.course-hero-price small {
+  font-size:14px;font-weight:400;
+  color:rgba(255,255,255,0.7);margin-left:8px;
+}
+
+/* ── セクション共通 ── */
+.c-sec {
+  padding:100px 80px;
+  border-top:1px solid var(--c-border);
+  background:var(--c-ink);
+}
+.c-sec-inner {
+  max-width:900px;margin:0 auto;
+}
+.c-sec-eyebrow {
+  display:inline-flex;align-items:center;gap:10px;
+  font-size:10.5px;font-weight:600;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--c-accent-l);
+  margin-bottom:20px;
+}
+.c-sec-eyebrow-line {
+  display:inline-block;width:16px;height:1px;
+  background:var(--c-accent-l);
+}
+.c-sec-heading {
+  font-family:var(--c-font-d);
+  font-size:clamp(28px,3.5vw,44px);
+  font-weight:800;color:var(--c-text);
+  line-height:1.15;letter-spacing:-.02em;
+  margin-bottom:16px;
+}
+.c-sec-sub {
+  font-size:15px;font-weight:300;
+  color:var(--c-text-s);line-height:1.8;
+  margin-bottom:48px;max-width:600px;
+}
+
+/* ── 概要グリッド ── */
+.overview-grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+  gap:2px;margin-bottom:0;
+  background:var(--c-ink);
+}
+.ov-card {
+  background:var(--c-ink-s);
+  padding:28px 24px;
+  transition:background .2s;
+}
+.ov-card:hover {background:var(--c-ink-m)}
+.ov-label {
+  font-size:10px;font-weight:600;letter-spacing:.15em;
+  text-transform:uppercase;
+  color:var(--c-text-m);margin-bottom:8px;
+}
+.ov-val {
+  font-size:15px;font-weight:600;color:var(--c-text);line-height:1.5;
+}
+.ov-val .sub {
+  display:block;font-size:12px;font-weight:400;
+  color:var(--c-accent-l);margin-top:4px;
+}
+
+/* ── カリキュラム ── */
+.cur-list {
+  display:flex;flex-direction:column;gap:2px;
+}
+.cur-item {
+  display:flex;gap:20px;align-items:flex-start;
+  background:var(--c-ink-s);
+  padding:28px 28px;
+  transition:background .2s;
+}
+.cur-item:hover {background:var(--c-ink-m)}
+.cur-num {
+  flex-shrink:0;
+  width:40px;height:40px;
+  border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--c-font-d);font-size:13px;font-weight:700;
+  color:#fff;letter-spacing:.05em;
+}
+.cur-body {flex:1;min-width:0}
+.cur-title {
+  font-size:15px;font-weight:700;color:var(--c-text);
+  margin-bottom:6px;line-height:1.4;
+}
+.cur-desc {
+  font-size:13.5px;font-weight:300;
+  color:var(--c-text-s);line-height:1.7;
+}
+
+/* ── 習得スキル ── */
+.out-grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+  gap:2px;
+}
+.out-card {
+  background:var(--c-ink-s);
+  padding:32px 28px;
+  transition:background .2s;
+}
+.out-card:hover {background:var(--c-ink-m)}
+.out-icon {
+  margin-bottom:16px;
+}
+.out-title {
+  font-size:15px;font-weight:700;color:var(--c-text);
+  margin-bottom:8px;line-height:1.4;
+}
+.out-desc {
+  font-size:13px;font-weight:300;
+  color:var(--c-text-s);line-height:1.7;
+}
+
+/* ── 講師 ── */
+.instructor-card {
+  display:flex;gap:32px;align-items:center;
+  background:var(--c-ink-s);
+  padding:40px;
+}
+.instructor-avatar {
+  flex-shrink:0;
+  width:100px;height:100px;
+  border-radius:50%;
+  {{ c.gradient }};
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--c-font-d);font-size:32px;font-weight:800;color:#fff;
+}
+.instructor-info {flex:1;min-width:0}
+.instructor-name {
+  font-family:var(--c-font-d);
+  font-size:22px;font-weight:800;color:var(--c-text);
+  margin-bottom:4px;
+}
+.instructor-role {
+  font-size:13px;color:var(--c-accent-l);
+  font-weight:500;margin-bottom:12px;
+}
+.instructor-bio {
+  font-size:13.5px;font-weight:300;
+  color:var(--c-text-s);line-height:1.8;
+}
+
+/* ── 助成金 ── */
+.subsidy-sec {
+  background:var(--c-ink-s);
+}
+.subsidy-grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+  gap:2px;margin-bottom:24px;
+}
+.subsidy-card {
+  background:var(--c-ink);
+  padding:28px 24px;
+}
+.subsidy-label {
+  font-size:12px;font-weight:600;
+  color:var(--c-text-s);margin-bottom:12px;
+}
+.subsidy-rate {
+  font-size:14px;color:var(--c-text-s);
+  margin-bottom:8px;
+}
+.subsidy-rate strong {color:var(--c-text)}
+.subsidy-result {
+  font-family:var(--c-font-d);
+  font-size:22px;font-weight:800;color:var(--c-text);
+}
+.subsidy-result strong {
+  color:var(--c-accent-l);
+}
+.subsidy-note {
+  font-size:12px;color:var(--c-text-m);line-height:1.8;
+}
+.subsidy-note a {
+  text-decoration:underline;text-underline-offset:3px;
+  color:var(--c-accent-l);
+}
+
+/* ── FAQ ── */
+.c-faq-list {
+  display:flex;flex-direction:column;gap:2px;
+}
+.c-faq-item {
+  background:var(--c-ink-s);overflow:hidden;
+}
+.c-faq-q {
+  width:100%;
+  display:flex;justify-content:space-between;align-items:center;gap:16px;
+  padding:22px 28px;
+  font-size:14px;font-weight:600;color:var(--c-text);
+  text-align:left;cursor:pointer;
+  transition:background .15s;
+  border:none;background:none;font-family:inherit;
+}
+.c-faq-q:hover {background:var(--c-ink-m)}
+.c-faq-chevron {
+  flex-shrink:0;
+  transition:transform .25s cubic-bezier(0.16, 1, 0.3, 1);
+  color:var(--c-text-m);
+}
+.c-faq-item.open .c-faq-chevron {transform:rotate(180deg)}
+.c-faq-a {
+  max-height:0;overflow:hidden;
+  transition:max-height .35s cubic-bezier(0.16, 1, 0.3, 1),padding .35s;
+  padding:0 28px;
+}
+.c-faq-item.open .c-faq-a {
+  max-height:300px;
+  padding:0 28px 24px;
+}
+.c-faq-a p {
+  font-size:13.5px;font-weight:300;
+  color:var(--c-text-s);line-height:1.8;
+  border-top:1px solid var(--c-border);
+  padding-top:16px;
+}
+
+/* ── お問い合わせフォーム ── */
+.form-sec {
+  background:var(--c-ink-s);
+}
+.form-wrap {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:16px;
+}
+.c-form-group {
+  display:flex;flex-direction:column;gap:6px;
+}
+.c-form-group.full {grid-column:1/-1}
+.c-form-label {
+  font-size:12px;font-weight:600;
+  color:var(--c-text-s);letter-spacing:.04em;
+}
+.c-form-label .req {
+  color:#ef4444;margin-left:4px;font-size:10px;
+}
+.c-form-input,.c-form-select,.c-form-textarea {
+  width:100%;padding:12px 14px;
+  border-radius:4px;
+  border:1px solid var(--c-border-l);
+  background:var(--c-ink);
+  color:var(--c-text);font-size:14px;
+  font-family:var(--c-font);
+  outline:none;transition:border .2s;
+}
+.c-form-input::placeholder,.c-form-textarea::placeholder {
+  color:var(--c-text-m);
+}
+.c-form-input:focus,.c-form-select:focus,.c-form-textarea:focus {
+  border-color:rgba(59,130,246,0.35);
+}
+.c-form-textarea {resize:vertical;min-height:100px}
+.c-btn-submit {
+  width:100%;padding:14px;
+  {{ c.gradient }};
+  color:#fff;font-size:14px;font-weight:700;
+  border:none;border-radius:4px;
+  cursor:pointer;letter-spacing:.03em;
+  transition:opacity .15s,transform .1s;
+  margin-top:8px;
+}
+.c-btn-submit:hover {opacity:.85;transform:translateY(-1px)}
+.c-btn-submit:disabled {opacity:.5;cursor:not-allowed;transform:none}
+.c-form-note {
+  font-size:11px;color:var(--c-text-m);
+  text-align:center;margin-top:12px;line-height:1.8;
+}
+#form-msg {
+  margin-top:16px;padding:14px;
+  border-radius:4px;text-align:center;
+  font-weight:600;font-size:13px;display:none;
+}
+.msg-ok {background:rgba(34,197,94,0.15);color:#16a34a;border:1px solid rgba(34,197,94,0.3)}
+.msg-err {background:rgba(239,68,68,0.15);color:#dc2626;border:1px solid rgba(239,68,68,0.3)}
+
+/* ── レスポンシブ ── */
+@media(max-width:768px){
+  .course-hero {padding:120px 24px 48px;min-height:auto}
+  .course-hero h1 {font-size:32px}
+  .c-sec {padding:64px 24px}
+  .overview-grid {grid-template-columns:1fr}
+  .cur-item {padding:20px;gap:14px}
+  .cur-num {width:32px;height:32px;font-size:11px}
+  .out-grid {grid-template-columns:1fr}
+  .instructor-card {flex-direction:column;text-align:center;padding:28px 24px}
+  .subsidy-grid {grid-template-columns:1fr}
+  .form-wrap {grid-template-columns:1fr}
+  .c-form-group.full {grid-column:1}
+}
+{% endblock %}
+
+{% block content %}
+<!-- ヒーロー -->
+<section class="course-hero">
+  <div class="course-hero-bg"></div>
+  <div class="course-hero-grid"></div>
+  <div class="course-hero-content">
+    <div class="course-hero-badge">COURSE {{ c.code }}</div>
+    <h1>{{ c.title }}</h1>
+    <p class="course-hero-sub">{{ c.subtitle }}</p>
+    <div class="course-hero-meta">
+      <span class="course-hero-tag">{{ c.duration }}</span>
+      <span class="course-hero-tag">{{ c.format }}</span>
+      <span class="course-hero-tag">定員 {{ c.capacity }}</span>
+      <span class="course-hero-tag">{{ c.target }}</span>
+    </div>
+    <div class="course-hero-price">
+      &yen;{{ c.price }}<small>（税込）</small>
+    </div>
+    {% if c.subsidy %}
+    <p style="margin-top:10px;font-size:13px;color:{{ c.accent_light }};font-weight:500">{{ c.subsidy_text }}</p>
+    {% endif %}
+  </div>
+</section>
+
+<!-- 概要 -->
+<div class="overview-grid">
+  <div class="ov-card">
+    <div class="ov-label">DURATION</div>
+    <div class="ov-val">{{ c.duration }}</div>
+  </div>
+  <div class="ov-card">
+    <div class="ov-label">SCHEDULE</div>
+    <div class="ov-val">{{ c.schedule }}</div>
+  </div>
+  <div class="ov-card">
+    <div class="ov-label">FORMAT</div>
+    <div class="ov-val">{{ c.format }}</div>
+  </div>
+  <div class="ov-card">
+    <div class="ov-label">PRICE</div>
+    <div class="ov-val">&yen;{{ c.price }}<span class="sub">{% if c.subsidy %}助成金利用で実質 ¥24,800〜{% else %}法人請求書払い可{% endif %}</span></div>
+  </div>
+</div>
+
+<!-- カリキュラム -->
+<section class="c-sec">
+  <div class="c-sec-inner">
+    <div class="c-sec-eyebrow"><span class="c-sec-eyebrow-line"></span>CURRICULUM</div>
+    <h2 class="c-sec-heading">カリキュラム</h2>
+    <p class="c-sec-sub">{{ c.duration }}で体系的に学ぶ実践プログラム。座学とハンズオンを交互に配置し、確実にスキルを定着させます。</p>
+    <div class="cur-list">
+      {% for title, desc in c.curriculum %}
+      <div class="cur-item">
+        <div class="cur-num" style="background:{{ c.accent }}">{{ '%02d' % loop.index }}</div>
+        <div class="cur-body">
+          <h4 class="cur-title">{{ title }}</h4>
+          <p class="cur-desc">{{ desc }}</p>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- 習得スキル -->
+<section class="c-sec">
+  <div class="c-sec-inner">
+    <div class="c-sec-eyebrow"><span class="c-sec-eyebrow-line"></span>WHAT YOU WILL LEARN</div>
+    <h2 class="c-sec-heading">修了後に身につくスキル</h2>
+    <p class="c-sec-sub">本コースを修了することで、以下のスキルを即座に業務で活用できるようになります。</p>
+    <div class="out-grid">
+      {% for title, desc in c.outcomes %}
+      <div class="out-card">
+        <div class="out-icon" style="color:{{ c.accent_light }}">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+        </div>
+        <h4 class="out-title">{{ title }}</h4>
+        <p class="out-desc">{{ desc }}</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- 講師 -->
+<section class="c-sec">
+  <div class="c-sec-inner">
+    <div class="c-sec-eyebrow"><span class="c-sec-eyebrow-line"></span>INSTRUCTOR</div>
+    <h2 class="c-sec-heading">講師紹介</h2>
+    <p class="c-sec-sub">AI・量子コンピューティング分野の第一人者が直接指導します。</p>
+    <div class="instructor-card">
+      <div class="instructor-avatar">HT</div>
+      <div class="instructor-info">
+        <div class="instructor-name">高野 秀隆</div>
+        <div class="instructor-role">一般社団法人日本生成AI協会（JGAIA）代表理事</div>
+        <p class="instructor-bio">
+          一般社団法人日本生成AI協会（JGAIA）代表理事。一般社団法人日本量子コンピューティング協会（JQCA）代表理事。
+          株式会社長大 クオンタム推進部 部長。国家プロジェクト（SIP・NEDO）の研究開発を推進する傍ら、
+          全国でAI・量子コンピューティングの人材育成に取り組む。バイブコーディングを活用した40業界対応の
+          AIアプリケーション開発実績を持ち、実務に直結する講座を提供。
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 助成金 -->
+{% if c.subsidy %}
+<section class="c-sec subsidy-sec">
+  <div class="c-sec-inner">
+    <div class="c-sec-eyebrow"><span class="c-sec-eyebrow-line"></span>SUBSIDY</div>
+    <h2 class="c-sec-heading">助成金で実質 <span style="color:{{ c.accent_light }}">¥24,800</span> から受講可能</h2>
+    <p class="c-sec-sub">東京しごと財団「事業外スキルアップ助成金」の対象講座です。</p>
+    <div class="subsidy-grid">
+      <div class="subsidy-card">
+        <div class="subsidy-label">小規模企業（従業員20人以下）</div>
+        <div class="subsidy-rate">受講料の <strong>2/3</strong> 助成</div>
+        <div class="subsidy-result">実質負担 <strong>¥24,800</strong>〜 / 人</div>
+      </div>
+      <div class="subsidy-card">
+        <div class="subsidy-label">中小企業（従業員21人以上）</div>
+        <div class="subsidy-rate">受講料の <strong>1/2</strong> 助成</div>
+        <div class="subsidy-result">実質負担 <strong>¥24,900</strong>〜 / 人</div>
+      </div>
+    </div>
+    <div class="subsidy-note">
+      <p>対象: 都内中小企業の従業員（代表者除く）。Jグランツにて受講開始1ヶ月前までに事前申請が必要です。</p>
+      <p>令和8年度受付: 2026年3月1日〜2027年2月28日 ｜ <a href="https://www.koyokankyo.shigotozaidan.or.jp/jigyo/skillup/skill-R8jigyogai.html" target="_blank" rel="noopener">公式サイト →</a></p>
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<!-- FAQ -->
+<section class="c-sec">
+  <div class="c-sec-inner">
+    <div class="c-sec-eyebrow"><span class="c-sec-eyebrow-line"></span>FAQ</div>
+    <h2 class="c-sec-heading">よくあるご質問</h2>
+    <p class="c-sec-sub">受講に関するよくあるご質問をまとめました。</p>
+    <div class="c-faq-list">
+      {% for q, a in c.faq %}
+      <div class="c-faq-item">
+        <button class="c-faq-q" onclick="this.parentElement.classList.toggle('open')">
+          <span>{{ q }}</span>
+          <svg class="c-faq-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </button>
+        <div class="c-faq-a"><p>{{ a }}</p></div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- お問い合わせフォーム -->
+<section class="c-sec form-sec" id="inquiry">
+  <div class="c-sec-inner">
+    <div class="c-sec-eyebrow"><span class="c-sec-eyebrow-line"></span>INQUIRY</div>
+    <h2 class="c-sec-heading">お問い合わせ・お申し込み</h2>
+    <p class="c-sec-sub">下記フォームよりお気軽にお問い合わせください。担当者より2営業日以内にご連絡いたします。</p>
+    <form id="inquiry-form" action="/api/course-inquiry" method="POST">
+      <input type="hidden" name="course" value="JGAIA {{ c.code }}：{{ c.title }}">
+      <div class="form-wrap">
+        <div class="c-form-group">
+          <label class="c-form-label">お名前<span class="req">*</span></label>
+          <input class="c-form-input" type="text" name="name" placeholder="山田 太郎" required>
+        </div>
+        <div class="c-form-group">
+          <label class="c-form-label">メールアドレス<span class="req">*</span></label>
+          <input class="c-form-input" type="email" name="email" placeholder="taro@example.com" required>
+        </div>
+        <div class="c-form-group">
+          <label class="c-form-label">会社名・団体名</label>
+          <input class="c-form-input" type="text" name="company" placeholder="株式会社〇〇">
+        </div>
+        <div class="c-form-group">
+          <label class="c-form-label">電話番号</label>
+          <input class="c-form-input" type="tel" name="phone" placeholder="03-1234-5678">
+        </div>
+        <div class="c-form-group full">
+          <label class="c-form-label">お問い合わせ内容</label>
+          <textarea class="c-form-textarea" name="message" placeholder="ご質問・ご要望をご記入ください。受講希望日程がある場合もお知らせください。"></textarea>
+        </div>
+      </div>
+      <button class="c-btn-submit" type="submit" id="submit-btn">送信する</button>
+      <p class="c-form-note">送信後、ご入力いただいたメールアドレスに自動確認メールをお送りします。</p>
+      <div id="form-msg"></div>
+    </form>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('inquiry-form').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const btn = document.getElementById('submit-btn');
+  const msg = document.getElementById('form-msg');
+  btn.disabled = true;
+  btn.textContent = '送信中...';
+  msg.style.display = 'none';
+
+  try {
+    const formData = new FormData(this);
+    const res = await fetch('/api/course-inquiry', {
+      method: 'POST',
+      body: formData
+    });
+    if (res.ok) {
+      msg.className = 'msg-ok';
+      msg.textContent = '送信完了しました。確認メールをお送りしましたのでご確認ください。';
+      msg.style.display = 'block';
+      this.reset();
+    } else {
+      throw new Error('送信に失敗しました');
+    }
+  } catch (err) {
+    msg.className = 'msg-err';
+    msg.textContent = '送信に失敗しました。お手数ですが info@jgaia.org まで直接ご連絡ください。';
+    msg.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '送信する';
+  }
+});
+</script>
+{% endblock %}

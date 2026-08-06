@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% block title %}送信完了 | JGAIA バイブコーディング講座{% endblock %}
+
+{% block extra_css %}
+/* ── base.html のダークテーマ上書き（白テーマ化） ── */
+.particles-background { display:none !important; }
+body { background:#ffffff !important; }
+.header-nav {
+  background:rgba(255,255,255,0.95) !important;
+  backdrop-filter:blur(24px);
+  border-bottom:1px solid #e2e8f0;
+  position:fixed !important;
+  top:0 !important;
+  z-index:100;
+}
+.header-nav nav .nav-logo .logo-text { color:#1a1a2e !important; }
+.header-nav nav .nav-logo .logo-sub { color:#4a5568 !important; }
+.nav-menu-list__item a { color:#1a1a2e !important; }
+.nav-menu-list__item a:hover { opacity:0.7; }
+.nav-menu-list__item a span { color:#64748b !important; }
+.nav-profile .nav-register {
+  color:#fff !important;
+  background:#6366f1 !important;
+  border-color:#6366f1 !important;
+}
+.nav-profile .nav-login {
+  color:#1a1a2e !important;
+  background:transparent !important;
+  border-color:#d1d9e6 !important;
+}
+.hamburger { color:#1a1a2e !important; }
+main { padding:0 !important; margin-top:0 !important; }
+.footer { background:#f8fafc; }
+.footer__inner { border-top:1px solid #e2e8f0; }
+.footer .logo-text { color:#1a1a2e !important; }
+.footer .logo-sub { color:#64748b !important; }
+.footer__copyright { color:#64748b !important; }
+.footer__copyright p { color:#64748b !important; }
+.footer .link-button { color:#4a5568 !important; border-color:#d1d9e6 !important; }
+.footer .link-button:hover { color:#1a1a2e !important; }
+.footer .legal-link { color:#64748b !important; }
+.nav-menu-list .dropdown-menu {
+  background:rgba(255,255,255,0.97) !important;
+  border-color:#e2e8f0 !important;
+  box-shadow:0 8px 24px rgba(0,0,0,0.1) !important;
+}
+.nav-menu-list .dropdown-menu::after {
+  background:rgba(255,255,255,0.97) !important;
+  border-color:#e2e8f0 !important;
+}
+.nav-menu-list .dropdown-menu a {
+  color:#1a1a2e !important;
+}
+.nav-menu-list .dropdown-menu a:hover {
+  background:rgba(99,102,241,0.1) !important;
+  color:#6366f1 !important;
+}
+
+.ty-wrapper {
+  display:flex;align-items:center;justify-content:center;
+  min-height:calc(100vh - 200px);padding:120px 24px 64px;
+}
+.ty-card {
+  max-width:520px;width:100%;text-align:center;
+  background:#f8fafc;border:1px solid #d1d9e6;
+  padding:64px 48px;border-radius:8px;
+}
+.ty-icon {
+  width:64px;height:64px;margin:0 auto 24px;
+  border-radius:50%;
+  background:rgba(34,197,94,0.15);
+  display:flex;align-items:center;justify-content:center;
+}
+.ty-icon svg {color:#16a34a}
+.ty-card h1 {
+  font-family:'Syne','Noto Sans JP',sans-serif;font-size:28px;font-weight:800;
+  color:#1a1a2e;margin-bottom:12px;
+}
+.ty-card p {
+  font-size:14px;color:#4a5568;line-height:1.8;
+  margin-bottom:8px;
+}
+.ty-course {
+  display:inline-block;margin:16px 0;
+  padding:8px 20px;border-radius:4px;
+  background:rgba(59,130,246,0.1);
+  color:#1d4ed8;font-size:13px;font-weight:600;
+}
+.ty-actions {
+  display:flex;gap:12px;justify-content:center;margin-top:32px;
+}
+.ty-actions a {
+  font-size:13px;font-weight:500;color:#4a5568;
+  padding:10px 24px;border-radius:4px;
+  border:1px solid #d1d9e6;
+  text-decoration:none;
+  transition:all .15s;
+}
+.ty-actions a:hover {color:#1a1a2e;border-color:rgba(0,0,0,0.15)}
+{% endblock %}
+
+{% block content %}
+<div class="ty-wrapper">
+  <div class="ty-card">
+    <div class="ty-icon">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <polyline points="20 6 9 17 4 12"></polyline>
+      </svg>
+    </div>
+    <h1>送信完了</h1>
+    <p>{{ name }} 様、お問い合わせありがとうございます。</p>
+    <div class="ty-course">{{ course }}</div>
+    <p>確認メールをお送りしました。<br>担当者より2営業日以内にご連絡いたします。</p>
+    <div class="ty-actions">
+      <a href="/vibe-coding">講座一覧に戻る</a>
+      <a href="/">JGAIAトップ</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
