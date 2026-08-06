@@ -9,7 +9,7 @@ Routes:
   POST /api/industry-inquiry       — お問い合わせ送信
 """
 import os
-from flask import Response, request, jsonify
+from flask import render_template, request, jsonify
 
 RESEND_API_KEY = os.getenv('RESEND_API_KEY', '')
 
@@ -34,7 +34,7 @@ INDUSTRIES = {
         ],
         "accent": "#00897b",
         "accent_rgb": "0,137,123",
-        "hero_grad": "linear-gradient(160deg,#09090b 0%,#0a1a17 40%,#09090b 100%)",
+        "hero_grad": "linear-gradient(160deg,#f0fdf4 0%,#ecfdf5 40%,#f0fdf4 100%)",
         "courses": [
             {
                 "code": "GM-A",
@@ -161,7 +161,7 @@ INDUSTRIES = {
         ],
         "accent": "#e53935",
         "accent_rgb": "229,57,53",
-        "hero_grad": "linear-gradient(160deg,#09090b 0%,#1a0a0a 40%,#09090b 100%)",
+        "hero_grad": "linear-gradient(160deg,#fef2f2 0%,#fff1f2 40%,#fef2f2 100%)",
         "courses": [
             {
                 "code": "GH-A",
@@ -288,7 +288,7 @@ INDUSTRIES = {
         ],
         "accent": "#1565c0",
         "accent_rgb": "21,101,192",
-        "hero_grad": "linear-gradient(160deg,#09090b 0%,#090e1a 40%,#09090b 100%)",
+        "hero_grad": "linear-gradient(160deg,#eff6ff 0%,#dbeafe 40%,#eff6ff 100%)",
         "courses": [
             {
                 "code": "GF-A",
@@ -415,7 +415,7 @@ INDUSTRIES = {
         ],
         "accent": "#ef6c00",
         "accent_rgb": "239,108,0",
-        "hero_grad": "linear-gradient(160deg,#09090b 0%,#1a1005 40%,#09090b 100%)",
+        "hero_grad": "linear-gradient(160deg,#fffbeb 0%,#fef3c7 40%,#fffbeb 100%)",
         "courses": [
             {
                 "code": "GL-A",
@@ -542,7 +542,7 @@ INDUSTRIES = {
         ],
         "accent": "#5d4037",
         "accent_rgb": "93,64,55",
-        "hero_grad": "linear-gradient(160deg,#09090b 0%,#140e0b 40%,#09090b 100%)",
+        "hero_grad": "linear-gradient(160deg,#fdf4ff 0%,#fae8ff 40%,#fdf4ff 100%)",
         "courses": [
             {
                 "code": "GN-A",
@@ -696,53 +696,53 @@ def _render_industry_page(ind):
                 '<div style="margin:0 0 14px;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.35);'
                 'border-radius:10px;padding:10px 14px;font-size:0.82rem;font-weight:700;color:#10b981;">'
                 '&#10003; 東京しごと財団 助成金対象（4時間）'
-                '<br><span style="font-weight:500;font-size:0.78rem;color:rgba(255,255,255,0.7);">'
+                '<br><span style="font-weight:500;font-size:0.78rem;color:#4a5568;">'
                 '実質 &#165;24,800&#12316; / 人（助成金利用時）</span></div>'
             )
         feat_items = "".join(
-            f'<li style="border-bottom:1px solid rgba(255,255,255,0.06);padding:7px 0;display:flex;'
-            f'align-items:center;gap:8px;font-size:0.88rem;color:rgba(255,255,255,0.8);">'
+            f'<li style="border-bottom:1px solid #e2e8f0;padding:7px 0;display:flex;'
+            f'align-items:center;gap:8px;font-size:0.88rem;color:#1a1a2e;">'
             f'<span style="color:{p["check"]};font-weight:900;flex-shrink:0;">&#10003;</span>{f}</li>'
             for f in course["features"]
         )
         meta_items = f"""
-          <div style="background:rgba(255,255,255,0.05);border-radius:10px;padding:10px 12px;">
-            <div style="font-size:0.7rem;color:rgba(255,255,255,0.45);margin-bottom:2px;">対象</div>
-            <div style="font-size:0.82rem;font-weight:700;color:#fff;">{course["target"]}</div>
+          <div style="background:#f8fafc;border-radius:10px;padding:10px 12px;">
+            <div style="font-size:0.7rem;color:#64748b;margin-bottom:2px;">対象</div>
+            <div style="font-size:0.82rem;font-weight:700;color:#1a1a2e;">{course["target"]}</div>
           </div>
-          <div style="background:rgba(255,255,255,0.05);border-radius:10px;padding:10px 12px;">
-            <div style="font-size:0.7rem;color:rgba(255,255,255,0.45);margin-bottom:2px;">形式</div>
-            <div style="font-size:0.82rem;font-weight:700;color:#fff;">{course["format"]}</div>
+          <div style="background:#f8fafc;border-radius:10px;padding:10px 12px;">
+            <div style="font-size:0.7rem;color:#64748b;margin-bottom:2px;">形式</div>
+            <div style="font-size:0.82rem;font-weight:700;color:#1a1a2e;">{course["format"]}</div>
           </div>
-          <div style="background:rgba(255,255,255,0.05);border-radius:10px;padding:10px 12px;">
-            <div style="font-size:0.7rem;color:rgba(255,255,255,0.45);margin-bottom:2px;">期間</div>
-            <div style="font-size:0.82rem;font-weight:700;color:#fff;">{course["duration"]}</div>
+          <div style="background:#f8fafc;border-radius:10px;padding:10px 12px;">
+            <div style="font-size:0.7rem;color:#64748b;margin-bottom:2px;">期間</div>
+            <div style="font-size:0.82rem;font-weight:700;color:#1a1a2e;">{course["duration"]}</div>
           </div>
-          <div style="background:rgba(255,255,255,0.05);border-radius:10px;padding:10px 12px;">
-            <div style="font-size:0.7rem;color:rgba(255,255,255,0.45);margin-bottom:2px;">定員</div>
-            <div style="font-size:0.82rem;font-weight:700;color:#fff;">{course["capacity"]}</div>
+          <div style="background:#f8fafc;border-radius:10px;padding:10px 12px;">
+            <div style="font-size:0.7rem;color:#64748b;margin-bottom:2px;">定員</div>
+            <div style="font-size:0.82rem;font-weight:700;color:#1a1a2e;">{course["capacity"]}</div>
           </div>
         """
         course_cards_html += f"""
-        <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:24px;
+        <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:24px;
           overflow:hidden;transition:transform 0.3s,box-shadow 0.3s;display:flex;flex-direction:column;"
-          onmouseenter="this.style.transform='translateY(-6px)';this.style.boxShadow='0 24px 48px rgba(0,0,0,0.4)'"
+          onmouseenter="this.style.transform='translateY(-6px)';this.style.boxShadow='0 24px 48px rgba(0,0,0,0.08)'"
           onmouseleave="this.style.transform='';this.style.boxShadow=''">
           <div style="height:5px;background:{p['btn_grad']};"></div>
           <div style="padding:24px 24px 14px;background:{p['grad']};border-bottom:1px solid {p['border']};">
             <div style="font-size:0.72rem;font-weight:800;letter-spacing:0.15em;color:{p['accent']};margin-bottom:6px;">
               {course["code"]}</div>
-            <h3 style="font-size:1.3rem;font-weight:900;line-height:1.3;margin-bottom:4px;color:#fff;">
+            <h3 style="font-size:1.3rem;font-weight:900;line-height:1.3;margin-bottom:4px;color:#1a1a2e;">
               {course["name"]}</h3>
-            <div style="font-size:0.82rem;color:rgba(255,255,255,0.6);margin-bottom:8px;">{course["sub"]}</div>
-            <div style="font-size:0.8rem;color:rgba(255,255,255,0.5);font-style:italic;">{course["concept"]}</div>
+            <div style="font-size:0.82rem;color:#4a5568;margin-bottom:8px;">{course["sub"]}</div>
+            <div style="font-size:0.8rem;color:#64748b;font-style:italic;">{course["concept"]}</div>
           </div>
           <div style="padding:20px 24px 28px;flex:1;display:flex;flex-direction:column;">
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px;">
               {meta_items}</div>
             {subsidy_badge_html}
             <div style="font-size:2rem;font-weight:900;color:{p['accent']};margin-bottom:4px;">
-              {course["price"]}<span style="font-size:0.8rem;font-weight:400;color:rgba(255,255,255,0.5);">
+              {course["price"]}<span style="font-size:0.8rem;font-weight:400;color:#64748b;">
               {course["price_unit"]}</span></div>
             <ul style="list-style:none;margin:0 0 20px;padding:0;flex:1;">{feat_items}</ul>
             <a href="#inquiry" style="display:block;text-align:center;padding:14px;border-radius:14px;
@@ -757,13 +757,13 @@ def _render_industry_page(ind):
     challenge_cards_html = ""
     for ch in c["challenges"]:
         challenge_cards_html += (
-            f'<div style="background:rgba(255,255,255,0.04);border:1px solid rgba({accent_rgb},0.18);'
+            f'<div style="background:#f8fafc;border:1px solid rgba({accent_rgb},0.18);'
             f'border-radius:20px;padding:32px 28px;transition:border-color 0.3s,transform 0.3s;"'
             f' onmouseenter="this.style.borderColor=\'rgba({accent_rgb},0.4)\';this.style.transform=\'translateY(-4px)\'"'
             f' onmouseleave="this.style.borderColor=\'rgba({accent_rgb},0.18)\';this.style.transform=\'\'">'
             f'<div style="font-size:2.4rem;margin-bottom:14px;">{ch["icon"]}</div>'
-            f'<h3 style="font-size:1.05rem;font-weight:800;margin-bottom:8px;color:#fff;">{ch["title"]}</h3>'
-            f'<p style="font-size:0.88rem;color:rgba(255,255,255,0.6);line-height:1.8;">{ch["desc"]}</p>'
+            f'<h3 style="font-size:1.05rem;font-weight:800;margin-bottom:8px;color:#1a1a2e;">{ch["title"]}</h3>'
+            f'<p style="font-size:0.88rem;color:#4a5568;line-height:1.8;">{ch["desc"]}</p>'
             f'</div>'
         )
 
@@ -771,13 +771,13 @@ def _render_industry_page(ind):
     use_case_cards_html = ""
     for uc in c["use_cases"]:
         use_case_cards_html += (
-            f'<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);'
+            f'<div style="background:#f8fafc;border:1px solid #e2e8f0;'
             f'border-radius:16px;padding:22px 18px;text-align:center;transition:border-color 0.3s;"'
             f' onmouseenter="this.style.borderColor=\'rgba({accent_rgb},0.35)\'"'
-            f' onmouseleave="this.style.borderColor=\'rgba(255,255,255,0.08)\'">'
+            f' onmouseleave="this.style.borderColor=\'#e2e8f0\'">'
             f'<div style="font-size:2.4rem;margin-bottom:12px;">{uc["icon"]}</div>'
-            f'<h4 style="font-size:0.9rem;font-weight:800;margin-bottom:6px;color:#fff;">{uc["name"]}</h4>'
-            f'<p style="font-size:0.8rem;color:rgba(255,255,255,0.55);line-height:1.6;">{uc["desc"]}</p>'
+            f'<h4 style="font-size:0.9rem;font-weight:800;margin-bottom:6px;color:#1a1a2e;">{uc["name"]}</h4>'
+            f'<p style="font-size:0.8rem;color:#64748b;line-height:1.6;">{uc["desc"]}</p>'
             f'</div>'
         )
 
@@ -785,13 +785,13 @@ def _render_industry_page(ind):
     prompt_items_html = ""
     for i, pr in enumerate(c["prompts"]):
         prompt_items_html += (
-            f'<div style="background:rgba(255,255,255,0.04);border:1px solid rgba({accent_rgb},0.18);'
+            f'<div style="background:#f8fafc;border:1px solid rgba({accent_rgb},0.18);'
             f'border-radius:14px;padding:16px 20px;display:flex;align-items:center;gap:14px;">'
             f'<div style="width:32px;height:32px;border-radius:50%;'
             f'background:linear-gradient(135deg,{accent},{brand});display:flex;align-items:center;'
             f'justify-content:center;font-size:0.8rem;font-weight:900;flex-shrink:0;color:#fff;">'
             f'{i+1:02d}</div>'
-            f'<span style="font-size:0.9rem;color:rgba(255,255,255,0.85);">{pr}</span>'
+            f'<span style="font-size:0.9rem;color:#1a1a2e;">{pr}</span>'
             f'</div>'
         )
 
@@ -799,9 +799,9 @@ def _render_industry_page(ind):
     faq_items_html = ""
     for faq in c["faqs"]:
         faq_items_html += f"""
-        <div class="faq-item" style="border-bottom:1px solid rgba(255,255,255,0.08);">
+        <div class="faq-item" style="border-bottom:1px solid #e2e8f0;">
           <button class="faq-q" onclick="toggleFaq(this)"
-            style="width:100%;background:none;border:none;color:#fff;text-align:left;padding:22px 0;
+            style="width:100%;background:none;border:none;color:#1a1a2e;text-align:left;padding:22px 0;
             font-size:0.98rem;font-weight:700;cursor:pointer;display:flex;justify-content:space-between;
             align-items:center;gap:16px;font-family:inherit;">
             <span>{faq["q"]}</span>
@@ -809,7 +809,7 @@ def _render_industry_page(ind):
               transition:transform 0.3s;">+</span>
           </button>
           <div class="faq-a" style="display:none;padding:0 0 20px;font-size:0.9rem;
-            color:rgba(255,255,255,0.65);line-height:1.85;">{faq["a"]}</div>
+            color:#4a5568;line-height:1.85;">{faq["a"]}</div>
         </div>
         """
 
@@ -822,7 +822,7 @@ def _render_industry_page(ind):
     stats_html = "".join(
         f'<div style="text-align:center;">'
         f'<div style="font-size:1.8rem;font-weight:900;color:{accent};line-height:1;">{s["num"]}</div>'
-        f'<div style="font-size:0.75rem;color:rgba(255,255,255,0.6);margin-top:4px;">{s["label"]}</div>'
+        f'<div style="font-size:0.75rem;color:#4a5568;margin-top:4px;">{s["label"]}</div>'
         f'</div>'
         for s in c["stats"]
     )
@@ -846,12 +846,12 @@ def _render_industry_page(ind):
     trust_html = ""
     for t_icon, t_title, t_desc in trust_items:
         trust_html += (
-            f'<div style="display:flex;gap:16px;align-items:flex-start;background:rgba(255,255,255,0.03);'
-            f'border:1px solid rgba(255,255,255,0.08);border-radius:18px;padding:26px 22px;">'
+            f'<div style="display:flex;gap:16px;align-items:flex-start;background:#f8fafc;'
+            f'border:1px solid #e2e8f0;border-radius:18px;padding:26px 22px;">'
             f'<div style="font-size:1.8rem;flex-shrink:0;width:48px;height:48px;display:flex;align-items:center;'
             f'justify-content:center;border-radius:13px;background:rgba({accent_rgb},0.12);">{t_icon}</div>'
-            f'<div><h4 style="font-size:0.95rem;font-weight:800;margin-bottom:6px;color:#fff;">{t_title}</h4>'
-            f'<p style="font-size:0.84rem;color:rgba(255,255,255,0.6);line-height:1.75;">{t_desc}</p>'
+            f'<div><h4 style="font-size:0.95rem;font-weight:800;margin-bottom:6px;color:#1a1a2e;">{t_title}</h4>'
+            f'<p style="font-size:0.84rem;color:#4a5568;line-height:1.75;">{t_desc}</p>'
             f'</div></div>'
         )
 
@@ -868,138 +868,33 @@ def _render_industry_page(ind):
         if o_slug == c["slug"]:
             continue
         other_ind_html += (
-            f'<a href="/vibe-coding/{o_slug}" style="display:block;background:rgba(255,255,255,0.04);'
-            f'border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:22px 18px;text-align:center;'
-            f'text-decoration:none;color:#fff;transition:border-color 0.3s,transform 0.3s;"'
-            f' onmouseenter="this.style.borderColor=\'rgba(255,255,255,0.3)\';this.style.transform=\'translateY(-3px)\'"'
-            f' onmouseleave="this.style.borderColor=\'rgba(255,255,255,0.1)\';this.style.transform=\'\'">'
+            f'<a href="/vibe-coding/{o_slug}" style="display:block;background:#f8fafc;'
+            f'border:1px solid #e2e8f0;border-radius:16px;padding:22px 18px;text-align:center;'
+            f'text-decoration:none;color:#1a1a2e;transition:border-color 0.3s,transform 0.3s;"'
+            f' onmouseenter="this.style.borderColor=\'#cbd5e1\';this.style.transform=\'translateY(-3px)\'"'
+            f' onmouseleave="this.style.borderColor=\'#e2e8f0\';this.style.transform=\'\'">'
             f'<div style="font-size:2.2rem;margin-bottom:10px;">{o_icon}</div>'
             f'<div style="font-weight:800;font-size:0.95rem;margin-bottom:4px;">{o_name}</div>'
-            f'<div style="font-size:0.78rem;color:rgba(255,255,255,0.5);">{o_sub}</div>'
+            f'<div style="font-size:0.78rem;color:#64748b;">{o_sub}</div>'
             f'</a>'
         )
     other_ind_html += (
-        '<a href="/vibe-coding" style="display:block;background:rgba(255,255,255,0.04);'
-        'border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:22px 18px;text-align:center;'
-        'text-decoration:none;color:#fff;transition:border-color 0.3s,transform 0.3s;"'
-        ' onmouseenter="this.style.borderColor=\'rgba(255,255,255,0.3)\';this.style.transform=\'translateY(-3px)\'"'
-        ' onmouseleave="this.style.borderColor=\'rgba(255,255,255,0.1)\';this.style.transform=\'\'">'
+        '<a href="/vibe-coding" style="display:block;background:#f8fafc;'
+        'border:1px solid #e2e8f0;border-radius:16px;padding:22px 18px;text-align:center;'
+        'text-decoration:none;color:#1a1a2e;transition:border-color 0.3s,transform 0.3s;"'
+        ' onmouseenter="this.style.borderColor=\'#cbd5e1\';this.style.transform=\'translateY(-3px)\'"'
+        ' onmouseleave="this.style.borderColor=\'#e2e8f0\';this.style.transform=\'\'">'
         '<div style="font-size:2.2rem;margin-bottom:10px;">&#128203;</div>'
         '<div style="font-weight:800;font-size:0.95rem;margin-bottom:4px;">全コース一覧</div>'
-        '<div style="font-size:0.78rem;color:rgba(255,255,255,0.5);">汎用コースも含む</div>'
+        '<div style="font-size:0.78rem;color:#64748b;">汎用コースも含む</div>'
         '</a>'
     )
 
-    # ---------- 完成HTML ----------
-    html = f"""<!DOCTYPE html>
-<html lang="ja">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{c["name"]}特化型バイブコーディング認定講座 | JGAIA認定 生成AI開発スキル</title>
-<meta name="description" content="{c["name"]}分野の生成AIアプリ開発スキルをゼロから習得。JGAIA認定修了証発行。プロンプト特典付き。">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;700&family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
-<style>
-  *, *::before, *::after {{ box-sizing: border-box; margin: 0; padding: 0; }}
-  html {{ scroll-behavior: smooth; }}
-  body {{ font-family: 'DM Sans', 'Noto Sans JP', sans-serif; background: #09090b; color: #fff; line-height: 1.7; }}
-  h1, h2, h3 {{ font-family: 'Syne', 'Noto Sans JP', sans-serif; }}
-
-  /* ─── Nav ─── */
-  nav {{ position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-    background: rgba(9,9,11,0.92); backdrop-filter: blur(16px);
-    border-bottom: 1px solid rgba(255,255,255,0.06); padding: 0 32px;
-    height: 64px; display: flex; align-items: center; justify-content: space-between; }}
-  .nav-logo {{ display: flex; align-items: center; gap: 10px; text-decoration: none; }}
-  .nav-logo span {{ font-size: 0.9rem; font-weight: 700; color: #fff;
-    font-family: 'Syne', sans-serif; }}
-  .nav-links {{ display: flex; gap: 24px; list-style: none; }}
-  .nav-links a {{ color: rgba(255,255,255,0.6); text-decoration: none;
-    font-size: 0.88rem; transition: color 0.2s; }}
-  .nav-links a:hover {{ color: #fff; }}
-  .nav-cta {{ background: linear-gradient(135deg, {brand}, {accent});
-    color: #fff; padding: 8px 20px; border-radius: 24px; text-decoration: none;
-    font-size: 0.85rem; font-weight: 700; transition: opacity 0.2s; }}
-  .nav-cta:hover {{ opacity: 0.85; }}
-
-  /* ─── Sections ─── */
-  section {{ padding: 88px 24px; }}
-  .section-inner {{ max-width: 1100px; margin: 0 auto; }}
-  .section-label {{ display: inline-block; font-size: 0.72rem; font-weight: 800;
-    letter-spacing: 0.15em; padding: 5px 14px; border-radius: 20px; margin-bottom: 14px;
-    background: rgba({accent_rgb},0.15); color: {accent};
-    font-family: 'Syne', sans-serif; }}
-  .section-title {{ font-size: clamp(1.7rem, 3.5vw, 2.4rem); font-weight: 900;
-    line-height: 1.25; letter-spacing: -0.02em; margin-bottom: 14px; }}
-  .section-lead {{ color: rgba(255,255,255,0.65); font-size: 1rem;
-    line-height: 1.85; max-width: 600px; }}
-  .text-center {{ text-align: center; }}
-  .text-center .section-lead {{ margin: 0 auto; }}
-
-  /* ─── Footer ─── */
-  footer {{ background: #050506; padding: 48px 24px; text-align: center;
-    border-top: 1px solid rgba(255,255,255,0.06); }}
-  footer p {{ font-size: 0.8rem; color: rgba(255,255,255,0.35); margin-top: 8px; }}
-  footer a {{ color: rgba(255,255,255,0.5); text-decoration: none; }}
-  footer a:hover {{ color: #fff; }}
-
-  /* ─── Form ─── */
-  .form-group {{ margin-bottom: 20px; }}
-  .form-group label {{ display: block; font-size: 0.85rem; font-weight: 700;
-    color: rgba(255,255,255,0.8); margin-bottom: 8px; }}
-  .form-group label span {{ color: #818cf8; margin-left: 4px; }}
-  .form-group input, .form-group select, .form-group textarea {{
-    width: 100%; background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,255,255,0.1); border-radius: 10px;
-    padding: 12px 16px; color: #fff; font-size: 0.92rem;
-    font-family: inherit; outline: none; transition: border-color 0.2s; }}
-  .form-group input:focus, .form-group select:focus, .form-group textarea:focus {{
-    border-color: rgba({accent_rgb},0.5); }}
-  .form-group textarea {{ height: 100px; resize: vertical; }}
-  .form-group select option {{ background: #18181b; }}
-
-  /* ─── Responsive ─── */
-  @media (max-width: 1024px) {{
-    .course-grid {{ grid-template-columns: 1fr !important; }}
-    .trust-grid {{ grid-template-columns: repeat(2,1fr) !important; }}
-    .challenge-grid {{ grid-template-columns: repeat(2,1fr) !important; }}
-  }}
-  @media (max-width: 768px) {{
-    .course-grid {{ grid-template-columns: 1fr !important; }}
-    .uc-grid {{ grid-template-columns: repeat(2,1fr) !important; }}
-    .trust-grid {{ grid-template-columns: 1fr !important; }}
-    .challenge-grid {{ grid-template-columns: 1fr !important; }}
-    .prompt-grid {{ grid-template-columns: 1fr !important; }}
-    .other-grid {{ grid-template-columns: repeat(2,1fr) !important; }}
-    .nav-links {{ display: none; }}
-    .stats-row {{ gap: 20px !important; flex-wrap: wrap; }}
-    .subsidy-cols {{ grid-template-columns: 1fr !important; }}
-  }}
-</style>
-</head>
-<body>
-
-<!-- ═══════════ NAV ═══════════ -->
-<nav>
-  <a class="nav-logo" href="/vibe-coding">
-    <span style="font-size:1.1rem;font-weight:900;background:linear-gradient(135deg,{brand},{brand_light});
-      -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">JGAIA</span>
-    <span>{c["name"]}特化型 バイブコーディング</span>
-  </a>
-  <ul class="nav-links">
-    <li><a href="#courses">コース</a></li>
-    <li><a href="#prompts">プロンプト特典</a></li>
-    <li><a href="#faq">FAQ</a></li>
-    <li><a href="/vibe-coding">全コース一覧</a></li>
-  </ul>
-  <a href="#inquiry" class="nav-cta">無料相談する</a>
-</nav>
-
+    # ---------- ページコンテンツ HTML ----------
+    page_content = f"""
 <!-- ═══════════ HERO ═══════════ -->
 <section style="position:relative;min-height:100vh;display:flex;align-items:center;justify-content:center;
-  text-align:center;overflow:hidden;padding:100px 24px 80px;background:#09090b;">
+  text-align:center;overflow:hidden;padding:100px 24px 80px;background:#ffffff;">
   <div style="position:absolute;inset:0;background:{c["hero_grad"]};"></div>
   <!-- Grid overlay -->
   <div style="position:absolute;inset:0;
@@ -1027,7 +922,7 @@ def _render_industry_page(ind):
       letter-spacing:-0.02em;margin-bottom:24px;">
       {c["title_html"].replace("<em>", f'<em style="font-style:normal;background:linear-gradient(135deg,{accent},{brand});-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">')}
     </h1>
-    <p style="font-size:clamp(1rem,2vw,1.15rem);color:rgba(255,255,255,0.75);
+    <p style="font-size:clamp(1rem,2vw,1.15rem);color:#4a5568;
       max-width:640px;margin:0 auto 40px;line-height:1.85;">{c["lead"]}</p>
     <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-bottom:56px;">
       <a href="#courses" style="background:linear-gradient(135deg,{accent},{brand});color:#fff;
@@ -1036,22 +931,22 @@ def _render_industry_page(ind):
         onmouseenter="this.style.transform='translateY(-2px)';this.style.boxShadow='0 12px 40px rgba({accent_rgb},0.4)'"
         onmouseleave="this.style.transform='';this.style.boxShadow='0 8px 32px rgba({accent_rgb},0.30)'">
         コースを見る</a>
-      <a href="#inquiry" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);
-        color:#fff;padding:16px 36px;border-radius:40px;text-decoration:none;font-weight:700;
+      <a href="#inquiry" style="background:rgba(0,0,0,0.04);border:1px solid rgba(0,0,0,0.12);
+        color:#1a1a2e;padding:16px 36px;border-radius:40px;text-decoration:none;font-weight:700;
         font-size:1.05rem;transition:background 0.2s;"
-        onmouseenter="this.style.background='rgba(255,255,255,0.14)'"
-        onmouseleave="this.style.background='rgba(255,255,255,0.08)'">
+        onmouseenter="this.style.background='rgba(0,0,0,0.08)'"
+        onmouseleave="this.style.background='rgba(0,0,0,0.04)'">
         無料相談はこちら</a>
     </div>
     <div class="stats-row" style="display:flex;gap:32px;justify-content:center;flex-wrap:wrap;
-      padding-top:40px;border-top:1px solid rgba(255,255,255,0.1);">
+      padding-top:40px;border-top:1px solid rgba(0,0,0,0.08);">
       {stats_html}
     </div>
   </div>
 </section>
 
 <!-- ═══════════ INDUSTRY CHALLENGES ═══════════ -->
-<section style="background:linear-gradient(180deg,#09090b 0%,#0f0f14 100%);padding:88px 24px;">
+<section style="background:linear-gradient(180deg,#ffffff 0%,#f8fafc 100%);padding:88px 24px;">
   <div class="section-inner">
     <div class="text-center">
       <span class="section-label">{c["name_en"]} CHALLENGES</span>
@@ -1065,7 +960,7 @@ def _render_industry_page(ind):
 </section>
 
 <!-- ═══════════ USE CASES ═══════════ -->
-<section style="background:#09090b;padding:88px 24px;">
+<section style="background:#ffffff;padding:88px 24px;">
   <div class="section-inner">
     <div class="text-center">
       <span class="section-label">USE CASES</span>
@@ -1079,7 +974,7 @@ def _render_industry_page(ind):
 </section>
 
 <!-- ═══════════ COURSES ═══════════ -->
-<section id="courses" style="background:linear-gradient(180deg,#0c0c10 0%,#09090b 100%);padding:88px 24px;">
+<section id="courses" style="background:linear-gradient(180deg,#f8fafc 0%,#ffffff 100%);padding:88px 24px;">
   <div class="section-inner">
     <div class="text-center">
       <span class="section-label">COURSES</span>
@@ -1097,7 +992,7 @@ def _render_industry_page(ind):
       <div>
         <h3 style="font-size:1.05rem;font-weight:800;color:{accent};margin-bottom:6px;">
           全コース共通：生成AIプロンプト特典8種付き</h3>
-        <p style="font-size:0.9rem;color:rgba(255,255,255,0.72);line-height:1.8;">
+        <p style="font-size:0.9rem;color:#4a5568;line-height:1.8;">
           {c["name"]}分野に特化した生成AI＆アプリ構築プロンプトを8種セットでプレゼント。
           講座終了後もすぐに実務へ応用できます。他のバイブコーディング講座では手に入らないJGAIA独自の差別化特典です。</p>
       </div>
@@ -1111,9 +1006,9 @@ def _render_industry_page(ind):
         <div>
           <div style="font-size:0.72rem;font-weight:800;letter-spacing:0.12em;color:#10b981;margin-bottom:6px;">
             東京しごと財団「事業外スキルアップ助成金」対象講座</div>
-          <h3 style="font-size:1.05rem;font-weight:900;color:#fff;margin-bottom:6px;">
+          <h3 style="font-size:1.05rem;font-weight:900;color:#1a1a2e;margin-bottom:6px;">
             {c["name"]}入門コース（{c["courses"][0]["code"]}）の受講料が最大2/3助成されます</h3>
-          <p style="font-size:0.87rem;color:rgba(255,255,255,0.65);line-height:1.8;">
+          <p style="font-size:0.87rem;color:#4a5568;line-height:1.8;">
             都内中小企業（本社所在地）の従業員が対象。会社が受講料を全額負担し業務命令として実施する場合に適用。
             Jグランツで受講開始の1ヶ月前までに事前申請が必要です。
             B・Cコースは受講時間が10時間以上のため本助成金の対象外となります。</p>
@@ -1125,7 +1020,7 @@ def _render_industry_page(ind):
             小規模企業（2/3助成）</div>
           <div style="font-size:1.6rem;font-weight:900;color:#10b981;line-height:1;">
             &#165;24,800<span style="font-size:0.75rem;font-weight:400;">&#12316;</span></div>
-          <div style="font-size:0.7rem;color:rgba(255,255,255,0.45);margin-top:4px;">
+          <div style="font-size:0.7rem;color:#64748b;margin-top:4px;">
             &#165;25,000助成 → 実質&#165;24,800</div>
         </div>
         <div style="background:rgba(16,185,129,0.08);border-radius:12px;padding:16px 14px;text-align:center;">
@@ -1133,20 +1028,20 @@ def _render_industry_page(ind):
             中小企業（1/2助成）</div>
           <div style="font-size:1.6rem;font-weight:900;color:#34d399;line-height:1;">
             &#165;24,800<span style="font-size:0.75rem;font-weight:400;">&#12316;</span></div>
-          <div style="font-size:0.7rem;color:rgba(255,255,255,0.45);margin-top:4px;">
+          <div style="font-size:0.7rem;color:#64748b;margin-top:4px;">
             &#165;24,900助成 → 実質&#165;24,800</div>
         </div>
-        <div style="background:rgba(255,255,255,0.04);border-radius:12px;padding:16px 14px;text-align:center;">
-          <div style="font-size:0.7rem;font-weight:700;color:rgba(255,255,255,0.4);letter-spacing:0.08em;margin-bottom:6px;">
+        <div style="background:#f8fafc;border-radius:12px;padding:16px 14px;text-align:center;">
+          <div style="font-size:0.7rem;font-weight:700;color:#94a3b8;letter-spacing:0.08em;margin-bottom:6px;">
             B・Cコース</div>
-          <div style="font-size:1rem;font-weight:800;color:rgba(255,255,255,0.4);line-height:1.4;">
+          <div style="font-size:1rem;font-weight:800;color:#94a3b8;line-height:1.4;">
             &#10060; 対象外</div>
-          <div style="font-size:0.7rem;color:rgba(255,255,255,0.35);margin-top:4px;">
+          <div style="font-size:0.7rem;color:#64748b;margin-top:4px;">
             受講10時間以上のため</div>
         </div>
       </div>
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
-        <div style="font-size:0.8rem;color:rgba(255,255,255,0.5);">
+        <div style="font-size:0.8rem;color:#64748b;">
           &#128197; 令和8年度受付期間：2026年3月1日&#12316;2027年2月28日　上限&#165;25,000/人</div>
         <a href="https://www.koyokankyo.shigotozaidan.or.jp/jigyo/skillup/skill-R8jigyogai.html"
           target="_blank" style="font-size:0.82rem;color:#10b981;text-decoration:none;
@@ -1158,7 +1053,7 @@ def _render_industry_page(ind):
 </section>
 
 <!-- ═══════════ PROMPT BONUS ═══════════ -->
-<section id="prompts" style="background:linear-gradient(135deg,#0c0a14,#09090b,#0a100e);padding:88px 24px;">
+<section id="prompts" style="background:linear-gradient(135deg,#f8fafc,#ffffff,#f8fafc);padding:88px 24px;">
   <div class="section-inner">
     <div class="text-center">
       <span class="section-label">EXCLUSIVE BONUS</span>
@@ -1170,14 +1065,14 @@ def _render_industry_page(ind):
     </div>
     <div style="text-align:center;margin-top:32px;padding:22px;
       background:rgba({accent_rgb},0.08);border:1px solid rgba({accent_rgb},0.2);border-radius:14px;">
-      <p style="font-size:0.92rem;color:rgba(255,255,255,0.75);">
+      <p style="font-size:0.92rem;color:#4a5568;">
         このプロンプト特典は <strong style="color:{accent};">JGAIA認定講座のみ</strong> で提供しています。</p>
     </div>
   </div>
 </section>
 
 <!-- ═══════════ TRUST ═══════════ -->
-<section style="background:linear-gradient(180deg,#09090b 0%,#0c0c10 100%);padding:88px 24px;">
+<section style="background:linear-gradient(180deg,#ffffff 0%,#f8fafc 100%);padding:88px 24px;">
   <div class="section-inner">
     <div class="text-center">
       <span class="section-label">WHY JGAIA</span>
@@ -1190,7 +1085,7 @@ def _render_industry_page(ind):
 </section>
 
 <!-- ═══════════ FAQ ═══════════ -->
-<section id="faq" style="background:#0c0c10;padding:88px 24px;">
+<section id="faq" style="background:#f8fafc;padding:88px 24px;">
   <div class="section-inner">
     <div class="text-center">
       <span class="section-label">FAQ</span>
@@ -1203,15 +1098,15 @@ def _render_industry_page(ind):
 </section>
 
 <!-- ═══════════ INQUIRY FORM ═══════════ -->
-<section id="inquiry" style="background:linear-gradient(135deg,#0c0a14,#09090b);padding:88px 24px;">
+<section id="inquiry" style="background:linear-gradient(135deg,#f8fafc,#ffffff);padding:88px 24px;">
   <div class="section-inner">
     <div class="text-center">
       <span class="section-label">INQUIRY</span>
       <h2 class="section-title">無料相談・お申し込み</h2>
       <p class="section-lead">コース選択・法人研修・日程等、お気軽にお問い合わせください。通常2営業日以内にご返信します。</p>
     </div>
-    <div style="max-width:600px;margin:48px auto 0;background:rgba(255,255,255,0.03);
-      border:1px solid rgba(255,255,255,0.08);border-radius:24px;padding:40px;">
+    <div style="max-width:600px;margin:48px auto 0;background:#ffffff;
+      border:1px solid #e2e8f0;border-radius:24px;padding:40px;">
       <form id="inquiry-form" onsubmit="return false;">
         <input type="hidden" id="fi-industry" value="{c["inquiry_industry"]}">
         <div class="form-group">
@@ -1261,7 +1156,7 @@ def _render_industry_page(ind):
 </section>
 
 <!-- ═══════════ OTHER INDUSTRIES ═══════════ -->
-<section style="background:#09090b;padding:64px 24px;">
+<section style="background:#ffffff;padding:64px 24px;">
   <div class="section-inner">
     <div class="text-center">
       <span class="section-label">OTHER COURSES</span>
@@ -1273,20 +1168,10 @@ def _render_industry_page(ind):
   </div>
 </section>
 
-<!-- ═══════════ FOOTER ═══════════ -->
-<footer>
-  <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:12px;">
-    <span style="font-size:1.2rem;font-weight:900;font-family:'Syne',sans-serif;
-      background:linear-gradient(135deg,{brand},{brand_light});
-      -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">JGAIA</span>
-  </div>
-  <p>&copy; 2026 一般社団法人日本生成AI協会（JGAIA）</p>
-  <p style="margin-top:8px;font-size:0.75rem;">
-    <a href="/vibe-coding">バイブコーディング講座トップ</a> ｜
-    <a href="https://www.jgaia.org" target="_blank">JGAIA公式</a></p>
-</footer>
+"""
 
-<script>
+    # ---------- JavaScript ----------
+    page_js = f"""
 // ─── Particles ───
 (function(){{
   var c=document.getElementById('particles');
@@ -1365,11 +1250,13 @@ async function submitInquiry(){{
     btn.disabled=false;btn.textContent='送信する';
   }}
 }}
-</script>
+"""
 
-</body>
-</html>"""
-    return html
+    return {
+        "ind": c,
+        "page_content": page_content,
+        "page_js": page_js,
+    }
 
 
 # ─────────────────────────────────────────────────────────────
@@ -1434,31 +1321,40 @@ Web: https://www.jgaia.org
 # ─────────────────────────────────────────────────────────────
 #  Flask ルート登録
 # ─────────────────────────────────────────────────────────────
+def _render_industry(slug):
+    ctx = _render_industry_page(INDUSTRIES[slug])
+    return render_template("vibe_coding_industry.html", **ctx)
+
+
 def register_vibe_coding_industry_routes(app):
 
     @app.route("/vibe-coding/manufacturing")
     def vibe_manufacturing():
-        return Response(_render_industry_page(INDUSTRIES["manufacturing"]), mimetype="text/html")
+        return _render_industry("manufacturing")
 
     @app.route("/vibe-coding/healthcare")
     def vibe_healthcare():
-        return Response(_render_industry_page(INDUSTRIES["healthcare"]), mimetype="text/html")
+        return _render_industry("healthcare")
 
     @app.route("/vibe-coding/finance")
     def vibe_finance():
-        return Response(_render_industry_page(INDUSTRIES["finance"]), mimetype="text/html")
+        return _render_industry("finance")
 
     @app.route("/vibe-coding/logistics")
     def vibe_logistics():
-        return Response(_render_industry_page(INDUSTRIES["logistics"]), mimetype="text/html")
+        return _render_industry("logistics")
 
     @app.route("/vibe-coding/construction")
     def vibe_construction():
-        return Response(_render_industry_page(INDUSTRIES["construction"]), mimetype="text/html")
+        return _render_industry("construction")
 
     @app.route("/api/industry-inquiry", methods=["POST"])
     def api_industry_inquiry():
         data = request.get_json(silent=True) or {}
+        # スパム判定。⛔ 弾いたことをボットに教えない（成功と同じ形で返す）。
+        import antispam
+        if antispam.check(request, data):
+            return jsonify({"ok": True})
         if not data.get("name") or not data.get("email") or not data.get("course"):
             return jsonify({"ok": False, "error": "required fields missing"}), 400
         _send_industry_inquiry(data)

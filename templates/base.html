@@ -23,6 +23,61 @@
     <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-H7XQ25E8YN"></script>
     <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-H7XQ25E8YN');</script>
+    {% if hcaptcha_sitekey %}
+    <script src="https://js.hcaptcha.com/1/api.js" async defer></script>
+    {% endif %}
+    <script>
+    // ── スパム対策（2026-08-06）────────────────────────────────
+    // スパムでResendの日次上限が枯渇し、正規の問い合わせが送れない日があった。
+    // 蜜壺（人には見えない入力欄）と、署名付きの発行時刻をすべてのフォームに
+    // 埋める。判定はサーバー側（antispam.py）が行う。
+    //
+    // ⛔ 蜜壺はページ表示時から DOM に存在していないと意味がない
+    //    （送信直前に足すと、ボットが埋める機会が無くなる）。
+    // ⛔ 送信直前にも足す。innerHTML で後から作られるフォームがあるため
+    //    （vibe_coding_lp の「申し込む」欄）。そこは発行時刻だけが効く。
+    (function () {
+      var TS = "{{ form_ts }}";
+      var HP = "{{ honeypot_field }}";
+      window.JGAIA_TS = TS;
+
+      function put(form, name, value, hide) {
+        if (form.querySelector('[name="' + name + '"]')) return;
+        var i = document.createElement('input');
+        i.type = 'text'; i.name = name; i.value = value;
+        i.autocomplete = 'off'; i.tabIndex = -1;
+        if (hide) {
+          // display:none だと埋めないボットがいるため、画面外に出す方式にする
+          i.setAttribute('aria-hidden', 'true');
+          i.style.cssText = 'position:absolute!important;left:-9999px!important;'
+            + 'width:1px;height:1px;opacity:0;pointer-events:none;';
+        } else {
+          i.type = 'hidden';
+        }
+        form.appendChild(i);
+      }
+      function arm(form) { put(form, HP, '', true); put(form, 'ts', TS, false); }
+
+      document.addEventListener('DOMContentLoaded', function () {
+        Array.prototype.forEach.call(document.querySelectorAll('form'), arm);
+      });
+      // 捕捉フェーズで走るので、フォーム自身の onsubmit より前に入る
+      document.addEventListener('submit', function (e) {
+        if (e.target && e.target.tagName === 'FORM') arm(e.target);
+      }, true);
+
+      // JSで手作りする本文に足すための共通関数
+      window.jgaiaAntispam = function (o) {
+        o = o || {};
+        o.ts = TS;
+        var hp = document.querySelector('[name="' + HP + '"]');
+        o[HP] = hp ? hp.value : '';
+        var hc = document.querySelector('[name="h-captcha-response"]');
+        if (hc && hc.value) o['h-captcha-response'] = hc.value;
+        return o;
+      };
+    })();
+    </script>
     {% block extra_head %}{% endblock %}
     <style>
         :root {

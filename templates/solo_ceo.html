@@ -806,6 +806,8 @@ function submitSoloInquiry(e) {
         email: document.getElementById('fi-email').value.trim(),
         course: document.getElementById('fi-course').value,
     };
+    // 蜜壺と発行時刻を載せる。これが無いとサーバー側で弾かれる。
+    data = window.jgaiaAntispam ? window.jgaiaAntispam(data) : data;
     fetch('/api/solo-inquiry', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},

@@ -244,6 +244,14 @@ def register_solo_ceo_routes(app):
         course = (data.get("course") or "").strip()
         message = (data.get("message") or "").strip()
 
+        # スパム判定。⛔ 弾いたことをボットに教えない（成功と同じ形で返す）。
+        #    保存もしない＝台帳がスパムで埋まらない。
+        import antispam
+        spam = antispam.check(request, data)
+        if spam:
+            app.logger.info('[solo-inquiry] スパムとして遮断: %s', spam)
+            return {"ok": True, "mail_sent": "deferred"}
+
         if not name or not email:
             return {"error": "name and email are required"}, 400
 

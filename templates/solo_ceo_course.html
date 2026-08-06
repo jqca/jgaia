@@ -513,6 +513,8 @@ function submitCourseInquiry(e) {
         course: document.getElementById('fi-course').value,
         message: document.getElementById('fi-message').value.trim()
     };
+    // 蜜壺と発行時刻を載せる。これが無いとサーバー側で弾かれる。
+    data = window.jgaiaAntispam ? window.jgaiaAntispam(data) : data;
     fetch('/api/solo-inquiry', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},

@@ -39,6 +39,12 @@ def register_vibe_coding_routes(app):
         course = (data.get("course") or "").strip()
         message = (data.get("message") or "").strip()
 
+        # スパム判定。⛔ 弾いたことをボットに教えない（成功と同じ形で返す）。
+        import antispam
+        spam = antispam.check(request, data)
+        if spam:
+            return {"ok": True}
+
         if not name or not email:
             return {"error": "name and email are required"}, 400
 

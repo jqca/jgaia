@@ -74,6 +74,18 @@ def contact():
         company = (request.form.get("company") or "").strip()
         message = (request.form.get("message") or "").strip()
 
+        # スパム判定。⛔ 弾いたことをボットに教えないため、画面は成功と同じにする。
+        import antispam
+        spam = antispam.check(request, {
+            'name': name, 'email': email, 'message': message,
+            antispam.HONEYPOT_FIELD: request.form.get(antispam.HONEYPOT_FIELD),
+            'ts': request.form.get('ts'),
+            'h-captcha-response': request.form.get('h-captcha-response'),
+        })
+        if spam:
+            app.logger.info('[contact] スパムとして遮断: %s', spam)
+            return render_template("contact.html", sent=True)
+
         if name and email and RESEND_API_KEY:
             try:
                 import resend
@@ -158,6 +170,19 @@ def llms_txt():
     return send_file("static/llms.txt", mimetype="text/plain")
 
 
+@app.context_processor
+def inject_antispam():
+    """全テンプレートにスパム対策の材料を渡す。
+
+    ⛔ ここを外すとフォームの隠しフィールドが空になり、
+       サーバー側の署名チェックで**正規の送信が全部落ちる**。
+    """
+    import antispam
+    return {'form_ts': antispam.issue_token(),
+            'hcaptcha_sitekey': antispam.sitekey(),
+            'honeypot_field': antispam.HONEYPOT_FIELD}
+
+
 @app.route("/healthz")
 def healthz():
     """稼働確認に加えて、申込を受け取れる状態かどうかを返す。
@@ -197,6 +222,9 @@ def healthz():
         "mail_last_error": mail_error,
         "mail_last_error_at": mail_error_at,
         "inquiries_saved": saved,
+        # スパムで遮断した累計。0のまま増えないなら対策が効いていない疑い。
+        "spam_blocked": (lambda: __import__('antispam').counts())(),
+        "captcha": "on" if os.environ.get("HCAPTCHA_SECRET") else "off",
     })
 
 
