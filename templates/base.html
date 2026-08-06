@@ -66,6 +66,22 @@
         if (e.target && e.target.tagName === 'FORM') arm(e.target);
       }, true);
 
+      // 戻るボタンで復元されたとき、前回の「送信済み」表示が残っていると
+      // フォームごと隠れたままになり、送信ボタンが無いように見える。
+      // iOS Safari は保存状態からの復元(bfcache)を積極的に使うため、
+      // 「環境によっては送信ボタンが表示されない」の再現しにくい原因になりうる。
+      // 復元時は必ずフォームを出し直す（害はなく、症状にだけ効く）。
+      window.addEventListener('pageshow', function (e) {
+        if (!e.persisted) return;
+        var form = document.getElementById('inquiryForm');
+        var okBox = document.getElementById('inquirySuccess');
+        if (form) form.style.display = '';
+        if (okBox) okBox.style.display = 'none';
+        Array.prototype.forEach.call(
+          document.querySelectorAll('button[type="submit"], .submit-btn'),
+          function (b) { b.disabled = false; });
+      });
+
       // JSで手作りする本文に足すための共通関数
       window.jgaiaAntispam = function (o) {
         o = o || {};
