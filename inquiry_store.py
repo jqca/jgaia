@@ -58,6 +58,47 @@ def count_inquiries():
         return sum(1 for line in f if line.strip())
 
 
+def _mailed_path():
+    return os.path.join(os.path.dirname(_log_path()), 'mailed.jsonl')
+
+
+def inquiry_key(record):
+    """1件を見分ける鍵。受付時刻＋メール（原本側にIDが無いため）。"""
+    return f"{record.get('received_at', '')}|{record.get('email', '')}"
+
+
+def mark_mailed(key):
+    """確認メールを送れた申込に印を付ける。
+
+    サイト（Railway）から送れたぶんを、予備の経路（SoloOS）が
+    二重に送らないようにするための印。追記だけで、消さない。
+    """
+    path = _mailed_path()
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with _LOCK:
+        with open(path, 'a', encoding='utf-8') as f:
+            f.write(json.dumps({'key': key}, ensure_ascii=False) + '\n')
+            f.flush()
+            os.fsync(f.fileno())
+
+
+def _mailed_keys():
+    path = _mailed_path()
+    if not os.path.exists(path):
+        return set()
+    keys = set()
+    with open(path, encoding='utf-8') as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                keys.add(json.loads(line).get('key'))
+            except Exception:
+                continue
+    return keys
+
+
 def read_inquiries(limit=200):
     """保存済みの申込を新しい順に返す。
 
@@ -68,6 +109,7 @@ def read_inquiries(limit=200):
     path = _log_path()
     if not os.path.exists(path):
         return []
+    mailed = _mailed_keys()
     rows = []
     with open(path, encoding='utf-8') as f:
         for line in f:
@@ -75,7 +117,10 @@ def read_inquiries(limit=200):
             if not line:
                 continue
             try:
-                rows.append(json.loads(line))
+                rec = json.loads(line)
+                # 予備の経路が二重に送らないよう、送信済みかどうかを添える
+                rec['mail_sent'] = inquiry_key(rec) in mailed
+                rows.append(rec)
             except Exception:
                 # 壊れた行があっても残りは読めるようにする（黙って全件失わない）
                 rows.append({'_unparsed': line})

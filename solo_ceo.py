@@ -12,8 +12,7 @@ import os
 
 from flask import render_template, request
 
-from inquiry_store import save_inquiry
-from mail_helper import send_via_smtp, smtp_configured
+from inquiry_store import inquiry_key, mark_mailed, save_inquiry
 
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 
@@ -285,7 +284,7 @@ def register_solo_ceo_routes(app):
         #    メール送信が唯一の記録手段だと、鍵が無い・送信に失敗しただけで
         #    申込が痕跡ごと消え、何件失ったのかも数えられない（2026-07-30に実際に発生）。
         try:
-            save_inquiry("solo-ceo", {
+            saved = save_inquiry("solo-ceo", {
                 "name": name,
                 "email": email,
                 "course": course,
@@ -322,16 +321,13 @@ def register_solo_ceo_routes(app):
             "https://www.jgaia.org/\n"
         )
 
-        # Railwayは外向きSMTPを遮断しており、HTTP APIの送信サービスも枠切れ
-        # （2026-08-06 実測: 587/465ともTimeout、Resend 429、SendGrid credits超過）。
-        # 確認メールは SoloOS（自宅PC）が さくら経由で数分以内に送る。
-        # ⛔ ここで送信を試さないこと。必ずタイムアウトし、その30秒ぶん
-        #    利用者のフォーム送信が固まる。
-        if os.environ.get("MAIL_DEFERRED") == "1":
-            return {"ok": True, "mail_sent": "deferred"}
-
+        # ⛔ ここからSMTPで送ろうとしないこと。Railwayは外向きSMTPを遮断しており
+        #    （2026-08-06実測: さくら587/465ともTimeout）、必ず失敗するうえに
+        #    その30秒ぶん利用者のフォーム送信が固まる。
+        #    サイトから送れるのはHTTPのAPI（Resend）だけ。
+        #    送れなかったぶんは SoloOS（自宅PC）がさくら経由で拾って送る＝予備。
         api_key = os.environ.get("RESEND_API_KEY", "") or RESEND_API_KEY
-        if not (smtp_configured() or api_key):
+        if not api_key:
             app.logger.error(
                 "[solo-inquiry] 送信手段が未設定です（SMTP・外部APIとも）。"
                 "申込は保存済みですが通知メールは送れていません: %s <%s>", name, email)
@@ -340,25 +336,25 @@ def register_solo_ceo_routes(app):
             return {"ok": True, "mail_sent": False}
 
         try:
-            if smtp_configured():
-                # 本命。自ドメインのメールサーバーから出す。
-                send_via_smtp(NOTIFY_EMAIL, notify_subject, body_text, reply_to=email)
-                send_via_smtp(email, reply_subject, reply_body)
-            else:
-                # SMTP未設定のときだけの保険。通数上限で落ちることがある。
-                import resend
-                resend.api_key = api_key
-                resend.Emails.send({"from": FROM_EMAIL, "to": [NOTIFY_EMAIL],
-                                    "subject": notify_subject, "text": body_text})
-                resend.Emails.send({"from": FROM_EMAIL, "to": [email],
-                                    "subject": reply_subject, "text": reply_body})
+            import resend
+            resend.api_key = api_key
+            resend.Emails.send({"from": FROM_EMAIL, "to": [NOTIFY_EMAIL],
+                                "subject": notify_subject, "text": body_text})
+            resend.Emails.send({"from": FROM_EMAIL, "to": [email],
+                                "subject": reply_subject, "text": reply_body})
         except Exception as e:
-            # 握り潰さない。保存は済んでいるのでログから復旧できる。
+            # 握り潰さない。保存は済んでいるので、予備の経路が拾って送る。
             app.logger.exception(
                 "[solo-inquiry] メール送信に失敗。申込は保存済み: %s <%s>", name, email)
             LAST_MAIL_ERROR["at"] = _now_jst()
             LAST_MAIL_ERROR["kind"] = type(e).__name__
             return {"ok": True, "mail_sent": False}
+
+        # 送れた印を残す。⛔これが無いと予備の経路が同じ人に二重に送る。
+        try:
+            mark_mailed(inquiry_key(saved))
+        except Exception:
+            app.logger.exception("[solo-inquiry] 送信済みの印を残せませんでした")
 
         LAST_MAIL_ERROR["at"] = None
         LAST_MAIL_ERROR["kind"] = None

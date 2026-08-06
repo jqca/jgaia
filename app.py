@@ -193,15 +193,10 @@ def healthz():
     """
     from flask import jsonify
     from inquiry_store import count_inquiries
-    # どの経路で送るかまで返す。「設定はある」だけでは、どこから出ているのか
-    # 分からないまま片方が壊れていることがある。
-    from mail_helper import smtp_configured
-    if smtp_configured():
-        mailer_kind = "smtp"
-    elif os.environ.get("RESEND_API_KEY"):
-        mailer_kind = "resend"
-    else:
-        mailer_kind = "missing"
+    # サイトから送れるのはHTTPのAPI（Resend）だけ。
+    # ⛔ SMTPは書かない。Railwayが外向きSMTPを遮断しており必ず失敗する
+    #    （2026-08-06実測）。送れなかったぶんは SoloOS が予備で拾う。
+    mailer_kind = "resend" if os.environ.get("RESEND_API_KEY") else "missing"
     mailer = mailer_kind != "missing"
     try:
         saved = count_inquiries()
