@@ -1301,12 +1301,9 @@ Web: https://www.jgaia.org
     try:
         import resend
         resend.api_key = RESEND_API_KEY
-        resend.Emails.send({
-            "from": "info@jgaia.org",
-            "to": ["takano.hidetaka@gmail.com"],
-            "subject": subject,
-            "text": body_staff,
-        })
+        from mail_targets import notify_payload
+        resend.Emails.send(notify_payload(
+            subject, reply_to=data.get("email"), text=body_staff))
         resend.Emails.send({
             "from": "info@jgaia.org",
             "to": [data.get("email")],
@@ -1357,5 +1354,17 @@ def register_vibe_coding_industry_routes(app):
             return jsonify({"ok": True})
         if not data.get("name") or not data.get("email") or not data.get("course"):
             return jsonify({"ok": False, "error": "required fields missing"}), 400
+
+        # ⛔ メールより先に保存する（枠切れ・障害で問い合わせを失わない）
+        try:
+            from inquiry_store import save_inquiry
+            save_inquiry('industry', {
+                'name': data.get('name'), 'email': data.get('email'),
+                'company': data.get('company'), 'phone': data.get('phone'),
+                'industry': data.get('industry'), 'course': data.get('course'),
+                'count': data.get('count'), 'message': data.get('message')})
+        except Exception:
+            app.logger.exception('[industry-inquiry] 保存に失敗しました')
+
         _send_industry_inquiry(data)
         return jsonify({"ok": True})

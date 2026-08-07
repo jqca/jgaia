@@ -338,8 +338,9 @@ def register_solo_ceo_routes(app):
         try:
             import resend
             resend.api_key = api_key
-            resend.Emails.send({"from": FROM_EMAIL, "to": [NOTIFY_EMAIL],
-                                "subject": notify_subject, "text": body_text})
+            from mail_targets import notify_payload
+            resend.Emails.send(notify_payload(
+                notify_subject, reply_to=email, text=body_text))
             resend.Emails.send({"from": FROM_EMAIL, "to": [email],
                                 "subject": reply_subject, "text": reply_body})
         except Exception as e:

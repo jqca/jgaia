@@ -28,6 +28,15 @@ def register_vibe_coding_kids_routes(app):
         if not all([parent_name, child_age, email, course]):
             return jsonify({'success': False, 'error': 'missing fields'})
 
+        # ⛔ メールより先に保存する（枠切れ・障害で問い合わせを失わない）
+        try:
+            from inquiry_store import save_inquiry
+            save_inquiry('kids', {'name': parent_name, 'email': email,
+                                  'child_age': child_age, 'phone': phone,
+                                  'course': course, 'message': message})
+        except Exception:
+            app.logger.exception('[kids-inquiry] 保存に失敗しました')
+
         if not RESEND_API_KEY:
             return jsonify({'success': True})
 
@@ -44,12 +53,10 @@ def register_vibe_coding_kids_routes(app):
 希望コース: {course}
 メッセージ: {message or 'なし'}
 """
-            resend.Emails.send({
-                "from": "JGAIA キッズ講座 <info@jgaia.org>",
-                "to": ["info@jgaia.org"],
-                "subject": f"【キッズ講座】お問い合わせ: {parent_name}様",
-                "text": admin_body,
-            })
+            from mail_targets import notify_payload
+            resend.Emails.send(notify_payload(
+                f"【キッズ講座】お問い合わせ: {parent_name}様",
+                reply_to=email, text=admin_body))
 
             confirm_body = f"""{parent_name} 様
 

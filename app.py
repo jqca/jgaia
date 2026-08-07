@@ -86,6 +86,16 @@ def contact():
             app.logger.info('[contact] スパムとして遮断: %s', spam)
             return render_template("contact.html", sent=True)
 
+        # ⛔ メールより先に保存する。メール送信が唯一の記録手段だと、
+        #    枠切れ・障害のときに問い合わせが痕跡ごと消える。
+        if name and email:
+            try:
+                from inquiry_store import save_inquiry
+                save_inquiry('contact', {'name': name, 'email': email,
+                                         'company': company, 'message': message})
+            except Exception:
+                app.logger.exception('[contact] 保存に失敗しました')
+
         if name and email and RESEND_API_KEY:
             try:
                 import resend
@@ -103,15 +113,14 @@ def contact():
                     line.replace("\n", "<br>") for line in body_lines
                 )
 
-                resend.Emails.send({
-                    "from": f"JGAIA <{FROM_EMAIL}>",
-                    "to": [NOTIFY_EMAIL],
-                    "subject": f"【JGAIA】お問い合わせ: {name}様",
-                    "html": (
-                        '<html><head><meta charset="utf-8"></head><body>'
-                        f"{body_html}</body></html>"
-                    ),
-                })
+                # 宛先は mail_targets で1か所に決める（協会の窓口＋代表者Cc）
+                from mail_targets import notify_payload
+                resend.Emails.send(notify_payload(
+                    f"【JGAIA】お問い合わせ: {name}様",
+                    reply_to=email,
+                    html=('<html><head><meta charset="utf-8"></head><body>'
+                          f"{body_html}</body></html>"),
+                ))
 
                 resend.Emails.send({
                     "from": f"JGAIA <{FROM_EMAIL}>",

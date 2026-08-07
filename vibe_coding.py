@@ -45,6 +45,16 @@ def register_vibe_coding_routes(app):
         if spam:
             return {"ok": True}
 
+        # ⛔ メールより先に保存する（枠切れ・障害で問い合わせを失わない）
+        if name and email:
+            try:
+                from inquiry_store import save_inquiry
+                save_inquiry('vibe-coding', {'name': name, 'email': email,
+                                             'company': company, 'course': course,
+                                             'message': message})
+            except Exception:
+                app.logger.exception('[inquiry] 保存に失敗しました')
+
         if not name or not email:
             return {"error": "name and email are required"}, 400
 
@@ -64,12 +74,10 @@ def register_vibe_coding_routes(app):
             ]
             body_text = "\n".join(line for line in body_lines if line)
 
-            resend.Emails.send({
-                "from": FROM_EMAIL,
-                "to": [NOTIFY_EMAIL],
-                "subject": f"【JGAIA講座】お問い合わせ: {name}様",
-                "text": body_text,
-            })
+            from mail_targets import notify_payload
+            resend.Emails.send(notify_payload(
+                f"【JGAIA講座】お問い合わせ: {name}様",
+                reply_to=email, text=body_text))
 
             resend.Emails.send({
                 "from": FROM_EMAIL,

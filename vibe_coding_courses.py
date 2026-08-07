@@ -283,12 +283,10 @@ def register_vibe_coding_course_routes(app):
                     f"電話: {phone}\n\n"
                     f"メッセージ:\n{message}"
                 )
-                resend.Emails.send({
-                    "from": SENDER_EMAIL,
-                    "to": ["takano.hidetaka@gmail.com"],
-                    "subject": f"【JGAIA講座問い合わせ】{course} - {company or name}",
-                    "text": body,
-                })
+                from mail_targets import notify_payload
+                resend.Emails.send(notify_payload(
+                    f"【JGAIA講座問い合わせ】{course} - {company or name}",
+                    reply_to=email, text=body))
 
                 auto_body = (
                     f"{name} 様\n\n"
