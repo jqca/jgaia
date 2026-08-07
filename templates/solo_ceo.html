@@ -775,6 +775,13 @@ main { padding: 0 !important; margin-top: 0 !important; min-height: 0 !important
                 <option value="まだ決めていない">まだ決めていない</option>
             </select>
 
+            <label for="fi-company">会社名・屋号（任意）</label>
+            <input type="text" id="fi-company" name="company" placeholder="株式会社○○ / 個人事業主">
+
+            <label for="fi-message">ご質問・ご相談（任意）</label>
+            <textarea id="fi-message" name="message" rows="4"
+                      placeholder="聞きたいこと、いまお困りのこと、日程のご希望などをご記入ください"></textarea>
+
             <button type="submit" class="sc-submit" id="submitBtn">無料で相談する</button>
             <div class="form-note">2営業日以内にご連絡いたします。営業電話は一切いたしません。</div>
         </form>
@@ -805,6 +812,8 @@ function submitSoloInquiry(e) {
         name: document.getElementById('fi-name').value.trim(),
         email: document.getElementById('fi-email').value.trim(),
         course: document.getElementById('fi-course').value,
+        company: (document.getElementById('fi-company') || {}).value || '',
+        message: (document.getElementById('fi-message') || {}).value || '',
     };
     // 蜜壺と発行時刻を載せる。これが無いとサーバー側で弾かれる。
     data = window.jgaiaAntispam ? window.jgaiaAntispam(data) : data;

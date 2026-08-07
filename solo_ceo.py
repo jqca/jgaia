@@ -267,6 +267,7 @@ def register_solo_ceo_routes(app):
         name = (data.get("name") or "").strip()
         email = (data.get("email") or "").strip()
         course = (data.get("course") or "").strip()
+        company = (data.get("company") or "").strip()
         message = (data.get("message") or "").strip()
 
         # スパム判定。⛔ 弾いたことをボットに教えない（成功と同じ形で返す）。
@@ -288,6 +289,7 @@ def register_solo_ceo_routes(app):
                 "name": name,
                 "email": email,
                 "course": course,
+                "company": company,
                 "message": message,
             })
         except Exception:
@@ -303,6 +305,7 @@ def register_solo_ceo_routes(app):
         body_lines = [
             f"氏名: {name}",
             f"メール: {email}",
+            f"会社名・屋号: {company}" if company else None,
             f"関心コース: {course}" if course else None,
             f"ご質問・ご相談:\n{message}" if message else None,
         ]

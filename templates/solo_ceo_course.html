@@ -476,6 +476,9 @@
             <label for="fi-email">メールアドレス <span style="color:#f87171;">*</span></label>
             <input type="email" id="fi-email" name="email" placeholder="taro@example.com" required>
 
+            <label for="fi-company">会社名・屋号（任意）</label>
+            <input type="text" id="fi-company" name="company" placeholder="株式会社○○ / 個人事業主">
+
             <label for="fi-message">ご質問・ご相談（任意）</label>
             <textarea id="fi-message" name="message" placeholder="聞きたいことがあればご記入ください"></textarea>
 
@@ -511,6 +514,7 @@ function submitCourseInquiry(e) {
         name: document.getElementById('fi-name').value.trim(),
         email: document.getElementById('fi-email').value.trim(),
         course: document.getElementById('fi-course').value,
+        company: (document.getElementById('fi-company') || {}).value || '',
         message: document.getElementById('fi-message').value.trim()
     };
     // 蜜壺と発行時刻を載せる。これが無いとサーバー側で弾かれる。
