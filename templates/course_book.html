@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+{% block title %}{{ c['code'] }} {{ c['name'] }} のお申し込み | JGAIA{% endblock %}
+{% block description %}{{ c['name'] }}（{{ c['code'] }}）の開催日を選んでお申し込みいただけます。{% endblock %}
+
+{% block extra_head %}
+<style>
+.bk-wrap { max-width: 900px; margin:0 auto; padding:24px 16px 70px; }
+.bk-head { background:#0d1b3e; color:#fff; border-radius:10px; padding:22px 24px; }
+.bk-head .code { font-size:12px; font-weight:700; letter-spacing:.1em; opacity:.8; }
+.bk-head h1 { font-size:24px; font-weight:800; margin:6px 0 12px; }
+.bk-meta { display:flex; gap:20px; flex-wrap:wrap; font-size:14px; opacity:.92; }
+.bk-price { font-size:26px; font-weight:800; margin-top:12px; }
+.bk-price small { font-size:13px; font-weight:400; opacity:.8; }
+
+.bk-card { background:#fff; border:1px solid #e2e8f0; border-radius:10px;
+           padding:22px; margin-top:18px; }
+.bk-card h2 { font-size:17px; font-weight:800; color:#0d1b3e; margin:0 0 4px; }
+.bk-card .hint { font-size:13px; color:#64748b; line-height:1.7; margin-bottom:14px; }
+
+.cal + .cal { margin-top:20px; }
+.cal h3 { font-size:15px; font-weight:800; color:#0d1b3e; margin:0 0 8px; }
+.cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:5px; }
+.cal-grid .dow { text-align:center; font-size:11px; font-weight:700; color:#64748b; }
+.cal-grid .dow.sat{color:#2563eb;} .cal-grid .dow.sun{color:#dc2626;}
+.day { aspect-ratio:1/1; min-height:38px; border-radius:8px; border:1px solid #e2e8f0;
+       background:#fff; display:flex; flex-direction:column; align-items:center;
+       justify-content:center; font-size:14px; font-weight:700; color:#334155;
+       cursor:default; }
+.day.empty{border:none;background:none;}
+.day small { font-size:9px; font-weight:400; opacity:.85; }
+.day.open { background:#10b981; color:#fff; border-color:#10b981; cursor:pointer; }
+.day.open:hover { background:#059669; }
+.day.closed { background:#e5e7eb; color:#9ca3af; border-color:#e5e7eb; }
+/* 「開催まで日数が足りない日」は斜線。
+   ⛔ 予約締切(#e5e7eb)と同系のグレーだけにしないこと（目で区別できない）。
+   ⛔ CSSコメントに Jinja の二重波かっこを書かないこと。式として評価され、
+      このページが500になる（2026-08-09 実測。私がやった）。 */
+.day.past { background:none; border-color:transparent; color:#e2e8f0; }
+.day.lead { color:#cbd5e1;
+            background:repeating-linear-gradient(45deg,#f8fafc 0 5px,#eef2f7 5px 10px); }
+.day.sel { outline:3px solid #f59e0b; outline-offset:1px; }
+.legend { display:flex; gap:14px; flex-wrap:wrap; font-size:12px; color:#475569;
+          margin:10px 0 14px; }
+.legend i { display:inline-block;width:13px;height:13px;border-radius:4px;
+            margin-right:5px;vertical-align:-2px; }
+
+.bk-none { background:#fffbeb; border:1px solid #fde68a; border-radius:8px;
+           padding:16px 18px; font-size:14px; line-height:1.8; color:#92400e; }
+.bk-card label.f { display:block;font-size:14px;font-weight:700;color:#0d1b3e;
+                   margin:14px 0 6px; }
+.bk-card input, .bk-card textarea, .bk-card select {
+  width:100%; padding:12px 14px; border:1px solid #cbd5e1; border-radius:7px;
+  font-size:16px; font-family:inherit; }
+.bk-card textarea { min-height:80px; resize:vertical; }
+.req { color:#dc2626;font-size:12px;margin-left:4px; }
+.picked { background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px;
+          padding:13px 16px; font-size:15px; font-weight:700; color:#1e40af; }
+.bk-submit { width:100%; background:#0d1b3e; color:#fff; border:none; border-radius:8px;
+             padding:16px; font-size:17px; font-weight:800; cursor:pointer; margin-top:18px; }
+.bk-submit:disabled { background:#94a3b8; cursor:not-allowed; }
+.terms { font-size:12px; color:#64748b; line-height:1.9; margin-top:14px;
+         border-top:1px solid #e2e8f0; padding-top:14px; }
+.bk-done { background:#ecfdf5;border:1px solid #a7f3d0;border-radius:10px;
+           padding:26px;text-align:center;display:none; }
+.bk-done h2 { color:#065f46;font-size:20px;margin:0 0 10px; }
+.bk-done p { color:#065f46;line-height:1.9;font-size:14px; }
+.bk-err { background:#fef2f2;border:1px solid #fecaca;color:#991b1b;border-radius:8px;
+          padding:13px 16px;font-size:14px;margin-top:14px;display:none; }
+@media (max-width:560px){ .day{font-size:13px;} .day small{display:none;} }
+</style>
+{% endblock %}
+
+{% block content %}
+<main class="content">
+<div class="bk-wrap">
+
+  <div class="bk-head">
+    <div class="code">{{ c['code'] }}</div>
+    <h1>{{ c['name'] }}</h1>
+    <div class="bk-meta">
+      <span>{{ c['hours'] }}</span>
+      <span>定員 {{ c['capacity'] }}名</span>
+      <span>最少催行 {{ c['min_people'] }}名</span>
+    </div>
+    <div class="bk-price">¥{{ '{:,}'.format(c['price']) }}<small>（税込）</small></div>
+  </div>
+
+  <div class="bk-card" id="pickCard">
+    <h2>1. 開催日を選ぶ</h2>
+    <div class="hint">
+      緑の日をお選びください。講師の都合により、日程は変わることがあります。<br>
+      <strong>開催の{{ lead_days }}日以上前まで</strong>のお申し込みを承っています。
+    </div>
+
+    {% if open_count == 0 %}
+      <div class="bk-none">
+        <strong>いまお選びいただける日程がありません。</strong><br>
+        講師の日程調整中です。決まり次第このページに反映されます。<br>
+        お急ぎの場合や、ご希望の時期がある場合は
+        <a href="mailto:info@jgaia.org">info@jgaia.org</a> までご連絡ください。
+      </div>
+    {% else %}
+      <div class="legend">
+        <span><i style="background:#10b981"></i>お申し込みできる</span>
+        <span><i style="background:#e5e7eb"></i>予約締切（講師の都合）</span>
+        <span><i style="background:repeating-linear-gradient(45deg,#f8fafc 0 4px,#eef2f7 4px 8px);border:1px solid #e2e8f0"></i>{{ lead_days }}日以内</span>
+      </div>
+
+      {% for m in months %}
+        <div class="cal">
+          <h3>{{ m['年'] }}年{{ m['月'] }}月</h3>
+          <div class="cal-grid">
+            {% for w in ['月','火','水','木','金','土','日'] %}
+              <div class="dow {% if loop.index0==5 %}sat{% elif loop.index0==6 %}sun{% endif %}">{{ w }}</div>
+            {% endfor %}
+            {% for d in m['日'] %}
+              {% if not d %}
+                <div class="day empty"></div>
+              {% else %}
+                {# ⛔ 今日より前の日を「予約締切」と出さないこと。締切は講師の都合で
+                   閉じた日の意味で、過ぎた日はそもそも選択肢ではない（実測で
+                   月初が濃いグレーの「予約締切」になり、締切だらけに見えた） #}
+                {% set info = days.get(d) %}
+                {% set st = info['状態'] if info else '終了' %}
+                <div class="day {% if st == '予約可' %}open{% elif st == '準備期間' %}lead{% elif st == '終了' %}past{% else %}closed{% endif %}"
+                     {% if st == '予約可' %}data-day="{{ d }}"{% endif %}
+                     title="{% if st == '予約可' %}お申し込みできます（担当できる講師 {{ info['講師数'] }}名）{% elif st == '準備期間' %}{{ lead_days }}日以内のため受付対象外です{% elif st == '終了' %}過ぎた日です{% else %}予約締切です{% endif %}">
+                  {{ d[8:]|int }}
+                  {% if st == '予約可' %}<small>空き</small>{% endif %}
+                </div>
+              {% endif %}
+            {% endfor %}
+          </div>
+        </div>
+      {% endfor %}
+    {% endif %}
+  </div>
+
+  {% if open_count > 0 %}
+  <div class="bk-card" id="formCard">
+    <h2>2. お申し込み内容</h2>
+    <div class="picked" id="picked">上のカレンダーから開催日をお選びください</div>
+
+    <label class="f">お名前<span class="req">必須</span></label>
+    <input type="text" id="bk-name" placeholder="山田 太郎">
+    <label class="f">メールアドレス<span class="req">必須</span></label>
+    <input type="email" id="bk-email" placeholder="taro@example.com">
+    <label class="f">会社名・屋号（任意）</label>
+    <input type="text" id="bk-company" placeholder="株式会社○○ / 個人事業主">
+    <label class="f">受講人数</label>
+    <select id="bk-people">
+      {% for n in range(1, 11) %}<option value="{{ n }}">{{ n }}名</option>{% endfor %}
+    </select>
+    <label class="f">ご要望・ご質問（任意）</label>
+    <textarea id="bk-message" placeholder="ご質問や、当日までに知りたいことをご記入ください"></textarea>
+
+    <button type="button" class="bk-submit" id="bkSubmit" disabled>お申し込みする</button>
+    <div class="bk-err" id="bkErr"></div>
+
+    <div class="terms">
+      <strong>お支払い</strong>：{{ pay_note }}<br>
+      <strong>開催の確定</strong>：このコースは{{ c['min_people'] }}名以上で開催します。
+      人数が集まらない場合は次回へお振替いただけます。<br>
+      <strong>キャンセル</strong>：{{ cancel_policy }}
+    </div>
+  </div>
+
+  <div class="bk-done" id="bkDone">
+    <h2>お申し込みを承りました</h2>
+    <p id="bkDoneMsg"></p>
+  </div>
+  {% endif %}
+
+</div>
+</main>
+
+<script>
+(function () {
+  var COURSE = {{ c['code'] | tojson }};
+  var picked = null;
+  var submit = document.getElementById('bkSubmit');
+  // ⛔ 早期に抜けること。選べる日が0件のときは申込フォームごと描かれないので、
+  //    ここで掴むと null になってスクリプト全体が止まる（2026-08-09 実測）。
+  if (!submit) { return; }
+
+  document.addEventListener('click', function (e) {
+    var d = e.target.closest ? e.target.closest('.day[data-day]') : null;
+    if (!d) { return; }
+    document.querySelectorAll('.day.sel').forEach(function (x) { x.classList.remove('sel'); });
+    d.classList.add('sel');
+    picked = d.dataset.day;
+    var p = picked.split('-');
+    document.getElementById('picked').textContent =
+      '開催日：' + p[0] + '年' + (+p[1]) + '月' + (+p[2]) + '日';
+    submit.disabled = false;
+    document.getElementById('formCard').scrollIntoView({behavior: 'smooth', block: 'start'});
+  });
+
+  submit.addEventListener('click', function () {
+    var btn = this, err = document.getElementById('bkErr');
+    err.style.display = 'none';
+    var name = document.getElementById('bk-name').value.trim();
+    var email = document.getElementById('bk-email').value.trim();
+    if (!picked) { err.textContent = '開催日をお選びください。'; err.style.display = 'block'; return; }
+    if (!name || !email) {
+      err.textContent = 'お名前とメールアドレスをご入力ください。';
+      err.style.display = 'block'; return;
+    }
+    var data = {
+      course: COURSE, day: picked, name: name, email: email,
+      company: document.getElementById('bk-company').value.trim(),
+      people: document.getElementById('bk-people').value,
+      message: document.getElementById('bk-message').value.trim()
+    };
+    // 蜜壺と発行時刻（これが無いとサーバー側で弾かれる）
+    data = window.jgaiaAntispam ? window.jgaiaAntispam(data) : data;
+
+    btn.disabled = true; btn.textContent = '送信中…';
+    fetch('/api/book', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(data)
+    }).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (j) {
+        if (!r.ok || !j.ok) { throw new Error(j.error || 'お申し込みを受け付けられませんでした'); }
+        return j;
+      });
+    }).then(function (j) {
+      document.getElementById('pickCard').style.display = 'none';
+      document.getElementById('formCard').style.display = 'none';
+      var msg = j['開催確定']
+        ? 'この日程は開催が確定しました（' + j['合計人数'] + '名）。'
+          + '請求書と当日のご案内をメールでお送りします。'
+        : '現在 ' + j['合計人数'] + '名です。'
+          + '最少催行 ' + j['最少催行'] + '名に達し次第、開催の確定をご連絡します。'
+          + '集まらない場合は次回へお振替いただけます。';
+      document.getElementById('bkDoneMsg').textContent = msg;
+      var done = document.getElementById('bkDone');
+      done.style.display = 'block';
+      done.scrollIntoView({behavior: 'smooth', block: 'center'});
+    }).catch(function (e) {
+      err.textContent = e.message + ' — info@jgaia.org までご連絡ください。';
+      err.style.display = 'block';
+      btn.disabled = false; btn.textContent = 'お申し込みする';
+    });
+  });
+})();
+</script>
+{% endblock %}

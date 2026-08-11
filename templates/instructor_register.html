@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+{% block title %}講師のご登録 | JGAIA{% endblock %}
+{% block description %}JGAIA／JQCA のバイブコーディング認定講座で講師をお願いできる方の登録フォームです。{% endblock %}
+
+{% block extra_head %}
+<style>
+.ir-wrap { max-width: 760px; margin:0 auto; padding:24px 16px 70px; }
+.ir-head { background:#0d1b3e; color:#fff; border-radius:10px; padding:22px 24px; }
+.ir-head h1 { font-size:23px; font-weight:800; margin:0 0 8px; }
+.ir-head p { font-size:14px; line-height:1.8; opacity:.9; margin:0; }
+.ir-card { background:#fff; border:1px solid #e2e8f0; border-radius:10px;
+           padding:22px; margin-top:18px; }
+.ir-card h2 { font-size:17px; font-weight:800; color:#0d1b3e; margin:0 0 4px; }
+.ir-card .hint { font-size:13px; color:#64748b; line-height:1.7; margin-bottom:14px; }
+.ir-card label.f { display:block; font-size:14px; font-weight:700; color:#0d1b3e;
+                   margin:14px 0 6px; }
+.ir-card input[type="text"], .ir-card input[type="email"], .ir-card textarea,
+.ir-card input[type="number"] {
+  width:100%; padding:12px 14px; border:1px solid #cbd5e1; border-radius:7px;
+  font-size:16px; font-family:inherit; }
+.ir-card textarea { min-height:90px; resize:vertical; }
+.req { color:#dc2626; font-size:12px; margin-left:4px; }
+.cs { display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:8px; }
+/* ⛔ 文字色を必ず指定すること。サイト共通のCSSが白文字を継承させるため、
+   白背景のカード上で「講座名が1文字も見えない」状態になる（2026-08-09 本番で実測。
+   送信ボタンが透明背景＋白文字で消えていたのと同じ型）。 */
+.cs label { display:flex; align-items:center; gap:9px; padding:11px 13px;
+            border:1px solid #e2e8f0; border-radius:7px; font-size:14px;
+            cursor:pointer; background:#fff; color:#0d1b3e; }
+.cs label span { color:#0d1b3e; }
+.cs label:hover { background:#f8fafc; }
+.cs input { width:20px; height:20px; }
+.wd-row { display:flex; align-items:center; gap:10px; padding:9px 0;
+          border-bottom:1px solid #f1f5f9; flex-wrap:wrap; }
+.wd-row:last-child { border-bottom:none; }
+.wd-name { width:88px; font-weight:700; color:#0d1b3e; font-size:15px;
+           display:flex; align-items:center; gap:8px; }
+.wd-row input[type="checkbox"] { width:21px; height:21px; }
+.wd-row select { padding:8px 10px; border:1px solid #cbd5e1; border-radius:6px;
+                 font-size:15px; color:#0f172a; background:#fff; }
+/* ⛔ 「〜」にも色を指定すること。指定を落とすと白文字で消え、
+   「10:00 　 17:00」と間が抜けて見える（2026-08-09 本番で実測） */
+.wd-row .to { color:#64748b; }
+.ir-submit { width:100%; background:#0d1b3e; color:#fff; border:none; border-radius:8px;
+             padding:16px; font-size:17px; font-weight:800; cursor:pointer;
+             margin-top:20px; }
+.ir-note { font-size:12px; color:#64748b; line-height:1.8; margin-top:12px; }
+.ir-done { background:#ecfdf5; border:1px solid #a7f3d0; border-radius:10px;
+           padding:26px; text-align:center; }
+.ir-done h2 { color:#065f46; font-size:20px; margin:0 0 10px; }
+.ir-done .link { display:block; margin:16px auto 0; word-break:break-all;
+                 background:#fff; border:1px solid #a7f3d0; border-radius:7px;
+                 padding:14px; font-size:14px; }
+.ir-err { background:#fef2f2; border:1px solid #fecaca; color:#991b1b;
+          border-radius:8px; padding:13px 16px; font-size:14px; margin-top:16px; }
+/* ⛔ 幅を詰めすぎないこと。「月曜」が2行に割れる（予定カレンダー側で実測） */
+@media (max-width:560px){ .wd-name{width:72px;white-space:nowrap;}
+                          .cs{grid-template-columns:1fr;} }
+</style>
+{% endblock %}
+
+{% block content %}
+<main class="content">
+<div class="ir-wrap">
+
+{% if done %}
+  <div class="ir-done">
+    <h2>ご登録ありがとうございます</h2>
+    <p style="line-height:1.9;color:#065f46;">
+      内容を確認のうえ、運営より2営業日以内にご連絡いたします。<br>
+      承認までは、登録された日程が受講者に公開されることはありません。
+    </p>
+    {% if token %}
+      <p style="margin-top:18px;font-weight:700;color:#065f46;">
+        講義できる日は、下のリンクからいつでも変更できます。<br>
+        <span style="font-weight:400;font-size:13px;">
+          このリンクはあなた専用です。メールでもお送りします。
+        </span>
+      </p>
+      <a class="link" href="{{ url_for('instructor_schedule', token=token) }}">
+        {{ url_for('instructor_schedule', token=token, _external=True) }}
+      </a>
+    {% endif %}
+  </div>
+{% else %}
+
+  <div class="ir-head">
+    <h1>講師のご登録</h1>
+    <p>
+      JGAIA／JQCA のバイブコーディング認定講座で、講師をお願いできる方の登録フォームです。<br>
+      <strong>ご本業をお持ちの方でも大丈夫です。</strong>講義できる曜日と時間をご登録いただき、
+      予約は<strong>開催の{{ 14 }}日以上前</strong>までしか入らない仕組みにしています。
+      都合の悪い日は、あとからカレンダーで外せます。
+    </p>
+  </div>
+
+  {% if error %}<div class="ir-err">{{ error }}</div>{% endif %}
+
+  <form method="POST" action="{{ url_for('instructor_register') }}">
+
+    <div class="ir-card">
+      <h2>ご連絡先</h2>
+      <label class="f">お名前<span class="req">必須</span></label>
+      <input type="text" name="name" required placeholder="山田 太郎">
+      <label class="f">メールアドレス<span class="req">必須</span></label>
+      <input type="email" name="email" required placeholder="taro@example.com">
+      <label class="f">ご所属（任意）</label>
+      <input type="text" name="org" placeholder="株式会社○○ / フリーランス">
+    </div>
+
+    <div class="ir-card">
+      <h2>担当できる講座</h2>
+      <div class="hint">複数お選びいただけます。あとから増やすこともできます。</div>
+      <div class="cs">
+        {% for c in courses %}
+          <label>
+            <input type="checkbox" name="courses" value="{{ c['code'] }}">
+            <span>{{ c['code'] }} {{ c['name'] }}</span>
+          </label>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="ir-card">
+      <h2>毎週、講義できる曜日と時間</h2>
+      <div class="hint">
+        チェックした曜日が「講義できる日」になります。
+        個別の都合は、登録後のカレンダーで日ごとに外せます。
+      </div>
+      {% for i in range(7) %}
+        <div class="wd-row">
+          <label class="wd-name">
+            <input type="checkbox" name="wd{{ i }}" value="1"
+                   {% if i in (5, 6) %}checked{% endif %}>
+            {{ weekdays[i] }}曜
+          </label>
+          <select name="from{{ i }}">
+            {% for h in range(7, 22) %}
+              <option value="{{ '%02d:00' % h }}" {% if h == 10 %}selected{% endif %}>{{ '%02d:00' % h }}</option>
+            {% endfor %}
+          </select>
+          <span class="to">〜</span>
+          <select name="to{{ i }}">
+            {% for h in range(8, 23) %}
+              <option value="{{ '%02d:00' % h }}" {% if h == 17 %}selected{% endif %}>{{ '%02d:00' % h }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      {% endfor %}
+    </div>
+
+    <div class="ir-card">
+      <h2>ご経歴・ご要望</h2>
+      <div class="hint">
+        謝礼はご相談のうえ、書面かメールで条件をお示ししてから発注します。
+      </div>
+      <label class="f">ご経歴・ご要望など（任意）</label>
+      <textarea name="note" placeholder="ご経歴、得意分野、講義の可否に関わるご事情などをご記入ください"></textarea>
+    </div>
+
+    <button type="submit" class="ir-submit">この内容で登録する</button>
+    <div class="ir-note">
+      ご登録いただいた内容は、講師の選定と講座運営のためにのみ使用します。<br>
+      ご登録の時点で契約は発生しません。実際にご担当いただく際は、
+      取引条件を書面またはメールでお示しします。
+    </div>
+  </form>
+
+{% endif %}
+</div>
+</main>
+{% endblock %}

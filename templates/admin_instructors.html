@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}講師の承認 | JGAIA 運営{% endblock %}
+{% block description %}運営用。講師の申請を確認して承認します。{% endblock %}
+
+{% block extra_head %}
+<style>
+.ad-wrap { max-width:1000px; margin:0 auto; padding:24px 16px 70px; }
+.ad-wrap h1 { font-size:22px; font-weight:800; color:#0d1b3e; margin:0 0 6px; }
+.ad-wrap .lead { font-size:13px; color:#64748b; line-height:1.8; margin-bottom:18px; }
+.sum { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:18px; }
+.sum div { background:#fff; border:1px solid #e2e8f0; border-radius:8px;
+           padding:12px 18px; font-size:13px; color:#64748b; }
+.sum b { display:block; font-size:22px; color:#0d1b3e; }
+.row { background:#fff; border:1px solid #e2e8f0; border-radius:10px; padding:18px;
+       margin-bottom:12px; }
+.row .top { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+.row .nm { font-size:17px; font-weight:800; color:#0d1b3e; }
+.tag { font-size:11px; font-weight:700; border-radius:999px; padding:4px 11px; color:#fff; }
+.tag.ok{background:#10b981;} .tag.wait{background:#f59e0b;} .tag.no{background:#6b7280;}
+.kv { margin-top:10px; font-size:13px; color:#334155; line-height:1.9; }
+.kv span.k { color:#64748b; display:inline-block; min-width:104px; }
+.acts { margin-top:14px; display:flex; gap:8px; flex-wrap:wrap; }
+.acts button { font-size:13px; font-weight:700; border-radius:7px; padding:10px 16px;
+               border:none; cursor:pointer; }
+.acts .ok { background:#10b981; color:#fff; }
+.acts .no { background:#e5e7eb; color:#374151; }
+.acts .back { background:#fff; color:#0d1b3e; border:1px solid #cbd5e1; }
+.acts a { font-size:12px; color:#2563eb; align-self:center; word-break:break-all; }
+.empty { background:#fffbeb; border:1px solid #fde68a; border-radius:10px;
+         padding:20px; font-size:14px; line-height:1.9; color:#92400e; }
+</style>
+{% endblock %}
+
+{% block content %}
+<main class="content">
+<div class="ad-wrap">
+  <h1>講師の承認</h1>
+  <div class="lead">
+    ⛔ 承認するまで、その方の日程は受講者に公開されません。<br>
+    有料講座なので、確認できていない方を承認しないでください。
+  </div>
+
+  {% set waiting = rows | selectattr('状態','equalto','申請中') | list %}
+  {% set approved = rows | selectattr('状態','equalto','承認') | list %}
+  <div class="sum">
+    <div>承認待ち<b>{{ waiting | length }}</b></div>
+    <div>承認済み<b>{{ approved | length }}</b></div>
+    <div>登録合計<b>{{ rows | length }}</b></div>
+    <div>受講申込<b>{{ bookings | length }}</b></div>
+  </div>
+
+  {% if not rows %}
+    <div class="empty">
+      <strong>まだ1名も登録がありません。</strong><br>
+      講師候補の方に、この登録画面のリンクをお送りください。<br>
+      <a href="{{ url_for('instructor_register', _external=True) }}">
+        {{ url_for('instructor_register', _external=True) }}</a>
+    </div>
+  {% endif %}
+
+  {% for r in rows %}
+    <div class="row" data-id="{{ r['id'] }}">
+      <div class="top">
+        <span class="nm">{{ r['氏名'] }}</span>
+        {% if r['状態'] == '承認' %}<span class="tag ok">承認済み</span>
+        {% elif r['状態'] == '申請中' %}<span class="tag wait">承認待ち</span>
+        {% else %}<span class="tag no">{{ r['状態'] }}</span>{% endif %}
+      </div>
+      <div class="kv">
+        <div><span class="k">ご所属</span>{{ r['所属'] or '—' }}</div>
+        <div><span class="k">連絡先</span>{{ r['連絡先'] }}</div>
+        <div><span class="k">担当できる講座</span>
+          {{ (r['対応コース'] or []) | join(' / ') if r['対応コース'] else '未選択' }}</div>
+        <div><span class="k">毎週の可能時間</span>
+          {% if r['毎週の可能時間'] %}
+            {% for w in r['毎週の可能時間'] %}{{ weekdays[w['曜日']] }} {{ w['開始'] }}-{{ w['終了'] }}{% if not loop.last %} / {% endif %}{% endfor %}
+          {% else %}未登録{% endif %}</div>
+        <div><span class="k">都合の悪い日</span>{{ (r['不可の日'] or []) | length }}日</div>
+        {# 謝礼の希望額は登録フォームから削除済み（2026-08-11）。
+           削除前に申請された方の値だけを残して表示する。 #}
+        {% if r['希望謝礼_円_日'] %}
+          <div><span class="k">希望謝礼</span>{{ '{:,}'.format(r['希望謝礼_円_日']) }}円/日</div>
+        {% endif %}
+        {% if r['備考'] %}<div><span class="k">備考</span>{{ r['備考'] }}</div>{% endif %}
+        <div><span class="k">登録日時</span>{{ r['登録日時'] }}</div>
+      </div>
+      <div class="acts">
+        {% if r['状態'] != '承認' %}<button class="ok" data-state="承認">承認する</button>{% endif %}
+        {% if r['状態'] != '見送り' %}<button class="no" data-state="見送り">見送る</button>{% endif %}
+        {% if r['状態'] != '申請中' %}<button class="back" data-state="申請中">承認待ちに戻す</button>{% endif %}
+        <a href="{{ url_for('instructor_schedule', token=r['鍵'], _external=True) }}">
+          本人用の予定画面リンク（この方にお送りください）</a>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+</main>
+
+<script>
+(function () {
+  var TOKEN = {{ token | tojson }};
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest ? e.target.closest('.acts button') : null;
+    if (!b) { return; }
+    var row = b.closest('.row');
+    b.disabled = true;
+    fetch('/api/instructor/decide', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', 'X-Admin-Token': TOKEN},
+      body: JSON.stringify({id: row.dataset.id, state: b.dataset.state})
+    }).then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (!j.ok) { throw new Error(j.error || '変更できませんでした'); }
+        location.reload();
+      })
+      .catch(function (err) { alert(err.message); b.disabled = false; });
+  });
+})();
+</script>
+{% endblock %}
