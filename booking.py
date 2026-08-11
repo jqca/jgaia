@@ -119,7 +119,7 @@ def find_instructor(token):
     return None
 
 
-def register_instructor(name, email, org, courses, note, weekly):
+def register_instructor(name, email, org, courses, note, days=None):
     """講師候補の申請を受ける。戻り値: (講師, 本人用の鍵)
 
     ⛔ 状態は必ず『申請中』で始める。ここで承認にしてはいけない。
@@ -127,6 +127,10 @@ def register_instructor(name, email, org, courses, note, weekly):
     ⛔ 謝礼の希望額はここでは受け取らない（2026-08-11 社長ご指示で
        登録フォームから削除）。謝礼はご相談のうえ、書面かメールで
        条件をお示ししてから発注する。項目を戻さないこと。
+
+    ⛔ 登録フォームで予定を聞かないこと（2026-08-11 社長ご指示）。
+       日付はカレンダー画面で選ぶ。登録の入口を軽くする方が申請が増える。
+       days は移行・試験用の入口で、画面からは渡らない。
     """
     name = (name or '').strip()
     email = (email or '').strip()
@@ -146,11 +150,9 @@ def register_instructor(name, email, org, courses, note, weekly):
         '対応コース': courses,
         '備考': note,
         '状態': '申請中',                   # 申請中 / 承認 / 見送り
-        # 同じ曜日を何本でも持てる（朝と夜を別々に登録できる）
-        '毎週の可能時間': normalize_weekly(weekly),
-        # その週だけ時間が違う日はここで差し替える {'2026-09-05':[{'開始','終了'}]}
-        '日別の可能時間': {},
-        '不可の日': [],                     # ['2026-09-03', ...]
+        # 予定は日付ごとの枠だけが正 {'2026-09-05':[{'開始':'10:00','終了':'17:00'}]}
+        # 1日に朝と夜のように複数の枠を持てる。空＝その日は講義しない
+        '講義できる日時': normalize_daily(days),
         '登録日時': now_jst().strftime('%Y-%m-%d %H:%M'),
     }
     rows.append(rec)
@@ -176,30 +178,33 @@ def set_state(instructor_id, state):
     return hit
 
 
-def update_availability(token, weekly, blocked, daily=None):
-    """講師本人が自分の予定を書き換える。
+def update_availability(token, days):
+    """講師本人が自分の予定を書き換える。days = {'2026-09-05': [{'開始','終了'}]}
 
-    ⛔ すでに受講者の申込が入っている日は閉じられない。約束した日を
-       あとから一方的に消せると、受講料をいただいた講座が無人になる。
-       日程の変更が必要なときは運営（info@jgaia.org）が個別に調整する。
-    ⛔ 予約が入っている日は「その日だけ時間を変える」も受け付けない。
-       時間だけ後からずらせると、受講者に案内済みの開始時刻が変わる。
+    ⛔ すでに受講者の申込が入っている日は、閉じることも時間を変えることも
+       できない。約束した日をあとから一方的に消せると、受講料をいただいた
+       講座が無人になる。変更が必要なときは運営が個別に調整する。
+    ⛔ 保存時に旧式の欄（毎週の可能時間・不可の日・日別の可能時間）を落とすこと。
+       残すと「予定の正がどれか」が2つになり、画面と実装で答えが割れる。
     """
     rows = instructors()
     hit = None
     for r in rows:
-        if r.get('鍵') == token:
-            booked = set(booked_days_for_instructor(r.get('id')))
-            r['毎週の可能時間'] = normalize_weekly(weekly)
-            r['日別の可能時間'] = {k: v for k, v in
-                                   normalize_daily(daily).items()
-                                   if k not in booked}
-            # ⛔ 「不可の日」と「その日だけの時間」が同じ日に同居しないようにする。
-            #    両方に載っていると、どちらが正か画面と実装で答えが割れる。
-            r['不可の日'] = sorted(
-                set(blocked) - booked - set(r['日別の可能時間']))
-            r['更新日時'] = now_jst().strftime('%Y-%m-%d %H:%M')
-            hit = r
+        if r.get('鍵') != token:
+            continue
+        new = normalize_daily(days)
+        for iso in booked_days_for_instructor(r.get('id')):
+            try:
+                cur = slots_on(r, date.fromisoformat(iso))
+            except ValueError:
+                continue
+            if cur:                      # 約束した日は今のまま据え置く
+                new[iso] = cur
+        r['講義できる日時'] = dict(sorted(new.items()))
+        for old in ('毎週の可能時間', '不可の日', '日別の可能時間'):
+            r.pop(old, None)
+        r['更新日時'] = now_jst().strftime('%Y-%m-%d %H:%M')
+        hit = r
     if hit:
         _save('instructors.json', rows)
     return hit
@@ -223,7 +228,9 @@ def normalize_slots(slots):
     out = []
     for s in (slots or []):
         a, b = _hhmm(s.get('開始')), _hhmm(s.get('終了'))
-        if a and b and a < b:
+        # ⛔ まったく同じ枠を2本残さないこと。画面では同じ行が並ぶだけだが、
+        #    講師には「押した回数だけ増える」壊れ方に見える（2026-08-11 実測）
+        if a and b and a < b and {'開始': a, '終了': b} not in out:
             out.append({'開始': a, '終了': b})
     return sorted(out, key=lambda s: (s['開始'], s['終了']))
 
@@ -260,10 +267,20 @@ def normalize_daily(daily):
 def slots_on(inst, d):
     """その講師がその日に講義できる時間帯。空リスト＝その日は不可。
 
-    優先順位: ①その日だけの枠 → ②不可の日 → ③曜日の枠
-    ⛔ ②を①より先に見ないこと。「その日だけ夜にする」と登録したのに
-       曜日を外していると不可になり、登録した意味が消える。
+    予定は『日付ごとの枠』（講義できる日時）だけが正
+    ＝2026-08-11 社長ご指摘「曜日ではなく日付で選ばせればいい」。
+    曜日の決まりは、講師に自分の予定を"規則"へ翻訳させる作りで、
+    そのために例外（不可の日）と上書き（日別）が要り、概念が3つになっていた。
+    いまは画面の「まとめて入れる」が日付を並べるだけで、保存されるのは日付。
+
+    ⛔ 曜日ルールを判定に戻さないこと。戻した瞬間に正が2つになる。
     """
+    days = inst.get('講義できる日時')
+    if days is not None:
+        return normalize_slots(days.get(d.isoformat()) or [])
+
+    # ── ここから下は 2026-08-11 より前に登録された講師だけが通る読み取り互換。
+    #    本人が予定画面で1回保存すれば日付形式に置き換わる（保存側で旧欄を落とす）。
     iso = d.isoformat()
     special = (inst.get('日別の可能時間') or {}).get(iso)
     if special:
@@ -273,6 +290,32 @@ def slots_on(inst, d):
     return [{'開始': w['開始'], '終了': w['終了']}
             for w in normalize_weekly(inst.get('毎週の可能時間'))
             if int(w['曜日']) == d.weekday()]
+
+
+def materialize(inst, start, end):
+    """start〜end の各日について、講義できる時間帯を日付ごとに並べる。
+
+    旧式（曜日の決まり）で登録された講師の予定を、画面に日付として見せるために使う。
+    ⛔ ここで保存しないこと。本人が画面で保存したときに日付形式へ移る
+       （見ただけで台帳が書き換わると、本人の意図しない内容が確定する）。
+    """
+    out, d = {}, start
+    while d <= end:
+        ss = slots_on(inst, d)
+        if ss:
+            out[d.isoformat()] = ss
+        d += timedelta(days=1)
+    return out
+
+
+def availability_end(inst):
+    """登録されている予定の最終日（ISO）。無ければ None
+
+    ⛔ 日付形式は「入れた先まで」しか公開されない。いつまで入っているかを
+       画面に出さないと、気づかないうちに予約可の日が尽きる。
+    """
+    days = [k for k, v in (inst.get('講義できる日時') or {}).items() if v]
+    return max(days) if days else None
 
 
 def course_hours(course_code):

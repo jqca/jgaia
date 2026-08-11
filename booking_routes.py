@@ -24,28 +24,6 @@ import booking
 _TRIM = '﻿ \t\r\n'
 
 
-def _weekly_from_form(form):
-    """登録フォームの曜日×時間帯を読む。1つの曜日に複数の枠を書ける。
-
-    欄の名前: wd{i} / from{i} / to{i} が1本目、from{i}_2 / to{i}_2 が2本目…
-    （画面のJSが2本目以降を足す。JSが動かない環境でも1本目だけは必ず通る）
-    ⛔ 本数を決め打ちで2本までにしないこと。朝・昼・夜と分ける方がいる。
-    """
-    weekly = []
-    for i in range(7):
-        if not form.get(f'wd{i}'):
-            continue
-        pairs = [(form.get(f'from{i}'), form.get(f'to{i}'))]
-        for n in range(2, 13):
-            a, b = form.get(f'from{i}_{n}'), form.get(f'to{i}_{n}')
-            if a and b:
-                pairs.append((a, b))
-        for a, b in pairs:
-            weekly.append({'曜日': i, '開始': a or '10:00', '終了': b or '17:00'})
-    # ⛔ ここで正規化まで済ませない（保存側 register_instructor が唯一の関所）
-    return weekly
-
-
 def _admin_ok():
     expected = (os.environ.get('INQUIRY_ADMIN_TOKEN') or '').strip(_TRIM)
     if not expected:
@@ -81,11 +59,11 @@ def register_booking_routes(app):
                                    courses=booking.COURSES,
                                    weekdays=booking.WEEKDAYS)
 
-        weekly = _weekly_from_form(request.form)
+        # ⛔ ここで予定を聞かない。日付はこの後のカレンダー画面で選ぶ
         rec, token = booking.register_instructor(
             name, email, (request.form.get('org') or '').strip(),
             request.form.getlist('courses'),
-            (request.form.get('note') or '').strip(), weekly)
+            (request.form.get('note') or '').strip())
 
         app.logger.info('[instructor_register] 申請: %s', name)
         return render_template('instructor_register.html', done=True,
@@ -104,9 +82,17 @@ def register_booking_routes(app):
         for c in booking.COURSES:
             h = booking.course_hours(c['code'])
             courses.append(dict(c, 開始=h[0] if h else '', 終了=h[1] if h else ''))
+        months = _month_grids(3)
+        # 旧式（曜日の決まり）で登録された方には、その内容を日付として見せる。
+        # ⛔ ここで台帳を書き換えないこと。本人が保存したときに移る
+        compat = {}
+        if inst.get('講義できる日時') is None:
+            first = date.fromisoformat([d for d in months[0]['日'] if d][0])
+            last = date.fromisoformat([d for d in months[-1]['日'] if d][-1])
+            compat = booking.materialize(inst, first, last)
         return render_template('instructor_schedule.html', inst=inst, token=token,
                                weekdays=booking.WEEKDAYS,
-                               months=_month_grids(3),
+                               months=months, compat_days=compat,
                                lead_days=booking.LEAD_DAYS,
                                booked_days=booking.booked_days_for_instructor(inst['id']),
                                earliest=(booking.today_jst()
@@ -119,16 +105,14 @@ def register_booking_routes(app):
         token = (data.get('token') or '').strip()
         if not booking.find_instructor(token):
             return {'error': 'リンクが正しくありません'}, 403
-        weekly = [w for w in (data.get('weekly') or [])
-                  if str(w.get('曜日')).isdigit()]
-        blocked = [d for d in (data.get('blocked') or []) if _is_day(d)]
-        # その日だけ時間を変える枠 {'2026-09-05': [{'開始','終了'}]}
-        daily = {k: v for k, v in (data.get('daily') or {}).items()
-                 if _is_day(k) and isinstance(v, list)}
-        inst = booking.update_availability(token, weekly, blocked, daily)
+        # 予定は日付ごとの枠だけ {'2026-09-05': [{'開始','終了'}]}
+        days = {k: v for k, v in (data.get('days') or {}).items()
+                if _is_day(k) and isinstance(v, list)}
+        inst = booking.update_availability(token, days)
+        # ⛔ 送られた内容ではなく保存された内容を返すこと。予約が入っている日は
+        #    サーバ側で据え置くので、画面がそれを写せないと表示が実態とズレる
         return {'ok': True, '更新日時': inst.get('更新日時'),
-                '日別の可能時間': inst.get('日別の可能時間') or {},
-                '不可の日': inst.get('不可の日') or []}
+                'days': inst.get('講義できる日時') or {}}
 
     # ─────────────── 承認画面
     @app.route('/admin/instructors')

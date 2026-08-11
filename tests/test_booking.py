@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """講座の予約（講師の登録・承認・空き日・申込）の回帰テスト。
 
 ここで固定しているのは「事故の型」であって、機能の説明ではない。
@@ -39,8 +39,18 @@ def _clear():
             os.remove(p)
 
 
+def _days_all(start='10:00', end='17:00', span=120):
+    """今日から span 日ぶん、毎日その時間帯で講義できる、という登録内容。
+
+    予定は日付ごとの枠だけが正（2026-08-11〜）。曜日の決まりは持たない。
+    """
+    d0 = date.today()
+    return {(d0 + timedelta(days=i)).isoformat(): [{'開始': start, '終了': end}]
+            for i in range(span)}
+
+
 def _weekly_all_days():
-    """毎日いつでも講義できる、という登録内容。"""
+    """旧形式（曜日の決まり）。移行の読み取り互換を確かめるためだけに残す。"""
     return [{'曜日': i, '開始': '10:00', '終了': '17:00'} for i in range(7)]
 
 
@@ -54,34 +64,34 @@ class Test講師の登録(unittest.TestCase):
 
     def test_登録した時点では必ず申請中(self):
         r, token = booking.register_instructor('山田 太郎', 'y@example.com', '',
-                                              ['SP-A'], '', _weekly_all_days())
+                                              ['SP-A'], '', _days_all())
         self.assertEqual(r['状態'], '申請中')
 
     def test_本人用の鍵が推測できない長さである(self):
         r, token = booking.register_instructor('山田', 'y@example.com', '', ['SP-A'],
-                                              '', _weekly_all_days())
+                                              '', _days_all())
         # この鍵だけで予定を書き換えられるので、短いと総当たりされる
         self.assertGreaterEqual(len(r['鍵']), 16)
         self.assertEqual(r['鍵'], token)
 
     def test_鍵は講師ごとに違う(self):
         a, _ = booking.register_instructor('A', 'a@example.com', '', ['SP-A'], '',
-                                          _weekly_all_days())
+                                          _days_all())
         b, _ = booking.register_instructor('B', 'b@example.com', '', ['SP-A'], '',
-                                          _weekly_all_days())
+                                          _days_all())
         self.assertNotEqual(a['鍵'], b['鍵'])
 
     def test_担当できる講座を選んでいない登録は受け取らない(self):
         with self.assertRaises(ValueError):
             booking.register_instructor('山田', 'y@example.com', '', [], '',
-                                        _weekly_all_days())
+                                        _days_all())
 
 
 class Test承認するまで公開しない(unittest.TestCase):
     def setUp(self):
         _clear()
         self.inst, _ = booking.register_instructor(
-            '山田 太郎', 'y@example.com', '', ['SP-A'], '', _weekly_all_days())
+            '山田 太郎', 'y@example.com', '', ['SP-A'], '', _days_all())
 
     def test_申請中の講師の日は予約可にならない(self):
         days = {d['日付']: d['状態'] for d in booking.open_days('SP-A')}
@@ -112,7 +122,7 @@ class Test日数の下限(unittest.TestCase):
     def setUp(self):
         _clear()
         i, _ = booking.register_instructor('山田', 'y@example.com', '', ['SP-A'],
-                                          '', _weekly_all_days())
+                                          '', _days_all())
         booking.set_state(i['id'], '承認')
         self.inst = i
 
@@ -144,42 +154,48 @@ class Test講師の都合(unittest.TestCase):
     def setUp(self):
         _clear()
         self.inst, _ = booking.register_instructor(
-            '山田', 'y@example.com', '', ['SP-A'], '', _weekly_all_days())
+            '山田', 'y@example.com', '', ['SP-A'], '', _days_all())
         booking.set_state(self.inst['id'], '承認')
 
-    def test_不可にした日は予約締切になる(self):
+    def _without(self, *isos):
+        """その日だけ外した予定を作る（日を閉じる＝その日付を持たないこと）"""
+        days = _days_all()
+        for iso in isos:
+            days.pop(iso, None)
+        return days
+
+    def test_外した日は予約締切になる(self):
         d = _far_day()
-        booking.update_availability(self.inst['鍵'], _weekly_all_days(), [d])
+        booking.update_availability(self.inst['鍵'], self._without(d))
         info = {x['日付']: x for x in booking.open_days('SP-A')}[d]
         self.assertEqual(info['状態'], '予約締切')
 
-    def test_不可にした日は申込も断る(self):
+    def test_外した日は申込も断る(self):
         d = _far_day()
-        booking.update_availability(self.inst['鍵'], _weekly_all_days(), [d])
+        booking.update_availability(self.inst['鍵'], self._without(d))
         with self.assertRaises(ValueError):
             booking.add_booking('SP-A', d, '鈴木', 's@example.com', '', 1, '')
 
     def test_他人の鍵では書き換えられない(self):
-        self.assertIsNone(booking.update_availability('でたらめな鍵',
-                                                      _weekly_all_days(), []))
+        self.assertIsNone(booking.update_availability('でたらめな鍵', _days_all()))
 
     def test_予約が入った日は講師が閉じられない(self):
         d = _far_day()
         booking.add_booking('SP-A', d, '鈴木', 's@example.com', '', 1, '')
-        booking.update_availability(self.inst['鍵'], _weekly_all_days(), [d])
+        booking.update_availability(self.inst['鍵'], self._without(d))
         # 受講者と約束した日を、あとから一方的に消せてはいけない
         self.assertIn(d, booking.booked_days_for_instructor(self.inst['id']))
-        self.assertNotIn(d, booking.instructors()[0]['不可の日'])
+        self.assertIn(d, booking.instructors()[0]['講義できる日時'])
         # 定員までは追加の申込を受ける（最少催行に人を集める必要がある）
         info = {x['日付']: x for x in booking.open_days('SP-A')}[d]
         self.assertEqual(info['状態'], '予約可')
 
-    def test_予約済みの日は週の設定から外しても申込を受けられる(self):
-        # ⛔ 1人目が入った日を講師が土曜から外した瞬間に2人目が申し込めなくなると、
+    def test_予約済みの日は予定を空にしても申込を受けられる(self):
+        # ⛔ 1人目が入った日を講師が外した瞬間に2人目が申し込めなくなると、
         #    最少催行に届かず開催できない（申込は残っているのに）
         d = _far_day()
         booking.add_booking('SP-A', d, 'A', 'a@example.com', '', 1, '')
-        booking.update_availability(self.inst['鍵'], [], [])
+        booking.update_availability(self.inst['鍵'], {})
         r, _ = booking.add_booking('SP-A', d, 'B', 'b@example.com', '', 1, '')
         self.assertEqual(r['_合計人数'], 2)
 
@@ -191,8 +207,8 @@ class Test講師の都合(unittest.TestCase):
         self.assertEqual(info['状態'], '予約締切')
         self.assertEqual(info['残り'], 0)
 
-    def test_曜日を1つも選ばなければ公開されない(self):
-        booking.update_availability(self.inst['鍵'], [], [])
+    def test_日を1つも選ばなければ公開されない(self):
+        booking.update_availability(self.inst['鍵'], {})
         states = {d['状態'] for d in booking.open_days('SP-A')}
         self.assertNotIn('予約可', states)
 
@@ -201,7 +217,7 @@ class Test申込(unittest.TestCase):
     def setUp(self):
         _clear()
         i, _ = booking.register_instructor('山田', 'y@example.com', '', ['SP-A'],
-                                          '', _weekly_all_days())
+                                          '', _days_all())
         booking.set_state(i['id'], '承認')
         self.inst = i
 
@@ -253,7 +269,7 @@ class Test画面(unittest.TestCase):
         app.logger.disabled = True
         self.c = app.test_client()
         self.inst, _ = booking.register_instructor(
-            '山田 太郎', 'y@example.com', '', ['SP-A'], '', _weekly_all_days())
+            '山田 太郎', 'y@example.com', '', ['SP-A'], '', _days_all())
 
     def test_講師の登録画面が開く(self):
         r = self.c.get('/instructor/register')
@@ -337,7 +353,7 @@ class Test申込のAPI(unittest.TestCase):
         app.logger.disabled = True
         self.c = app.test_client()
         i, _ = booking.register_instructor('山田', 'y@example.com', '', ['SP-A'],
-                                          '', _weekly_all_days())
+                                          '', _days_all())
         booking.set_state(i['id'], '承認')
         antispam._RECENT.clear()
 
@@ -410,7 +426,7 @@ class Test予約への導線(unittest.TestCase):
 
     def _approve(self, courses=('SP-A',)):
         i, _ = booking.register_instructor(
-            '山田', 'y@example.com', '', list(courses), '', _weekly_all_days())
+            '山田', 'y@example.com', '', list(courses), '', _days_all())
         booking.set_state(i['id'], '承認')
         return i
 
@@ -479,7 +495,7 @@ class Test外向きURL(unittest.TestCase):
         app.logger.disabled = True
         self.c = app.test_client()
         self.inst, _ = booking.register_instructor(
-            '山田', 'y@example.com', '', ['SP-A'], '', _weekly_all_days())
+            '山田', 'y@example.com', '', ['SP-A'], '', _days_all())
 
     def _hdr(self):
         return {'X-Admin-Token': 'test-admin',
@@ -499,22 +515,26 @@ class Test外向きURL(unittest.TestCase):
         self.assertNotIn('http://www.jgaia.org/instructor/', body)
 
 
-class Test講義できる時間帯(unittest.TestCase):
-    """曜日だけで予定を聞くのは乱暴、という指摘（2026-08-11 社長）への対応。
+class Test講義できる日時(unittest.TestCase):
+    """予定は「日付ごとの枠」だけが正（2026-08-11 社長ご指摘）。
+
+    ご指摘は2段階だった:
+      ・曜日×1つの時間帯では、週ごとの変動も1日2枠も表せない
+      ・そもそも曜日で登録させるのが面倒＝日付で選ばせればいい
 
     固定している事故の型:
       ① 夜間コース（水19:00〜21:30）に、昼しか登録していない講師が割り当たる
          ＝登録させた時間帯を判定に1か所も使っていなかった
-      ② 同じ曜日に朝と夜の2枠を登録できない
-      ③ 「この週だけ時間が違う」を表現できない
+      ② 予定の正が2つ（曜日の決まり／日付の例外）になり、答えが割れる
+      ③ 予約が入った日を、あとから閉じたり時間をずらしたりできてしまう
     """
 
     def setUp(self):
         _clear()
 
-    def _reg(self, weekly, courses=('SP-A',)):
+    def _reg(self, days, courses=('SP-A',)):
         i, t = booking.register_instructor('山田', 'y@example.com', '',
-                                           list(courses), '', weekly)
+                                           list(courses), '', days)
         booking.set_state(i['id'], '承認')
         return booking.find_instructor(t), t
 
@@ -530,7 +550,7 @@ class Test講義できる時間帯(unittest.TestCase):
 
     # ── ① 時間帯を実際に使う
     def test_昼しか登録していない講師に夜間コースを割り当てない(self):
-        self._reg(_weekly_all_days(), ['SP-C'])          # 10:00〜17:00
+        self._reg(_days_all(), ['SP-C'])                 # 10:00〜17:00
         self.assertNotIn('予約可', set(self._states('SP-C').values()))
         # 申込そのものも通さない（画面だけ塞いでAPIが空いている状態にしない）
         with self.assertRaises(ValueError):
@@ -538,141 +558,186 @@ class Test講義できる時間帯(unittest.TestCase):
                                 '', 1, '')
 
     def test_夜の枠を足せば夜間コースを受けられる(self):
-        weekly = _weekly_all_days() + [{'曜日': i, '開始': '19:00', '終了': '22:00'}
-                                       for i in range(7)]
-        self._reg(weekly, ['SP-C'])
+        days = _days_all()
+        for k in days:
+            days[k] = days[k] + [{'開始': '19:00', '終了': '22:00'}]
+        self._reg(days, ['SP-C'])
         self.assertIn('予約可', set(self._states('SP-C').values()))
 
     def test_開催時間ぴったりの枠は担当できる(self):
         # 19:00〜21:30 に対し 19:00〜21:30。境界を「含まない」と読まないこと
-        self._reg([{'曜日': i, '開始': '19:00', '終了': '21:30'} for i in range(7)],
-                  ['SP-C'])
+        self._reg(_days_all('19:00', '21:30'), ['SP-C'])
         self.assertIn('予約可', set(self._states('SP-C').values()))
 
-    # ── ② 同じ曜日に複数の枠
-    def test_同じ曜日に朝と夜の2枠を登録できる(self):
-        inst, _ = self._reg([{'曜日': 5, '開始': '10:00', '終了': '13:00'},
-                             {'曜日': 5, '開始': '18:00', '終了': '21:00'}])
-        d = date.today() + timedelta(days=30)
-        while d.weekday() != 5:
-            d += timedelta(days=1)
-        self.assertEqual(booking.slots_on(inst, d),
+    # ── 日付ごとに違う時間・1日に複数の枠
+    def test_1日に朝と夜の2枠を持てる(self):
+        day = _far_day()
+        inst, _ = self._reg({day: [{'開始': '10:00', '終了': '13:00'},
+                                   {'開始': '18:00', '終了': '21:00'}]})
+        self.assertEqual(booking.slots_on(inst, date.fromisoformat(day)),
                          [{'開始': '10:00', '終了': '13:00'},
                           {'開始': '18:00', '終了': '21:00'}])
 
-    # ── ③ その週だけ時間が違う
-    def test_その日だけの枠は毎週の設定より優先される(self):
-        inst, token = self._reg(_weekly_all_days())
+    def test_同じ曜日でも日によって時間を変えられる(self):
+        a, b = _far_day(30), _far_day(37)      # 同じ曜日の別の週
+        self.assertEqual(date.fromisoformat(a).weekday(),
+                         date.fromisoformat(b).weekday())
+        inst, _ = self._reg({a: [{'開始': '10:00', '終了': '17:00'}],
+                             b: [{'開始': '19:00', '終了': '22:00'}]},
+                            ['SP-A'])
+        st = self._states('SP-A')
+        self.assertEqual(st[a], '予約可')       # 昼のコースを受けられる
+        self.assertEqual(st[b], '予約締切')     # 同じ曜日でも夜だけなので受けない
+
+    def test_選んでいない日は講義しない日になる(self):
         day = _far_day()
-        booking.update_availability(token, _weekly_all_days(), [],
-                                    {day: [{'開始': '19:00', '終了': '22:00'}]})
-        inst = booking.find_instructor(token)
-        self.assertEqual(booking.slots_on(inst, date.fromisoformat(day)),
-                         [{'開始': '19:00', '終了': '22:00'}])
-        # 昼のコースは、その日だけ受けられなくなる（時間が合わないため）
-        self.assertEqual(self._states('SP-A')[day], '予約締切')
+        inst, _ = self._reg({day: [{'開始': '10:00', '終了': '17:00'}]})
+        st = self._states('SP-A')
+        self.assertEqual(st[day], '予約可')
+        self.assertEqual(st[_far_day(31)], '予約締切')
 
-    def test_曜日を登録していない日でもその日だけ講義できる(self):
-        inst, token = self._reg([{'曜日': 5, '開始': '10:00', '終了': '17:00'}])
-        day = date.today() + timedelta(days=30)
-        while day.weekday() == 5:
-            day += timedelta(days=1)
-        iso = day.isoformat()
-        booking.update_availability(
-            token, [{'曜日': 5, '開始': '10:00', '終了': '17:00'}], [],
-            {iso: [{'開始': '10:00', '終了': '17:00'}]})
-        self.assertEqual(self._states('SP-A')[iso], '予約可')
+    # ── ② 正を2つ持たない
+    def test_保存すると曜日の決まりは台帳から消える(self):
+        # ⛔ 旧欄を残すと「予定の正がどれか」が2つになる
+        i, token = booking.register_instructor('山田', 'y@example.com', '',
+                                               ['SP-A'], '')
+        rows = booking.instructors()
+        rows[0]['毎週の可能時間'] = _weekly_all_days()
+        rows[0]['不可の日'] = [_far_day()]
+        rows[0]['日別の可能時間'] = {_far_day(40): [{'開始': '19:00', '終了': '22:00'}]}
+        del rows[0]['講義できる日時']
+        booking._save('instructors.json', rows)
+        r = booking.update_availability(token, _days_all())
+        for old in ('毎週の可能時間', '不可の日', '日別の可能時間'):
+            self.assertNotIn(old, r)
+        self.assertTrue(r['講義できる日時'])
 
-    def test_その日だけの枠と不可の日を同居させない(self):
-        inst, token = self._reg(_weekly_all_days())
-        day = _far_day()
-        # 同じ日を「不可」と「この日だけの枠」の両方で送っても、答えは1つに決まる
-        r = booking.update_availability(token, _weekly_all_days(), [day],
-                                        {day: [{'開始': '19:00', '終了': '22:00'}]})
-        self.assertNotIn(day, r['不可の日'])
-        self.assertIn(day, r['日別の可能時間'])
-
-    def test_予約が入っている日はその日だけの枠を受け付けない(self):
-        inst, token = self._reg(_weekly_all_days())
+    # ── ③ 約束した日は動かせない
+    def test_予約が入っている日は時間も変えられない(self):
+        inst, token = self._reg(_days_all())
         day = _far_day()
         booking.add_booking('SP-A', day, '鈴木', 's@example.com', '', 1, '')
-        r = booking.update_availability(token, _weekly_all_days(), [],
-                                        {day: [{'開始': '19:00', '終了': '22:00'}]})
+        days = _days_all()
+        days[day] = [{'開始': '19:00', '終了': '22:00'}]
+        r = booking.update_availability(token, days)
         # ⛔ 受講者に案内済みの開始時刻を後からずらせないこと
-        self.assertNotIn(day, r['日別の可能時間'])
-
-    def test_予約が入った日は時間が合わなくても2人目を受けられる(self):
-        # 既存ルールの維持（1人目が入った日を閉じられると最少催行に届かない）
-        inst, token = self._reg(_weekly_all_days())
-        day = _far_day()
-        booking.add_booking('SP-A', day, '鈴木', 's@example.com', '', 1, '')
-        booking.update_availability(token, [{'曜日': 5, '開始': '19:00',
-                                             '終了': '22:00'}], [], {})
-        self.assertEqual(self._states('SP-A')[day], '予約可')
+        self.assertEqual(r['講義できる日時'][day],
+                         [{'開始': '10:00', '終了': '17:00'}])
 
     # ── 保存できない値を通さない
     def test_終了が開始より前の枠は保存しない(self):
-        inst, token = self._reg(_weekly_all_days())
-        r = booking.update_availability(
-            token, [{'曜日': 5, '開始': '18:00', '終了': '09:00'},
-                    {'曜日': 5, '開始': '10:00', '終了': '17:00'}], [], {})
-        self.assertEqual(r['毎週の可能時間'],
-                         [{'曜日': 5, '開始': '10:00', '終了': '17:00'}])
+        inst, token = self._reg(_days_all())
+        day = _far_day()
+        r = booking.update_availability(token, {
+            day: [{'開始': '18:00', '終了': '09:00'},
+                  {'開始': '10:00', '終了': '17:00'}]})
+        self.assertEqual(r['講義できる日時'][day],
+                         [{'開始': '10:00', '終了': '17:00'}])
 
-    def test_空の日別枠は保存しない(self):
-        # 日を閉じる手段は『不可の日』1つに寄せる（同じ意味を2通りで書けない）
-        inst, token = self._reg(_weekly_all_days())
-        r = booking.update_availability(token, _weekly_all_days(), [],
-                                        {_far_day(): []})
-        self.assertEqual(r['日別の可能時間'], {})
+    def test_まったく同じ枠は1本に畳む(self):
+        # ⛔ 講師には「押した回数だけ増える」壊れ方に見える（2026-08-11 実機で発生）
+        inst, token = self._reg(_days_all())
+        day = _far_day()
+        r = booking.update_availability(token, {
+            day: [{'開始': '18:00', '終了': '21:00'},
+                  {'開始': '18:00', '終了': '21:00'},
+                  {'開始': '10:00', '終了': '13:00'}]})
+        self.assertEqual(r['講義できる日時'][day],
+                         [{'開始': '10:00', '終了': '13:00'},
+                          {'開始': '18:00', '終了': '21:00'}])
 
-    # ── 後方互換
-    def test_日別の欄がない古い登録でもこれまでどおり動く(self):
-        inst, _ = self._reg(_weekly_all_days())
+    def test_空の枠しかない日は保存しない(self):
+        # 日を閉じる＝その日付を持たないこと（同じ意味を2通りで書けないように）
+        inst, token = self._reg(_days_all())
+        r = booking.update_availability(token, {_far_day(): []})
+        self.assertEqual(r['講義できる日時'], {})
+
+    def test_日付として読めない鍵は捨てる(self):
+        inst, token = self._reg(_days_all())
+        r = booking.update_availability(token, {'いつか': [{'開始': '10:00',
+                                                           '終了': '17:00'}]})
+        self.assertEqual(r['講義できる日時'], {})
+
+    # ── 移行（2026-08-11 より前に登録された講師）
+    def test_旧式の曜日登録でもこれまでどおり予約できる(self):
+        i, token = booking.register_instructor('山田', 'y@example.com', '',
+                                               ['SP-A'], '')
+        booking.set_state(i['id'], '承認')
         rows = booking.instructors()
-        for r in rows:
-            r.pop('日別の可能時間', None)
+        rows[0]['毎週の可能時間'] = _weekly_all_days()
+        rows[0]['不可の日'] = []
+        del rows[0]['講義できる日時']          # 旧式のレコードを再現する
         booking._save('instructors.json', rows)
         self.assertIn('予約可', set(self._states('SP-A').values()))
 
+    def test_旧式の予定を日付に展開して見せられる(self):
+        i, token = booking.register_instructor('山田', 'y@example.com', '',
+                                               ['SP-A'], '')
+        rows = booking.instructors()
+        rows[0]['毎週の可能時間'] = [{'曜日': 5, '開始': '10:00', '終了': '17:00'}]
+        rows[0]['不可の日'] = []
+        del rows[0]['講義できる日時']
+        booking._save('instructors.json', rows)
+        inst = booking.find_instructor(token)
+        start = date.today()
+        got = booking.materialize(inst, start, start + timedelta(days=20))
+        self.assertTrue(got)
+        self.assertTrue(all(date.fromisoformat(k).weekday() == 5 for k in got))
+        # ⛔ 見せるだけ。台帳は書き換わらない（本人が保存したときに移る）
+        self.assertIsNone(booking.instructors()[0].get('講義できる日時'))
 
-class Test予定の登録画面(unittest.TestCase):
+    def test_登録されている予定の最終日を出せる(self):
+        inst, _ = self._reg({_far_day(20): [{'開始': '10:00', '終了': '17:00'}],
+                             _far_day(50): [{'開始': '10:00', '終了': '17:00'}]})
+        self.assertEqual(booking.availability_end(inst), _far_day(50))
+
+
+class Test予定の画面(unittest.TestCase):
     def setUp(self):
         _clear()
         app.logger.disabled = True
         self.c = app.test_client()
 
-    def test_登録フォームで1つの曜日に複数の時間帯を送れる(self):
+    def test_登録フォームは予定を聞かない(self):
+        # ⛔ 曜日の欄を戻さないこと（日付はカレンダー画面で選ぶ）
+        html = self.c.get('/instructor/register').get_data(as_text=True)
+        self.assertNotIn('name="wd0"', html)
+        self.assertNotIn('毎週、講義できる曜日と時間', html)
+        self.assertIn('カレンダー', html)
+
+    def test_予定を出さずに登録できて予定画面に進める(self):
         antispam._RECENT.clear()
         r = self.c.post('/instructor/register', data={
             'name': '佐藤', 'email': 's@example.com', 'courses': ['SP-A'],
-            'wd5': '1', 'from5': '10:00', 'to5': '13:00',
-            'from5_2': '18:00', 'to5_2': '21:00',
             'note': '', antispam.HONEYPOT_FIELD: '',
             'ts': antispam.issue_token(now=time.time() - 6)})
         self.assertEqual(r.status_code, 200)
-        self.assertEqual(booking.instructors()[-1]['毎週の可能時間'],
-                         [{'曜日': 5, '開始': '10:00', '終了': '13:00'},
-                          {'曜日': 5, '開始': '18:00', '終了': '21:00'}])
+        rec = booking.instructors()[-1]
+        self.assertEqual(rec['講義できる日時'], {})
+        self.assertIn('/instructor/schedule/' + rec['鍵'],
+                      r.get_data(as_text=True))
 
-    def test_APIで日別の枠を保存できる(self):
-        i, token = booking.register_instructor(
-            '山田', 'y@example.com', '', ['SP-A'], '', _weekly_all_days())
+    def test_APIで日付ごとの予定を保存できる(self):
+        i, token = booking.register_instructor('山田', 'y@example.com', '',
+                                               ['SP-A'], '')
         day = _far_day()
         r = self.c.post('/api/instructor/schedule', json={
-            'token': token, 'weekly': _weekly_all_days(), 'blocked': [],
-            'daily': {day: [{'開始': '19:00', '終了': '22:00'}]}})
+            'token': token,
+            'days': {day: [{'開始': '10:00', '終了': '13:00'},
+                           {'開始': '18:00', '終了': '21:00'}]}})
         self.assertEqual(r.status_code, 200)
         # ⛔ 送った内容ではなく保存された内容を返すこと（画面がそれを写す）
-        self.assertEqual(r.get_json()['日別の可能時間'],
-                         {day: [{'開始': '19:00', '終了': '22:00'}]})
+        self.assertEqual(r.get_json()['days'][day],
+                         [{'開始': '10:00', '終了': '13:00'},
+                          {'開始': '18:00', '終了': '21:00'}])
 
-    def test_予定画面にコースの開催時間を出す(self):
-        i, token = booking.register_instructor(
-            '山田', 'y@example.com', '', ['SP-C'], '', _weekly_all_days())
+    def test_予定画面にカレンダーとコースの開催時間を出す(self):
+        i, token = booking.register_instructor('山田', 'y@example.com', '',
+                                               ['SP-C'], '')
         body = self.c.get('/instructor/schedule/' + token).get_data(as_text=True)
+        self.assertIn('講義できる日を選ぶ', body)
         self.assertIn('19:00', body)          # 夜間コースの開催時間
-        self.assertIn('この日だけ時間を変える', body)
+        self.assertNotIn('毎週の可能時間', body)
 
 
 if __name__ == '__main__':

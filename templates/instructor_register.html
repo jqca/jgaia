@@ -53,17 +53,7 @@
                  padding:14px; font-size:14px; }
 .ir-err { background:#fef2f2; border:1px solid #fecaca; color:#991b1b;
           border-radius:8px; padding:13px 16px; font-size:14px; margin-top:16px; }
-.wd-block { border-bottom:1px solid #f1f5f9; }
-.wd-block:last-of-type { border-bottom:none; }
-.wd-block .wd-row { border-bottom:none; }
-.wd-add, .wd-del { font-size:12px; font-weight:700; padding:7px 11px; border-radius:999px;
-                   border:1px solid #cbd5e1; background:#fff; color:#0d1b3e; cursor:pointer; }
-.wd-add:hover, .wd-del:hover { background:#f1f5f9; }
-.wd-extra .wd-row { padding-left:96px; border-bottom:none; }
-/* ⛔ 幅を詰めすぎないこと。「月曜」が2行に割れる（予定カレンダー側で実測） */
-@media (max-width:560px){ .wd-name{width:72px;white-space:nowrap;}
-                          .cs{grid-template-columns:1fr;}
-                          .wd-extra .wd-row{padding-left:0;} }
+@media (max-width:560px){ .cs{grid-template-columns:1fr;} }
 </style>
 {% endblock %}
 
@@ -80,9 +70,10 @@
     </p>
     {% if token %}
       <p style="margin-top:18px;font-weight:700;color:#065f46;">
-        講義できる日は、下のリンクからいつでも変更できます。<br>
+        続けて、<strong>講義できる日をカレンダーからお選びください</strong>（日付を押すだけです）。<br>
         <span style="font-weight:400;font-size:13px;">
-          このリンクはあなた専用です。メールでもお送りします。
+          このリンクはあなた専用です。あとからいつでも変更できます。
+          ブラウザのお気に入りに入れておいてください。
         </span>
       </p>
       <a class="link" href="{{ url_for('instructor_schedule', token=token) }}">
@@ -130,40 +121,11 @@
     </div>
 
     <div class="ir-card">
-      <h2>毎週、講義できる曜日と時間</h2>
+      <h2>講義できる日</h2>
       <div class="hint">
-        チェックした曜日が「講義できる日」になります。<br>
-        <strong>1つの曜日に、朝と夜のように複数の時間帯を登録できます</strong>（「＋ 時間帯を追加」）。<br>
-        <strong>「この週だけ時間が違う」「この日は夜だけ」</strong>といった日ごとの調整は、
-        登録後にお送りするカレンダー画面で日付ごとに指定できます。
-      </div>
-      {% for i in range(7) %}
-        <div class="wd-block" data-wd="{{ i }}">
-          <div class="wd-row">
-            <label class="wd-name">
-              <input type="checkbox" name="wd{{ i }}" value="1"
-                     {% if i in (5, 6) %}checked{% endif %}>
-              {{ weekdays[i] }}曜
-            </label>
-            <select name="from{{ i }}">
-              {% for h in range(7, 22) %}
-                <option value="{{ '%02d:00' % h }}" {% if h == 10 %}selected{% endif %}>{{ '%02d:00' % h }}</option>
-              {% endfor %}
-            </select>
-            <span class="to">〜</span>
-            <select name="to{{ i }}">
-              {% for h in range(8, 23) %}
-                <option value="{{ '%02d:00' % h }}" {% if h == 17 %}selected{% endif %}>{{ '%02d:00' % h }}</option>
-              {% endfor %}
-            </select>
-            <button type="button" class="wd-add">＋ 時間帯を追加</button>
-          </div>
-          <div class="wd-extra"></div>
-        </div>
-      {% endfor %}
-      <div class="hint" style="margin:12px 0 0;">
-        例：土曜に「10:00〜13:00」と「18:00〜21:00」を登録すると、
-        昼のコースと夜のコースのどちらもお受けいただけます。
+        <strong>ここでは伺いません。</strong>ご登録のあと、あなた専用のカレンダー画面をお出しします。
+        そこで<strong>日付を押すだけ</strong>で登録でき、1日に朝と夜のような複数の時間帯も入れられます。
+        いつでも変更できます（すでに予約が入った日を除く）。
       </div>
     </div>
 
@@ -197,47 +159,6 @@
       取引条件を書面またはメールでお示しします。
     </div>
   </form>
-
-  <script>
-  (function () {
-    // 1つの曜日に時間帯を足す。2本目以降は from{i}_2 / to{i}_2 … として送る。
-    // ⛔ 追加した枠を消せるようにすること（押し間違いを直せないと、
-    //    保存できない枠を抱えたまま送信することになる）
-    function opts(from, to, sel) {
-      var s = '';
-      for (var h = from; h <= to; h++) {
-        var t = ('0' + h).slice(-2) + ':00';
-        s += '<option value="' + t + '"' + (t === sel ? ' selected' : '') + '>' + t + '</option>';
-      }
-      return s;
-    }
-    document.addEventListener('click', function (e) {
-      var add = e.target.closest ? e.target.closest('.wd-add') : null;
-      if (add) {
-        var block = add.closest('.wd-block');
-        var i = block.dataset.wd;
-        var box = block.querySelector('.wd-extra');
-        // ⛔ 「いま何本あるか」で番号を決めないこと。足す→消す→足す で
-        //    同じ name が2つでき、片方が黙って捨てられる（先頭しか読まれない）
-        var n = (parseInt(block.dataset.seq || '1', 10)) + 1;
-        block.dataset.seq = n;
-        var row = document.createElement('div');
-        row.className = 'wd-row';
-        row.innerHTML =
-          '<select name="from' + i + '_' + n + '">' + opts(7, 21, '18:00') + '</select>' +
-          '<span class="to">〜</span>' +
-          '<select name="to' + i + '_' + n + '">' + opts(8, 22, '21:00') + '</select>' +
-          '<button type="button" class="wd-del">✕ この枠を消す</button>';
-        box.appendChild(row);
-        // 枠を足した曜日は「講義できる曜日」として扱う（チェックの入れ忘れ防止）
-        block.querySelector('input[type="checkbox"]').checked = true;
-        return;
-      }
-      var del = e.target.closest ? e.target.closest('.wd-del') : null;
-      if (del) { del.closest('.wd-row').remove(); }
-    });
-  })();
-  </script>
 
 {% endif %}
 </div>
