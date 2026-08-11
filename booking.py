@@ -21,6 +21,7 @@
 """
 import json
 import os
+import re
 import secrets
 import threading
 from datetime import date, datetime, timedelta, timezone
@@ -145,7 +146,10 @@ def register_instructor(name, email, org, courses, note, weekly):
         '対応コース': courses,
         '備考': note,
         '状態': '申請中',                   # 申請中 / 承認 / 見送り
-        '毎週の可能時間': weekly,           # [{'曜日':5,'開始':'10:00','終了':'17:00'}]
+        # 同じ曜日を何本でも持てる（朝と夜を別々に登録できる）
+        '毎週の可能時間': normalize_weekly(weekly),
+        # その週だけ時間が違う日はここで差し替える {'2026-09-05':[{'開始','終了'}]}
+        '日別の可能時間': {},
         '不可の日': [],                     # ['2026-09-03', ...]
         '登録日時': now_jst().strftime('%Y-%m-%d %H:%M'),
     }
@@ -172,20 +176,28 @@ def set_state(instructor_id, state):
     return hit
 
 
-def update_availability(token, weekly, blocked):
+def update_availability(token, weekly, blocked, daily=None):
     """講師本人が自分の予定を書き換える。
 
     ⛔ すでに受講者の申込が入っている日は閉じられない。約束した日を
        あとから一方的に消せると、受講料をいただいた講座が無人になる。
        日程の変更が必要なときは運営（info@jgaia.org）が個別に調整する。
+    ⛔ 予約が入っている日は「その日だけ時間を変える」も受け付けない。
+       時間だけ後からずらせると、受講者に案内済みの開始時刻が変わる。
     """
     rows = instructors()
     hit = None
     for r in rows:
         if r.get('鍵') == token:
             booked = set(booked_days_for_instructor(r.get('id')))
-            r['毎週の可能時間'] = weekly
-            r['不可の日'] = sorted(set(blocked) - booked)
+            r['毎週の可能時間'] = normalize_weekly(weekly)
+            r['日別の可能時間'] = {k: v for k, v in
+                                   normalize_daily(daily).items()
+                                   if k not in booked}
+            # ⛔ 「不可の日」と「その日だけの時間」が同じ日に同居しないようにする。
+            #    両方に載っていると、どちらが正か画面と実装で答えが割れる。
+            r['不可の日'] = sorted(
+                set(blocked) - booked - set(r['日別の可能時間']))
             r['更新日時'] = now_jst().strftime('%Y-%m-%d %H:%M')
             hit = r
     if hit:
@@ -193,25 +205,118 @@ def update_availability(token, weekly, blocked):
     return hit
 
 
-# ────────────────────────────── 予約できる日
-def _weekly_days(inst):
-    return {int(w.get('曜日')) for w in (inst.get('毎週の可能時間') or [])
-            if str(w.get('曜日')).isdigit()}
+# ────────────────────────────── 講義できる時間帯
+def _hhmm(v):
+    """'9:00' → '09:00'。時刻として読めなければ None"""
+    m = re.match(r'^\s*(\d{1,2}):(\d{2})\s*$', str(v or ''))
+    if not m or int(m.group(1)) > 23 or int(m.group(2)) > 59:
+        return None
+    return '%02d:%s' % (int(m.group(1)), m.group(2))
+
+
+def normalize_slots(slots):
+    """時間帯の並びを整える。読めないもの・開始≧終了は落とす。
+
+    ⛔ 落としたものを黙って0件にしないのは呼び出し側の仕事。
+       ここは「そのまま保存すると壊れる値」を通さないためだけにある。
+    """
+    out = []
+    for s in (slots or []):
+        a, b = _hhmm(s.get('開始')), _hhmm(s.get('終了'))
+        if a and b and a < b:
+            out.append({'開始': a, '終了': b})
+    return sorted(out, key=lambda s: (s['開始'], s['終了']))
+
+
+def normalize_weekly(weekly):
+    """毎週の枠。同じ曜日に何本あってもよい（朝と夜など）。"""
+    out = []
+    for w in (weekly or []):
+        if not str(w.get('曜日')).isdigit() or not 0 <= int(w['曜日']) <= 6:
+            continue
+        for s in normalize_slots([w]):
+            out.append({'曜日': int(w['曜日']), **s})
+    return sorted(out, key=lambda w: (w['曜日'], w['開始'], w['終了']))
+
+
+def normalize_daily(daily):
+    """特定の日だけ差し替える枠。{'2026-09-05': [{'開始','終了'}]}
+
+    ⛔ 空の枠は保存しない。日を閉じる手段は『不可の日』1つに寄せる
+       （同じ意味を2通りで書けると、画面と実装で答えが割れる）。
+    """
+    out = {}
+    for k, v in (daily or {}).items():
+        try:
+            date.fromisoformat(str(k))
+        except ValueError:
+            continue
+        slots = normalize_slots(v)
+        if slots:
+            out[str(k)] = slots
+    return dict(sorted(out.items()))
+
+
+def slots_on(inst, d):
+    """その講師がその日に講義できる時間帯。空リスト＝その日は不可。
+
+    優先順位: ①その日だけの枠 → ②不可の日 → ③曜日の枠
+    ⛔ ②を①より先に見ないこと。「その日だけ夜にする」と登録したのに
+       曜日を外していると不可になり、登録した意味が消える。
+    """
+    iso = d.isoformat()
+    special = (inst.get('日別の可能時間') or {}).get(iso)
+    if special:
+        return normalize_slots(special)
+    if iso in (inst.get('不可の日') or []):
+        return []
+    return [{'開始': w['開始'], '終了': w['終了']}
+            for w in normalize_weekly(inst.get('毎週の可能時間'))
+            if int(w['曜日']) == d.weekday()]
+
+
+def course_hours(course_code):
+    """コースの開催時間 → ('10:00','17:00')。読めなければ None
+
+    ⛔ 時刻を別表に書き写さないこと。COURSES の hours が唯一の出どころで、
+       掲載ページと同じ値（ここがズレると案内と実運用が食い違う）。
+    """
+    c = COURSE_BY_CODE.get(course_code) or {}
+    m = re.search(r'(\d{1,2}:\d{2})\s*[〜~ー－-]\s*(\d{1,2}:\d{2})',
+                  str(c.get('hours') or ''))
+    if not m:
+        return None
+    a, b = _hhmm(m.group(1)), _hhmm(m.group(2))
+    return (a, b) if a and b and a < b else None
 
 
 def instructor_free_on(inst, d, booked=None):
-    """その講師がその日に講義できるか。
+    """その講師がその日に講義できるか（コースを問わない）。
 
     booked にその講師の予約済みの日を渡すと、その日は「空いている」扱いにする。
     ⛔ ここを落とすと、1人目の申込が入った日を講師が週の設定から外した瞬間に
        2人目が申し込めなくなり、最少催行に届かず開催できない（申込は残る）。
     """
-    iso = d.isoformat()
-    if booked and iso in booked:
+    if booked and d.isoformat() in booked:
         return True
-    if iso in (inst.get('不可の日') or []):
-        return False
-    return d.weekday() in _weekly_days(inst)
+    return bool(slots_on(inst, d))
+
+
+def instructor_can_teach(inst, d, course_code, booked=None):
+    """その講師が『そのコースを』その日に担当できるか。
+
+    ⛔ 曜日だけで判定しないこと。夜間コース（水 19:00〜21:30）に
+       10:00〜17:00 でしか登録していない講師が割り当たっていた
+       （2026-08-11 実測。時間帯は登録させておいて1か所も使っていなかった）。
+    """
+    if booked and d.isoformat() in booked:
+        return True
+    hours = course_hours(course_code)
+    slots = slots_on(inst, d)
+    if not hours:
+        # 開催時間が読めないコースは、時間での足切りをしない（曜日どおり）
+        return bool(slots)
+    return any(s['開始'] <= hours[0] and s['終了'] >= hours[1] for s in slots)
 
 
 def open_days(course_code, months=3):
@@ -244,7 +349,8 @@ def open_days(course_code, months=3):
             state, who = '準備期間', []
         else:
             who = [i for i in people
-                   if instructor_free_on(i, d, booked.get(i['id']))]
+                   if instructor_can_teach(i, d, course_code,
+                                           booked.get(i['id']))]
             state = '予約可' if who else '予約締切'
             # ⛔ 定員に達した日を「予約可」のまま出さないこと。押してから
             #    「残り0名です」と断ることになり、選び直しの手間を増やす
@@ -268,7 +374,8 @@ def pick_instructor(course_code, d):
     # ⛔ 別の講師を割り当てると、同じ日・同じコースが二重開催になる
     people = [i for i in approved_instructors()
               if course_code in (i.get('対応コース') or [])
-              and instructor_free_on(i, d, booked_days_for_instructor(i['id']))]
+              and instructor_can_teach(i, d, course_code,
+                                       booked_days_for_instructor(i['id']))]
     same_day = {b.get('担当講師id') for b in bookings_for(course_code, d.isoformat())}
     people.sort(key=lambda i: (i['id'] not in same_day, i.get('登録日時') or ''))
     return people[0] if people else None

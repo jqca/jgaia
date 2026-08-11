@@ -76,6 +76,12 @@
             {% for w in r['毎週の可能時間'] %}{{ weekdays[w['曜日']] }} {{ w['開始'] }}-{{ w['終了'] }}{% if not loop.last %} / {% endif %}{% endfor %}
           {% else %}未登録{% endif %}</div>
         <div><span class="k">都合の悪い日</span>{{ (r['不可の日'] or []) | length }}日</div>
+        {% if r['日別の可能時間'] %}
+          <div><span class="k">この日だけの時間</span>
+            {% for d, ss in (r['日別の可能時間'] or {}).items() %}
+              {{ d }} {% for s in ss %}{{ s['開始'] }}〜{{ s['終了'] }}{% if not loop.last %}、{% endif %}{% endfor %}{% if not loop.last %} / {% endif %}
+            {% endfor %}</div>
+        {% endif %}
         {# 謝礼の希望額は登録フォームから削除済み（2026-08-11）。
            削除前に申請された方の値だけを残して表示する。 #}
         {% if r['希望謝礼_円_日'] %}

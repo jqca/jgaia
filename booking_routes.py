@@ -24,6 +24,28 @@ import booking
 _TRIM = '﻿ \t\r\n'
 
 
+def _weekly_from_form(form):
+    """登録フォームの曜日×時間帯を読む。1つの曜日に複数の枠を書ける。
+
+    欄の名前: wd{i} / from{i} / to{i} が1本目、from{i}_2 / to{i}_2 が2本目…
+    （画面のJSが2本目以降を足す。JSが動かない環境でも1本目だけは必ず通る）
+    ⛔ 本数を決め打ちで2本までにしないこと。朝・昼・夜と分ける方がいる。
+    """
+    weekly = []
+    for i in range(7):
+        if not form.get(f'wd{i}'):
+            continue
+        pairs = [(form.get(f'from{i}'), form.get(f'to{i}'))]
+        for n in range(2, 13):
+            a, b = form.get(f'from{i}_{n}'), form.get(f'to{i}_{n}')
+            if a and b:
+                pairs.append((a, b))
+        for a, b in pairs:
+            weekly.append({'曜日': i, '開始': a or '10:00', '終了': b or '17:00'})
+    # ⛔ ここで正規化まで済ませない（保存側 register_instructor が唯一の関所）
+    return weekly
+
+
 def _admin_ok():
     expected = (os.environ.get('INQUIRY_ADMIN_TOKEN') or '').strip(_TRIM)
     if not expected:
@@ -59,13 +81,7 @@ def register_booking_routes(app):
                                    courses=booking.COURSES,
                                    weekdays=booking.WEEKDAYS)
 
-        # 毎週の可能時間（曜日ごとに開始・終了）
-        weekly = []
-        for i in range(7):
-            if request.form.get(f'wd{i}'):
-                weekly.append({'曜日': i,
-                               '開始': request.form.get(f'from{i}') or '10:00',
-                               '終了': request.form.get(f'to{i}') or '17:00'})
+        weekly = _weekly_from_form(request.form)
         rec, token = booking.register_instructor(
             name, email, (request.form.get('org') or '').strip(),
             request.form.getlist('courses'),
@@ -83,12 +99,19 @@ def register_booking_routes(app):
         inst = booking.find_instructor(token)
         if not inst:
             return 'この画面のリンクが正しくありません。運営にお問い合わせください。', 404
+        # 開催時間は COURSES の hours から解いて渡す（画面で書き写さない）
+        courses = []
+        for c in booking.COURSES:
+            h = booking.course_hours(c['code'])
+            courses.append(dict(c, 開始=h[0] if h else '', 終了=h[1] if h else ''))
         return render_template('instructor_schedule.html', inst=inst, token=token,
                                weekdays=booking.WEEKDAYS,
                                months=_month_grids(3),
                                lead_days=booking.LEAD_DAYS,
                                booked_days=booking.booked_days_for_instructor(inst['id']),
-                               courses=booking.COURSES)
+                               earliest=(booking.today_jst()
+                                         + timedelta(days=booking.LEAD_DAYS)).isoformat(),
+                               courses=courses)
 
     @app.route('/api/instructor/schedule', methods=['POST'])
     def api_instructor_schedule():
@@ -99,8 +122,13 @@ def register_booking_routes(app):
         weekly = [w for w in (data.get('weekly') or [])
                   if str(w.get('曜日')).isdigit()]
         blocked = [d for d in (data.get('blocked') or []) if _is_day(d)]
-        inst = booking.update_availability(token, weekly, blocked)
-        return {'ok': True, '更新日時': inst.get('更新日時')}
+        # その日だけ時間を変える枠 {'2026-09-05': [{'開始','終了'}]}
+        daily = {k: v for k, v in (data.get('daily') or {}).items()
+                 if _is_day(k) and isinstance(v, list)}
+        inst = booking.update_availability(token, weekly, blocked, daily)
+        return {'ok': True, '更新日時': inst.get('更新日時'),
+                '日別の可能時間': inst.get('日別の可能時間') or {},
+                '不可の日': inst.get('不可の日') or []}
 
     # ─────────────── 承認画面
     @app.route('/admin/instructors')
