@@ -98,20 +98,23 @@ def register_booking_routes(app):
         # 登録済みの日（旧い形で持っている方は、その内容を日付として見せる）
         # ⛔ ここで台帳を書き換えないこと。本人が1日ぶん保存したときに移る
         days = booking.registered_days(inst)
-        counts = {}
-        for cs in days.values():
-            for c in cs:
-                counts[c] = counts.get(c, 0) + 1
+        # ⛔ 「登録した日数」ではなく「開始日にできる日数」を出すこと。
+        #    3日間の講座を飛び飛びに3日登録しても、予約が入る日は0日
+        occ = booking.occupied_days(inst['id'])       # 台帳の読み直しは1回だけ
+        counts = {c['code']: len(booking.startable_days(
+                      inst, c['code'], occ=occ, reg=days))
+                  for c in booking.COURSES
+                  if c['code'] in (inst.get('対応コース') or [])}
         mine = [c for c in booking.COURSES
                 if c['code'] in (inst.get('対応コース') or [])]
         return render_template('instructor_schedule.html', inst=inst, token=token,
                                just_verified=bool(request.args.get('verified')),
                                saved=request.args.get('saved', ''),
-                               blockers=booking.publish_blockers(inst),
+                               blockers=booking.publish_blockers(inst, reg=days),
                                weekdays=booking.WEEKDAYS,
                                months=_month_grids(3),
                                days=days, counts=counts, courses=mine,
-                               teachable=booking.teachable_courses(inst),
+                               teachable=booking.teachable_courses(inst, reg=days),
                                lead_days=booking.LEAD_DAYS,
                                today=booking.today_jst().isoformat(),
                                booked_days=booking.booked_days_for_instructor(inst['id']),
@@ -136,9 +139,17 @@ def register_booking_routes(app):
         for c in booking.COURSES:
             if c['code'] not in (inst.get('対応コース') or []):
                 continue
+            n = booking.course_days(c['code'])
+            # 3日間の講座は、開始日として使うには続く日も選んでおく必要がある。
+            # ⛔ 選ばせておいて「なぜ予約が入らないのか」を黙らないこと
+            run = booking.course_dates(c['code'], iso) if n > 1 else []
+            missing = [x for x in run[1:]
+                       if c['code'] not in booking.day_courses(
+                           inst, date.fromisoformat(x))]
             mine.append(dict(
                 c, 選べる=booking.course_open_on(c['code'], day),
-                理由=booking.weekday_note(c['code'])))
+                理由=booking.weekday_note(c['code']),
+                日数=n, 日程=run, 続きが未登録=missing))
         chosen = [c for c in (request.form.getlist('courses')
                               if request.method == 'POST'
                               else booking.day_courses(inst, day))
@@ -180,9 +191,11 @@ def register_booking_routes(app):
                     'message': '管理用の合言葉が未設定のため無効です。'}, 503
         if not ok:
             return {'error': 'forbidden'}, 403
-        rows = [dict(r, 公開されない理由=booking.publish_blockers(r),
-                     登録済みの日=booking.registered_days(r))
-                for r in booking.instructors()]
+        rows = []
+        for r in booking.instructors():
+            reg = booking.registered_days(r)          # 1人1回だけ展開する
+            rows.append(dict(r, 公開されない理由=booking.publish_blockers(r, reg=reg),
+                             登録済みの日=reg))
         return render_template('admin_instructors.html', rows=rows,
                                token=request.args.get('token', ''),
                                weekdays=booking.WEEKDAYS,
@@ -206,13 +219,16 @@ def register_booking_routes(app):
         rows = []
         for r in booking.instructors():
             mine = [b for b in bookings if b.get('担当講師id') == r.get('id')]
+            # ⛔ 同じ要求の中で registered_days を何度も呼ばないこと
+            #    （旧形式は180日ぶんの展開が走る＝実測で4秒かかっていた）
+            reg = booking.registered_days(r)
             rows.append(dict(
                 r,
                 予約件数=len(mine),
                 予約人数=sum(int(b.get('人数') or 1) for b in mine),
-                公開されない理由=booking.publish_blockers(r),
-                担当できる講座=booking.teachable_courses(r),
-                登録済みの日=booking.registered_days(r),
+                公開されない理由=booking.publish_blockers(r, reg=reg),
+                担当できる講座=booking.teachable_courses(r, reg=reg),
+                登録済みの日=reg,
                 予定URL=url_for('instructor_schedule', token=r.get('鍵'),
                                 _external=True),
             ))
@@ -276,6 +292,7 @@ def register_booking_routes(app):
         days = {d['日付']: d for d in booking.open_days(code)}
         return render_template('course_book.html', c=course, days=days,
                                months=_month_grids(3),
+                               course_days=booking.course_days(code),
                                lead_days=booking.LEAD_DAYS,
                                cancel_policy=booking.CANCEL_POLICY,
                                pay_note=booking.PAY_NOTE,
@@ -453,9 +470,11 @@ def _notify_booking(app, rec, inst):
         from mail_targets import FROM_EMAIL, notify_payload
         resend.api_key = key
 
+        # ⛔ 3日間の講座に開始日だけを書かないこと（受講者は1日だと思って申し込む）
+        日程 = '・'.join(rec.get('開催日') or [rec['希望日']])
         body = '\n'.join([
             f"コース: {rec['コース']} {rec['コース名']}",
-            f"開催希望日: {rec['希望日']}",
+            f"開催希望日: {日程}",
             f"お名前: {rec['氏名']}",
             f"メール: {rec['連絡先']}",
             f"会社名: {rec['会社名']}" if rec['会社名'] else '',
@@ -474,7 +493,7 @@ def _notify_booking(app, rec, inst):
             f"{rec['氏名']} 様\n\n"
             f"お申し込みありがとうございます。以下の内容で承りました。\n\n"
             f"■ コース: {rec['コース']} {rec['コース名']}\n"
-            f"■ 開催希望日: {rec['希望日']}\n"
+            f"■ 開催希望日: {日程}\n"
             f"■ 人数: {rec['人数']}名\n"
             f"■ 受講料: {rec['受講料_円']:,}円（税込）\n\n"
             f"{booking.PAY_NOTE}\n\n"
@@ -499,7 +518,7 @@ def _notify_booking(app, rec, inst):
                 'subject': f"【JGAIA】{rec['希望日']} {rec['コース']} の担当のご依頼",
                 'text': (f"{inst['氏名']} 様\n\n"
                          f"下記の受講申込が入りました。ご担当をお願いできますでしょうか。\n\n"
-                         f"■ 日付: {rec['希望日']}\n"
+                         f"■ 日付: {日程}\n"
                          f"■ コース: {rec['コース']} {rec['コース名']}\n"
                          f"■ 現在の人数: {rec['_合計人数']}名"
                          f"（最少催行 {rec['_最少催行']}名）\n\n"

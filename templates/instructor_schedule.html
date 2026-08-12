@@ -187,9 +187,14 @@
         <li>
           <span class="cov-name">{{ c['code'] }} {{ c['name'] }}</span>
           <span class="cov-h">{{ c['hours'] }}</span>
-          {% if c['code'] in teachable %}
+          {# ⛔ 「登録した日数」を出さないこと。3日間の講座は、続けて選べて
+             いなければ受講者から1日も見えない（数字が実態と食い違う） #}
+          {% if counts.get(c['code'], 0) %}
             <span class="cov-badge ok">
-              {{ counts.get(c['code'], 0) }}日 登録済み</span>
+              予約が入る日 {{ counts[c['code']] }}日</span>
+          {% elif c['code'] in teachable %}
+            <span class="cov-badge no">
+              選んでいますが、予約が入る日がありません</span>
           {% else %}
             <span class="cov-badge no">まだ1日も選んでいません</span>
           {% endif %}

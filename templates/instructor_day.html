@@ -26,6 +26,7 @@
 .pick.off { background:#f8fafc; border-style:dashed; cursor:not-allowed; }
 .pick.off .nm, .pick.off .hr { color:#94a3b8; }
 .pick .note.ng { color:#64748b; }
+.pick .note.ok { color:#047857; }
 .dy-acts { display:flex; gap:10px; flex-wrap:wrap; margin-top:20px; }
 .dy-acts button, .dy-acts a { flex:1; min-width:150px; text-align:center;
   border-radius:8px; padding:15px 18px; font-size:16px; font-weight:800;
@@ -111,6 +112,18 @@
               <span class="note ng">
                 {{ c['理由'] }}。この日（{{ weekday }}曜）はお選びいただけません
               </span>
+            {% elif c['日数'] > 1 %}
+              {# ⛔ 「3日間」を hours の文字だけで伝えない。この日が開始日に
+                 なるには続く日も選んでおく必要がある、と具体的に出す #}
+              <span class="note {% if not c['続きが未登録'] %}ok{% endif %}">
+                {{ c['日数'] }}日間つづけて開催します（{{ c['日程'] | join('・') }}）。
+                {% if c['続きが未登録'] %}
+                  この日を開始日にするには {{ c['続きが未登録'] | join('・') }}
+                  にも同じ講座を登録してください（いまは開始日になりません）
+                {% else %}
+                  続く日も登録済みです。この日を開始日にできます
+                {% endif %}
+              </span>
             {% elif dup %}
               {# ⛔ 「重複＝禁止」と書かないこと。予約が入るのは1人だけで、
                  複数の講師が同じ日に登録していること自体は問題ではない #}
@@ -144,7 +157,14 @@
           <ul class="sum">
             {% for c in mine if c['code'] in chosen %}
               <li>{{ c['code'] }} {{ c['name'] }}
-                <span class="hr">開催時間：{{ c['hours'] }}</span></li>
+                <span class="hr">開催時間：{{ c['hours'] }}</span>
+                {% if c['日数'] > 1 %}
+                  <span class="hr">
+                    {{ c['日数'] }}日間：{{ c['日程'] | join('・') }}
+                    {%- if c['続きが未登録'] %}（{{ c['続きが未登録'] | join('・') }}
+                      が未登録のため、この日はまだ開始日になりません）{% endif %}
+                  </span>
+                {% endif %}</li>
             {% endfor %}
           </ul>
         {% else %}

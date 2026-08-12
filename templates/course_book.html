@@ -90,6 +90,11 @@
     <div class="hint">
       緑の日をお選びください。講師の都合により、日程は変わることがあります。<br>
       <strong>開催の{{ lead_days }}日以上前まで</strong>のお申し込みを承っています。
+      {% if course_days > 1 %}
+        {# ⛔ 3日間の講座で「1日だけ」と誤解させないこと #}
+        <br><strong>この講座は{{ course_days }}日間つづけて開催します。</strong>
+        お選びいただくのは<strong>初日</strong>で、翌日以降も続けてご参加いただきます。
+      {% endif %}
     </div>
 
     {% if open_count == 0 %}

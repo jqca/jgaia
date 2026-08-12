@@ -9,6 +9,7 @@
   ④ 選べる日が0件のページでスクリプトが落ちる／テンプレートが500になる
 """
 import os
+import re
 import sys
 import tempfile
 import time
@@ -716,6 +717,37 @@ class Test担当できる日(unittest.TestCase):
         self.assertEqual(
             booking.registered_days(booking.instructors()[0])[day], ['SP-A'])
 
+    def test_一覧と判定が同じ答えを返す(self):
+        # ⛔ registered_days（一覧・集計）と day_courses（予約の判定）は
+        #    同じ答えでなければならない。2026-08-12 の速度改善で片方だけが
+        #    旧形式『講義できる日時』を読み落とし、実際に割れた
+        base = date.today()
+        for 形 in ('日付×講座', '日付×時間帯', '曜日'):
+            _clear()
+            i, token = booking.register_instructor('山田', 'y@example.com', '',
+                                                   ['SP-A', 'SP-C'], '')
+            rows = booking.instructors()
+            if 形 == '日付×時間帯':
+                rows[0]['講義できる日時'] = {
+                    _far_day(k): [{'開始': '10:00', '終了': '17:00'}]
+                    for k in (20, 21, 30)}
+                del rows[0]['担当できる日']
+            elif 形 == '曜日':
+                rows[0]['毎週の可能時間'] = _weekly_all_days()
+                rows[0]['不可の日'] = [_far_day(25)]
+                del rows[0]['担当できる日']
+            else:
+                rows[0]['担当できる日'] = {_far_day(20): ['SP-A'],
+                                          _far_weekday(2): ['SP-C']}
+            booking._save('instructors.json', rows)
+            inst = booking.instructors()[0]
+            reg = booking.registered_days(inst)
+            for k in range(0, 45):
+                d = base + timedelta(days=k)
+                with self.subTest(形=形, 日=d.isoformat()):
+                    self.assertEqual(sorted(booking.day_courses(inst, d)),
+                                     sorted(reg.get(d.isoformat()) or []))
+
     def test_旧い曜日の登録でもこれまでどおり予約できる(self):
         i, token = booking.register_instructor('山田', 'y@example.com', '',
                                                ['SP-A'], '')
@@ -839,6 +871,147 @@ class Test開催できる曜日(unittest.TestCase):
                          {d['状態'] for d in booking.open_days('SP-C')})
         with self.assertRaises(ValueError):
             booking.add_booking('SP-C', thu, '鈴木', 's@example.com', '', 1, '')
+
+
+class Test連続する日数(unittest.TestCase):
+    """SP-B は3日間つづけて開催する（2026-08-12 実装）。
+
+    ⛔ それまで日数は hours の文章「10:00〜17:00 × 3日間」の中にしか無く、
+       1日ぶんの予定しか無い講師に割り当たり、2日目から講師がいなくなる
+       状態だった。曜日の制約と同じ型の穴。
+    """
+
+    def setUp(self):
+        _clear()
+        app.logger.disabled = True
+        self.c = app.test_client()
+        self.inst, self.token = booking.register_instructor(
+            '山田', 'y@example.com', '', ['SP-A', 'SP-B'], '')
+        booking.verify_email(self.token)
+        booking.set_state(self.inst['id'], '承認')
+
+    def _reg(self, *isos, code='SP-B'):
+        for iso in isos:
+            booking.set_day_courses(self.token, iso, [code])
+
+    def _state(self, code, iso):
+        return {d['日付']: d['状態'] for d in booking.open_days(code)}[iso]
+
+    def test_掲載の日数と設定が一致している(self):
+        # ⛔ hours の「× N日間」と days がズレたらここで落とす
+        for c in booking.COURSES:
+            m = re.search(r'×\s*(\d+)\s*日間', c['hours'])
+            with self.subTest(course=c['code']):
+                self.assertEqual(int(m.group(1)) if m else 1,
+                                 booking.course_days(c['code']))
+
+    def test_開催する日を並べられる(self):
+        self.assertEqual(booking.course_dates('SP-B', '2026-09-07'),
+                         ['2026-09-07', '2026-09-08', '2026-09-09'])
+        self.assertEqual(booking.course_dates('SP-A', '2026-09-07'),
+                         ['2026-09-07'])
+
+    def test_初日だけの登録では開始日にならない(self):
+        d0 = _far_day()
+        self._reg(d0)
+        # ⛔ 3日間の講座に1日ぶんの予定で割り当てないこと
+        self.assertEqual(self._state('SP-B', d0), '予約締切')
+        with self.assertRaises(ValueError):
+            booking.add_booking('SP-B', d0, '鈴木', 's@example.com', '', 1, '')
+
+    def test_3日つづけて登録すると開始日になる(self):
+        d0 = _far_day()
+        days = booking.course_dates('SP-B', d0)
+        self._reg(*days)
+        self.assertEqual(self._state('SP-B', d0), '予約可')
+        # 2日目・3日目は「その日から3日」が埋まらないので開始日にはならない
+        self.assertEqual(self._state('SP-B', days[1]), '予約締切')
+
+    def test_申込には実際の3日間が残る(self):
+        d0 = _far_day()
+        self._reg(*booking.course_dates('SP-B', d0))
+        rec, inst = booking.add_booking('SP-B', d0, '鈴木', 's@example.com',
+                                        '', 1, '')
+        self.assertEqual(rec['開催日'], booking.course_dates('SP-B', d0))
+
+    def test_予約が入ったら3日とも動かせない(self):
+        d0 = _far_day()
+        days = booking.course_dates('SP-B', d0)
+        self._reg(*days)
+        booking.add_booking('SP-B', d0, '鈴木', 's@example.com', '', 1, '')
+        # ⛔ 2日目・3日目を本人が消せてはいけない
+        self.assertEqual(booking.booked_days_for_instructor(self.inst['id']),
+                         days)
+        for iso in days:
+            saved, err = booking.set_day_courses(self.token, iso, [])
+            self.assertIsNone(saved, iso)
+            self.assertIn('予約が入っている', err)
+
+    def test_開催中の日に別の講座を割り当てない(self):
+        # ⛔ 3日間の2日目に、時間の重なる別の講座を入れないこと
+        d0 = _far_day()
+        days = booking.course_dates('SP-B', d0)
+        self._reg(*days)
+        booking.add_booking('SP-B', d0, '鈴木', 's@example.com', '', 1, '')
+        self._reg(days[1], code='SP-A')      # 2日目にSP-Aを足そうとしても
+        self.assertEqual(self._state('SP-A', days[1]), '予約締切')
+        with self.assertRaises(ValueError):
+            booking.add_booking('SP-A', days[1], '佐藤', 'x@example.com',
+                                '', 1, '')
+
+    def test_同じ回の2人目は受けられる(self):
+        # 既存のルール（最少催行に人を集める）を壊さないこと
+        d0 = _far_day()
+        self._reg(*booking.course_dates('SP-B', d0))
+        booking.add_booking('SP-B', d0, 'A', 'a@example.com', '', 1, '')
+        rec, _ = booking.add_booking('SP-B', d0, 'B', 'b@example.com', '', 1, '')
+        self.assertEqual(rec['_合計人数'], 2)
+
+    def test_日程が重なる別の回は受けない(self):
+        # 8/26開始の回が入っている講師に、8/27開始の回を割り当てない
+        d0 = _far_day()
+        days = booking.course_dates('SP-B', d0)
+        self._reg(*days, booking.course_dates('SP-B', days[1])[-1])
+        booking.add_booking('SP-B', d0, 'A', 'a@example.com', '', 1, '')
+        self.assertEqual(self._state('SP-B', days[1]), '予約締切')
+
+    def test_飛び飛びに3日選んでも公開されない旨を出す(self):
+        # ⛔ 「3日登録した」で安心させないこと。続いていなければ開始日は0日
+        d0 = date.fromisoformat(_far_day())
+        self._reg(*[(d0 + timedelta(days=k * 2)).isoformat() for k in range(3)])
+        inst = booking.find_instructor(self.token)
+        self.assertEqual(booking.startable_days(inst, 'SP-B'), [])
+        理由 = booking.publish_blockers(inst)
+        self.assertTrue(any('3日間つづけて開催します' in b for b in 理由), 理由)
+        body = self.c.get('/instructor/schedule/' + self.token).get_data(as_text=True)
+        self.assertIn('予約が入る日がありません', body)
+
+    def test_続けて選べば予約が入る日として数える(self):
+        d0 = _far_day()
+        self._reg(*booking.course_dates('SP-B', d0))
+        inst = booking.find_instructor(self.token)
+        self.assertEqual(booking.startable_days(inst, 'SP-B'), [d0])
+        self.assertEqual(booking.publish_blockers(inst), [])
+        body = self.c.get('/instructor/schedule/' + self.token).get_data(as_text=True)
+        self.assertIn('予約が入る日 1日', body)
+
+    def test_予約画面に3日間であることを出す(self):
+        body = self.c.get('/book/SP-B').get_data(as_text=True)
+        self.assertIn('3日間つづけて開催します', body)
+        self.assertIn('初日', body)
+        self.assertNotIn('3日間つづけて開催します',
+                         self.c.get('/book/SP-A').get_data(as_text=True))
+
+    def test_講師の画面に続きの日の登録を促す(self):
+        d0 = _far_day()
+        url = f'/instructor/schedule/{self.token}/day/{d0}'
+        body = self.c.get(url).get_data(as_text=True)
+        self.assertIn('3日間つづけて開催します', body)
+        self.assertIn('にも同じ講座を登録してください', body)
+        # 3日そろえば「開始日にできます」に変わる
+        self._reg(*booking.course_dates('SP-B', d0))
+        body = self.c.get(url).get_data(as_text=True)
+        self.assertIn('この日を開始日にできます', body)
 
 
 class Test公開されない理由(unittest.TestCase):

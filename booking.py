@@ -34,6 +34,9 @@ LEAD_DAYS = 14
 
 # 講座の一覧。⛔価格・時間は各コースページの掲載値と一致させること
 # weekdays … 開催できる曜日（月=0）。省略＝どの曜日でもよい。
+# days     … 連続して開催する日数。省略＝1日。⛔ 日数を hours の文章
+#            （「× 3日間」）の中だけに書かないこと。3日間の講座に1日ぶんの
+#            予定しか無い講師が割り当たる（2026-08-12 実装まで実際にそうだった）。
 # ⛔ 曜日の制約を hours の文字列の中だけに書かないこと。文章は判定に使えず、
 #    「毎週水曜」の講座が木曜にも選べて予約まで成立していた（2026-08-12 実測）。
 #    hours と weekdays がズレたら tests/test_booking.py が落ちる。
@@ -41,7 +44,8 @@ COURSES = [
     {'code': 'SP-A', 'name': 'AI経営 入門1日', 'price': 49800,
      'hours': '10:00〜17:00', 'min_people': 4, 'capacity': 20},
     {'code': 'SP-B', 'name': 'AI経営 実践3日間マスター', 'price': 128000,
-     'hours': '10:00〜17:00 × 3日間', 'min_people': 3, 'capacity': 15},
+     'hours': '10:00〜17:00 × 3日間', 'days': 3,
+     'min_people': 3, 'capacity': 15},
     {'code': 'SP-C', 'name': 'AI経営 夜間マスター 全5回', 'price': 68000,
      'hours': '毎週水曜 19:00〜21:30', 'weekdays': [2],
      'min_people': 5, 'capacity': 30},
@@ -475,25 +479,57 @@ def others_on(inst, d):
 
 
 def _legacy_day_courses(inst, span=180):
-    """旧い形（時間帯・曜日）の予定を「日付→担当コース」に写す。"""
+    """旧い形（時間帯・曜日）の予定を「日付→担当コース」に写す。
+
+    ⛔ 1日ごとに slots_on を呼ばないこと。曜日の枠を毎日 normalize_weekly で
+       作り直すため、180日×講師数ぶん効いて画面が数秒単位で遅くなる
+       （2026-08-12 実測：承認画面 3.9秒／_hhmm が 25,352回）。
+       曜日の枠と講座の開催時間は先に1回だけ用意する。
+    """
+    # ⛔ slots_on と同じ優先順位で読むこと。ここだけ読み落とすと、判定
+    #    （open_days）と一覧（registered_days）で答えが割れる
+    #    ＝2026-08-12 の速度改善で『講義できる日時』を落として実際に割れた。
+    per_date = inst.get('講義できる日時')       # 2026-08-11 の形（日付×時間帯）
+    by_wd, daily, blocked = {}, {}, set()
+    if per_date is None:
+        for w in normalize_weekly(inst.get('毎週の可能時間')):
+            by_wd.setdefault(int(w['曜日']), []).append(
+                {'開始': w['開始'], '終了': w['終了']})
+        daily = normalize_daily(inst.get('日別の可能時間'))
+        blocked = set(inst.get('不可の日') or [])
+    codes = [c for c in (inst.get('対応コース') or []) if course_hours(c)]
+    hours = {c: course_hours(c) for c in codes}
+
     out, d = {}, today_jst()
     end = d + timedelta(days=span)
     while d <= end:
-        cs = day_courses(inst, d)
-        if cs:
-            out[d.isoformat()] = sorted(cs)
+        iso = d.isoformat()
+        if per_date is not None:
+            slots = normalize_slots(per_date.get(iso) or [])
+        else:
+            slots = (daily.get(iso) or ([] if iso in blocked
+                                        else by_wd.get(d.weekday(), [])))
+        if slots:
+            cs = [c for c in codes
+                  if course_open_on(c, d)
+                  and any(s['開始'] <= hours[c][0] and s['終了'] >= hours[c][1]
+                          for s in slots)]
+            if cs:
+                out[iso] = sorted(cs)
         d += timedelta(days=1)
     return out
 
 
-def teachable_courses(inst):
+def teachable_courses(inst, reg=None):
     """その講師の登録内容で、実際に担当できる講座コード。
 
     ⛔ 「登録した日数」で判断しないこと。コースは終日（例 10:00〜17:00）なので、
        1時間の枠を何本並べても担当できない（2026-08-12 本番で実際に起きた）。
+    ⛔ reg を渡せるようにしてあるのは、旧形式の展開が重いため。同じ要求の中で
+       何度も registered_days を呼ばないこと。
     """
     out = []
-    for cs in registered_days(inst).values():
+    for cs in (registered_days(inst) if reg is None else reg).values():
         for c in cs:
             if c not in out:
                 out.append(c)
@@ -501,14 +537,48 @@ def teachable_courses(inst):
 
 
 def registered_days(inst):
-    """{'2026-08-26': ['SP-A', ...]} 登録されている日と、その日の担当講座。"""
+    """{'2026-08-26': ['SP-A', ...]} 登録されている日と、その日の担当講座。
+
+    ⛔ day_courses と同じ関所（実在する講座か・その曜日に開催できるか）を
+       ここでも通すこと。ここだけ素通しにすると、台帳に残った木曜の SP-C が
+       画面の一覧や集計にだけ現れ、判定と表示が食い違う。
+    """
     days = inst.get('担当できる日')
     if days is None:
-        days = _legacy_day_courses(inst)
-    return {k: v for k, v in sorted(days.items()) if v}
+        return {k: v for k, v in sorted(_legacy_day_courses(inst).items()) if v}
+    out = {}
+    for iso, codes in sorted(days.items()):
+        try:
+            d = date.fromisoformat(iso)
+        except (ValueError, TypeError):
+            continue
+        ok = [c for c in (codes or [])
+              if c in COURSE_BY_CODE and course_open_on(c, d)]
+        if ok:
+            out[iso] = ok
+    return out
 
 
-def publish_blockers(inst):
+def startable_days(inst, course_code, occ=None, reg=None):
+    """その講師が『開始日にできる』日。予約が入りうる日はこれだけ。
+
+    ⛔ 3日間の講座で「登録した日数」を成果として見せないこと。飛び飛びに
+       3日登録しても開始日は0日で、受講者からは1日も見えない。
+    ⛔ 講座ごとに occ / reg を作り直さないこと。occupied_days は予約台帳を、
+       registered_days は旧形式だと180日ぶんの展開を毎回やる＝講座の数だけ
+       重くなる（7講座×講師数。実測でテストが10分を超えた）。
+    """
+    occ = occupied_days(inst.get('id')) if occ is None else occ
+    reg = registered_days(inst) if reg is None else reg
+    out = []
+    for iso, codes in reg.items():
+        if course_code in codes and instructor_can_start(
+                inst, date.fromisoformat(iso), course_code, occ, reg=reg):
+            out.append(iso)
+    return out
+
+
+def publish_blockers(inst, reg=None):
     """受講者に公開されない理由。空リスト＝公開されている。
 
     ⛔ 公開されない状態を、画面のどこにも書かないまま放置しないこと。
@@ -520,7 +590,7 @@ def publish_blockers(inst):
     if not inst.get('メール確認済み'):
         out.append('メールアドレスの確認が済んでいません')
 
-    days = registered_days(inst)
+    days = registered_days(inst) if reg is None else reg
     if not days:
         # ⛔ 旧い形（時間帯）で登録した方に「1日も登録されていません」と言わない。
         #    登録はしている。その時間帯では担当できる講座が無いだけ
@@ -540,8 +610,18 @@ def publish_blockers(inst):
 
     # ⛔ 「一部の講座を選んでいない」は公開されない理由ではない（選んだ講座は
     #    公開されている）。ここに混ぜると、公開中なのに未公開と読める
-    if not teachable_courses(inst):
+    can = teachable_courses(inst, reg=days)
+    if not can:
         out.append('どの日にも担当する講座が選ばれていません')
+    # ⛔ 選んだのに開始日が1日も無い講座を黙らないこと（連続日数が足りない）
+    multi = [c for c in can if course_days(c) > 1]
+    if multi:
+        occ = occupied_days(inst.get('id'))          # 台帳の読み直しは1回だけ
+        for c in multi:
+            if not startable_days(inst, c, occ=occ, reg=days):
+                out.append(f'{c} は{course_days(c)}日間つづけて開催します。'
+                           f'{course_days(c)}日続けて選んだ日が無いため、'
+                           'この講座は公開されません')
     return out
 
 
@@ -555,19 +635,67 @@ def availability_end(inst):
     return max(days) if days else None
 
 
+_HOURS_CACHE = {}
+
+
 def course_hours(course_code):
     """コースの開催時間 → ('10:00','17:00')。読めなければ None
 
     ⛔ 時刻を別表に書き写さないこと。COURSES の hours が唯一の出どころで、
        掲載ページと同じ値（ここがズレると案内と実運用が食い違う）。
+    ⛔ 毎回 hours を正規表現で読み直さないこと（判定の内側で何千回も呼ばれる）。
+       COURSES は起動中変わらないので、解いた結果を覚えておく。
     """
+    if course_code in _HOURS_CACHE:
+        return _HOURS_CACHE[course_code]
     c = COURSE_BY_CODE.get(course_code) or {}
     m = re.search(r'(\d{1,2}:\d{2})\s*[〜~ー－-]\s*(\d{1,2}:\d{2})',
                   str(c.get('hours') or ''))
-    if not m:
-        return None
-    a, b = _hhmm(m.group(1)), _hhmm(m.group(2))
-    return (a, b) if a and b and a < b else None
+    out = None
+    if m:
+        a, b = _hhmm(m.group(1)), _hhmm(m.group(2))
+        out = (a, b) if a and b and a < b else None
+    _HOURS_CACHE[course_code] = out
+    return out
+
+
+def course_days(course_code):
+    """連続して開催する日数（既定1）。"""
+    try:
+        return max(1, int((COURSE_BY_CODE.get(course_code) or {}).get('days', 1)))
+    except (TypeError, ValueError):
+        return 1
+
+
+def course_dates(course_code, start_iso):
+    """開催する日の並び。3日間の講座なら開始日を含む3日。"""
+    d0 = date.fromisoformat(start_iso)
+    return [(d0 + timedelta(days=k)).isoformat()
+            for k in range(course_days(course_code))]
+
+
+def _hours_overlap(a, b):
+    """2つの講座の開催時間が重なるか。読めないものは重なる扱い（安全側）。"""
+    ha, hb = course_hours(a), course_hours(b)
+    if not ha or not hb:
+        return True
+    return ha[0] < hb[1] and hb[0] < ha[1]
+
+
+def occupied_days(instructor_id):
+    """その講師が予約で押さえられている日 → {'2026-08-26': {('SP-B','2026-08-26')}}
+
+    ⛔ 3日間の講座は3日ぶんを押さえること。開始日しか見ないと、2日目・3日目に
+       別の講座が入り、同じ講師が同時刻に2つ担当することになる。
+    """
+    out = {}
+    for b in bookings():
+        if b.get('担当講師id') != instructor_id or b.get('状態') == '取消':
+            continue
+        start = b.get('希望日')
+        for iso in (b.get('開催日') or course_dates(b.get('コース'), start)):
+            out.setdefault(iso, set()).add((b.get('コース'), start))
+    return out
 
 
 def instructor_free_on(inst, d, booked=None):
@@ -582,16 +710,47 @@ def instructor_free_on(inst, d, booked=None):
     return bool(slots_on(inst, d))
 
 
-def instructor_can_teach(inst, d, course_code, booked=None):
+def instructor_can_teach(inst, d, course_code, occ=None, start=None, reg=None):
     """その講師が『そのコースを』その日に担当できるか。
+
+    occ … occupied_days() の結果。start … 申し込もうとしている回の開始日。
 
     ⛔ 曜日だけで判定しないこと。夜間コース（水 19:00〜21:30）に
        10:00〜17:00 でしか登録していない講師が割り当たっていた
        （2026-08-11 実測。時間帯は登録させておいて1か所も使っていなかった）。
+    ⛔ 「予約が入っている日＝空いている」と単純に返さないこと。それは
+       **同じ回に2人目を受ける**ためのもので、別の講座・別の回まで通すと
+       同じ講師が同時刻に2つ担当することになる。
     """
-    if booked and d.isoformat() in booked:
-        return True
+    iso = d.isoformat()
+    start = start or iso
+    mine = (occ or {}).get(iso) or set()
+    if (course_code, start) in mine:
+        return True                      # 同じ回の追加申込は受ける
+    for other, _s in mine:
+        if _hours_overlap(course_code, other):
+            return False                 # 別の回・別の講座と時間が重なる
+    # reg（registered_days の結果）があれば使う。⛔旧形式は day_courses が
+    # 1日ごとに曜日の枠を作り直すので、3日間の講座では日数ぶん効いて重くなる
+    if reg is not None:
+        return course_code in (reg.get(iso) or [])
     return course_code in day_courses(inst, d)
+
+
+def instructor_can_start(inst, d, course_code, occ=None, reg=None):
+    """その日を開始日として、その講座を最後まで担当できるか。
+
+    ⛔ 3日間の講座で初日しか見ないこと。2日目に別の予定が入っている講師に
+       割り当たると、2日目から講師がいなくなる。
+    """
+    if not course_open_on(course_code, d):
+        return False
+    start = d.isoformat()
+    for iso in course_dates(course_code, start):
+        if not instructor_can_teach(inst, date.fromisoformat(iso),
+                                    course_code, occ, start=start, reg=reg):
+            return False
+    return True
 
 
 def open_days(course_code, months=3):
@@ -609,7 +768,11 @@ def open_days(course_code, months=3):
     people = [i for i in approved_instructors()
               if course_code in (i.get('対応コース') or [])]
     # 予約済みの日は1回だけ集める（日ごとにファイルを読むと3か月ぶんで90回になる）
-    booked = {i['id']: set(booked_days_for_instructor(i['id'])) for i in people}
+    occ = {i['id']: occupied_days(i['id']) for i in people}
+    # ⛔ 登録済みの日も1人1回だけ展開すること。ここを毎日やり直すと、旧形式の
+    #    講師では 90日×講座の日数 ぶん効いて、受講者の予約画面が10秒を超える
+    #    （2026-08-12 本番実測：/book/SP-A が23秒）
+    reg = {i['id']: registered_days(i) for i in people}
     # その日までに埋まっている人数
     cap = (COURSE_BY_CODE.get(course_code) or {}).get('capacity', 10**6)
     taken = {}
@@ -623,9 +786,10 @@ def open_days(course_code, months=3):
         if d < earliest:
             state, who = '準備期間', []
         else:
+            # ⛔ 3日間の講座は「最後まで担当できる日」だけを開始日として出す
             who = [i for i in people
-                   if instructor_can_teach(i, d, course_code,
-                                           booked.get(i['id']))]
+                   if instructor_can_start(i, d, course_code,
+                                           occ.get(i['id']), reg.get(i['id']))]
             state = '予約可' if who else '予約締切'
             # ⛔ 定員に達した日を「予約可」のまま出さないこと。押してから
             #    「残り0名です」と断ることになり、選び直しの手間を増やす
@@ -649,8 +813,9 @@ def pick_instructor(course_code, d):
     # ⛔ 別の講師を割り当てると、同じ日・同じコースが二重開催になる
     people = [i for i in approved_instructors()
               if course_code in (i.get('対応コース') or [])
-              and instructor_can_teach(i, d, course_code,
-                                       booked_days_for_instructor(i['id']))]
+              and instructor_can_start(i, d, course_code,
+                                       occupied_days(i['id']),
+                                       registered_days(i))]
     same_day = {b.get('担当講師id') for b in bookings_for(course_code, d.isoformat())}
     people.sort(key=lambda i: (i['id'] not in same_day, i.get('登録日時') or ''))
     return people[0] if people else None
@@ -668,14 +833,13 @@ def bookings_for(course_code, day):
 
 
 def booked_days_for_instructor(instructor_id):
-    """その講師に既に予約が入っている日。
+    """その講師に既に予約が入っている日（3日間の講座なら3日ぶん）。
 
     ⛔ 予約が入っている日を、本人が「不可」に変えられないようにするために使う
        （受講者が待っている日を静かに閉じられると事故になる）。
+    ⛔ 開始日だけを返さないこと。2日目・3日目を本人が消せてしまう。
     """
-    return sorted({b['希望日'] for b in bookings()
-                   if b.get('担当講師id') == instructor_id
-                   and b.get('状態') != '取消'})
+    return sorted(occupied_days(instructor_id))
 
 
 def add_booking(course_code, day, name, email, company, people, message):
@@ -708,6 +872,9 @@ def add_booking(course_code, day, name, email, company, people, message):
         'id': secrets.token_hex(8),
         'コース': course_code, 'コース名': course['name'],
         '希望日': day,
+        # 3日間の講座は開催する日をすべて残す。⛔ 開始日だけだと、あとから
+        #    日数の設定を変えたときに過去の予約の実際の日程が変わってしまう
+        '開催日': course_dates(course_code, day),
         '氏名': name, '連絡先': email, '会社名': company,
         '人数': want, 'ご要望': message,
         '担当講師': inst['氏名'], '担当講師id': inst['id'],
