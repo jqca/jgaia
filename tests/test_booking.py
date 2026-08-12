@@ -987,6 +987,21 @@ class Test登録からの流れ(unittest.TestCase):
         self.assertIn('確認メールをお送りできませんでした', body)
         self.assertIn('/instructor/schedule/' + rec['鍵'], body)
 
+    def test_メールを送れたら画面に専用URLを出さない(self):
+        # ⛔ 2026-08-12 社長ご指摘。URLを出すと誰もメールを開かずに進めてしまい、
+        #    アドレスの確認が意味を失う（実測：本番8件中6件が未確認のままだった）
+        import booking_routes
+        orig = booking_routes._send
+        booking_routes._send = lambda *a, **kw: True      # 送れた体にする
+        try:
+            r, rec = self._register(email='ok@example.com')
+        finally:
+            booking_routes._send = orig
+        body = r.get_data(as_text=True)
+        self.assertIn('確認メールをお送りしました', body)
+        self.assertIn('ok@example.com', body)
+        self.assertNotIn(rec['鍵'], body)                 # 鍵そのものを出さない
+
     def test_承認の結果は本人に伝える口がある(self):
         _, rec = self._register()
         r = self.c.post('/api/instructor/decide',
