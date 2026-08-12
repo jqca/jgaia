@@ -33,32 +33,97 @@ _LOCK = threading.Lock()
 LEAD_DAYS = 14
 
 # 講座の一覧。⛔価格・時間は各コースページの掲載値と一致させること
-# weekdays … 開催できる曜日（月=0）。省略＝どの曜日でもよい。
-# days     … 連続して開催する日数。省略＝1日。⛔ 日数を hours の文章
-#            （「× 3日間」）の中だけに書かないこと。3日間の講座に1日ぶんの
-#            予定しか無い講師が割り当たる（2026-08-12 実装まで実際にそうだった）。
+# weekdays      … 開催できる曜日（月=0）。省略＝どの曜日でもよい。
+# days          … 開催の回数。省略＝1回。⛔ 回数を hours の文章（「× 3日間」
+#                 「全5回」）の中だけに書かないこと。1日ぶんの予定しか無い
+#                 講師が割り当たる（2026-08-12 実装まで実際にそうだった）。
+# interval_days … 回と回の間隔。1＝連続した日（既定）／7＝毎週
+# group         … 登録フォームでのまとまり（掲載ページの区分に合わせる）
+# ⛔ 掲載している講座をここに載せ忘れないこと。載っていない講座は講師登録の
+#    選択肢に出ず、担当できる人が永久に0名になる（2026-08-12 社長ご指摘＝
+#    子ども向け3・業種別15・GC の計19講座が抜けていた）。tests が突き合わせる。
 # ⛔ 曜日の制約を hours の文字列の中だけに書かないこと。文章は判定に使えず、
 #    「毎週水曜」の講座が木曜にも選べて予約まで成立していた（2026-08-12 実測）。
 #    hours と weekdays がズレたら tests/test_booking.py が落ちる。
 COURSES = [
+    # ── 一人会社AI経営講座 /solo-ceo
     {'code': 'SP-A', 'name': 'AI経営 入門1日', 'price': 49800,
-     'hours': '10:00〜17:00', 'min_people': 4, 'capacity': 20},
+     'hours': '10:00〜17:00', 'min_people': 4, 'capacity': 20,
+     'group': '一人会社AI経営'},
     {'code': 'SP-B', 'name': 'AI経営 実践3日間マスター', 'price': 128000,
      'hours': '10:00〜17:00 × 3日間', 'days': 3,
-     'min_people': 3, 'capacity': 15},
+     'min_people': 3, 'capacity': 15, 'group': '一人会社AI経営'},
     {'code': 'SP-C', 'name': 'AI経営 夜間マスター 全5回', 'price': 68000,
      'hours': '毎週水曜 19:00〜21:30', 'weekdays': [2],
-     'min_people': 5, 'capacity': 30},
+     'days': 5, 'interval_days': 7,          # 毎週水曜に5回
+     'min_people': 5, 'capacity': 30, 'group': '一人会社AI経営'},
+    # ── バイブコーディング認定講座（汎用）/vibe-coding
     {'code': 'GA', 'name': '生成AI入門1日', 'price': 49800,
-     'hours': '10:00〜17:00', 'min_people': 4, 'capacity': 20},
+     'hours': '10:00〜17:00', 'min_people': 4, 'capacity': 20,
+     'group': '汎用'},
     {'code': 'GB', 'name': 'バイブコーディング実践1日', 'price': 49800,
-     'hours': '10:00〜17:00', 'min_people': 4, 'capacity': 20},
+     'hours': '10:00〜17:00', 'min_people': 4, 'capacity': 15,
+     'group': '汎用'},
+    {'code': 'GC', 'name': 'AI業務自動化マスター 全5回', 'price': 68000,
+     'hours': '毎週水曜 19:00〜21:30', 'weekdays': [2],
+     'days': 5, 'interval_days': 7,
+     'min_people': 5, 'capacity': 30, 'group': '汎用'},
     {'code': 'GD', 'name': 'AIセキュリティ・ガバナンス', 'price': 49800,
-     'hours': '10:00〜17:00', 'min_people': 4, 'capacity': 20},
+     'hours': '10:00〜17:00', 'min_people': 4, 'capacity': 15,
+     'group': '汎用'},
     {'code': 'GE', 'name': 'AIクリエイティブデザイン', 'price': 49800,
-     'hours': '10:00〜17:00', 'min_people': 4, 'capacity': 20},
+     'hours': '10:00〜17:00', 'min_people': 4, 'capacity': 15,
+     'group': '汎用'},
+
+    # ── 子ども向け /vibe-coding/kids
+    # ⛔ 開始・終了の時刻は掲載ページに無い（所要時間だけ）。書き足さないこと＝
+    #    時刻が読めない講座は「同じ日に他の講座と併せて担当できない」安全側に倒れる。
+    #    時刻が決まったら hours を '10:00〜13:00' の形にすれば併記できるようになる。
+    {'code': 'GK1', 'name': 'キッズ体験（半日・親子）', 'price': 9800,
+     'hours': '3時間（半日）', 'min_people': 1, 'capacity': 10,
+     'group': '子ども'},
+    {'code': 'GK2', 'name': 'ジュニア入門（1日・中学生）', 'price': 29800,
+     'hours': '6時間（1日）', 'min_people': 4, 'capacity': 15,
+     'group': '子ども'},
+    {'code': 'GK3', 'name': '親子ペアコース（1日）', 'price': 49800,
+     'hours': '6時間（1日）', 'min_people': 1, 'capacity': 10,
+     'group': '子ども'},
 ]
+
+# ── 業種別（5業種 × 3段階）/vibe-coding/<業種>
+# 掲載ページ（vibe_coding_industry.INDUSTRIES）と同じ価格・定員・期間にする。
+# ⛔ ここを手で書き換えないこと。掲載と食い違ったら tests が落ちる。
+for _slug, _label in (('GM', '製造業'), ('GH', '医療・ヘルスケア'),
+                      ('GF', '金融'), ('GL', '物流'), ('GN', '建設')):
+    COURSES += [
+        {'code': f'{_slug}-A', 'name': f'{_label}AI入門（半日）', 'price': 49800,
+         'hours': '4時間（半日）', 'min_people': 4, 'capacity': 20,
+         'group': _label},
+        {'code': f'{_slug}-B', 'name': f'{_label}AIマスター（3日間）',
+         'price': 128000, 'hours': '各7時間 × 3日間', 'days': 3,
+         'min_people': 3, 'capacity': 15, 'group': _label},
+        {'code': f'{_slug}-C', 'name': f'{_label}AIアーキテクト（5日間）',
+         'price': 228000, 'hours': '各7時間 × 5日間', 'days': 5,
+         'min_people': 3, 'capacity': 10, 'group': _label},
+    ]
 COURSE_BY_CODE = {c['code']: c for c in COURSES}
+
+
+def grouped_courses(codes=None):
+    """[(区分, [講座, ...]), ...] 掲載ページと同じまとまりで返す。
+
+    ⛔ 26講座を1列に並べないこと。選ぶ側が自分の担当を見つけられない。
+    codes を渡すとその講座だけに絞る（講師本人の担当だけを出すとき）。
+    """
+    out = []
+    for c in COURSES:
+        if codes is not None and c['code'] not in codes:
+            continue
+        g = c.get('group') or 'その他'
+        if not out or out[-1][0] != g:
+            out.append((g, []))
+        out[-1][1].append(c)
+    return out
 
 WEEKDAYS = ['月', '火', '水', '木', '金', '土', '日']
 
@@ -344,6 +409,24 @@ def course_open_on(course_code, d):
     """
     wd = course_weekdays(course_code)
     return wd is None or d.weekday() in wd
+
+
+def series_note(course_code):
+    """複数回の講座の説明を1行で。1回だけの講座なら空文字。
+
+    ⛔ 毎週の講座に「つづけて開催」と書かないこと（水木金土日に読める）。
+    ⛔ weekday_note（「毎週水曜の開催です」）を文中に埋め込まないこと。
+       「毎週水曜の開催ですに開催します」になる（2026-08-12 実機で発生）。
+    """
+    n = course_days(course_code)
+    if n <= 1:
+        return ''
+    if course_interval(course_code) > 1:
+        wd = course_weekdays(course_code)
+        when = ('毎週' + '・'.join(WEEKDAYS[i] for i in wd) + '曜'
+                if wd else '1週間おき')
+        return f'全{n}回・{when}に開催します'
+    return f'{n}日間つづけて開催します'
 
 
 def weekday_note(course_code):
@@ -660,17 +743,32 @@ def course_hours(course_code):
 
 
 def course_days(course_code):
-    """連続して開催する日数（既定1）。"""
+    """開催の回数（既定1）。3日間の講座なら3、全5回の講座なら5。"""
     try:
         return max(1, int((COURSE_BY_CODE.get(course_code) or {}).get('days', 1)))
     except (TypeError, ValueError):
         return 1
 
 
+def course_interval(course_code):
+    """回と回の間隔（日）。1＝連続した日、7＝毎週。"""
+    try:
+        return max(1, int((COURSE_BY_CODE.get(course_code) or {}).get(
+            'interval_days', 1)))
+    except (TypeError, ValueError):
+        return 1
+
+
 def course_dates(course_code, start_iso):
-    """開催する日の並び。3日間の講座なら開始日を含む3日。"""
+    """開催する日の並び。
+
+    3日間の講座なら開始日を含む3日、全5回（毎週）なら5週ぶんの同じ曜日。
+    ⛔ 「全5回」を連続5日として扱わないこと。毎週水曜の夜間コースが
+       水木金土日になる（2026-08-12 まで、そもそも初回しか押さえていなかった）。
+    """
     d0 = date.fromisoformat(start_iso)
-    return [(d0 + timedelta(days=k)).isoformat()
+    step = course_interval(course_code)
+    return [(d0 + timedelta(days=k * step)).isoformat()
             for k in range(course_days(course_code))]
 
 

@@ -33,6 +33,10 @@
 .cs .cn { display:block; font-weight:700; line-height:1.5; }
 /* 開催時間は講座名とセットで見せる。⛔ 別のカードに分けないこと */
 .cs .ch { display:block; margin-top:3px; font-size:12px; color:#64748b; }
+/* 区分の見出し。⛔ 色を指定すること（共通CSSの白文字を継承して消える） */
+.cgroup { font-size:13px; font-weight:800; color:#0d1b3e; margin:16px 0 8px;
+          padding-bottom:5px; border-bottom:2px solid #e2e8f0; }
+.cgroup:first-of-type { margin-top:4px; }
 .ir-submit { width:100%; background:#0d1b3e; color:#fff; border:none; border-radius:8px;
              padding:16px; font-size:17px; font-weight:800; cursor:pointer;
              margin-top:20px; }
@@ -129,17 +133,21 @@
         複数お選びいただけます。あとから増やすこともできます。<br>
         講座には決まった開催時間があります。ご都合の合うものをお選びください。
       </div>
-      <div class="cs">
-        {% for c in courses %}
-          <label>
-            <input type="checkbox" name="courses" value="{{ c['code'] }}">
-            <span>
-              <span class="cn">{{ c['code'] }} {{ c['name'] }}</span>
-              <span class="ch">{{ c['hours'] }}</span>
-            </span>
-          </label>
-        {% endfor %}
-      </div>
+      {# ⛔ 26講座を1列に並べないこと。掲載ページと同じまとまりで出す #}
+      {% for group, items in groups %}
+        <div class="cgroup">{{ group }}</div>
+        <div class="cs">
+          {% for c in items %}
+            <label>
+              <input type="checkbox" name="courses" value="{{ c['code'] }}">
+              <span>
+                <span class="cn">{{ c['code'] }} {{ c['name'] }}</span>
+                <span class="ch">{{ c['hours'] }}</span>
+              </span>
+            </label>
+          {% endfor %}
+        </div>
+      {% endfor %}
     </div>
 
     <div class="ir-card">

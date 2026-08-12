@@ -636,17 +636,21 @@ class Test担当できる日(unittest.TestCase):
         self.assertIn('重なる', err)
 
     def test_日によって担当する講座を変えられる(self):
-        # 同じ曜日の別の週。⛔ SP-C は毎週水曜の開催なので水曜どうしで比べる
+        # 同じ曜日の別の週。⛔ SP-C は毎週水曜×5回なので5週ぶん登録する
         a = _far_weekday(2)
         b = (date.fromisoformat(a) + timedelta(days=7)).isoformat()
         self.assertEqual(date.fromisoformat(a).weekday(),
                          date.fromisoformat(b).weekday())
         inst, token = self._reg(courses=('SP-A', 'SP-C'))
         booking.set_day_courses(token, a, ['SP-A'])
-        booking.set_day_courses(token, b, ['SP-C'])
+        for iso in booking.course_dates('SP-C', b):
+            booking.set_day_courses(token, iso, ['SP-C'])
         self.assertEqual(self._states('SP-A')[a], '予約可')
         self.assertEqual(self._states('SP-A')[b], '予約締切')
         self.assertEqual(self._states('SP-C')[b], '予約可')
+        # ⛔ 初回以外は開始日にしない（途中から参加させない）
+        self.assertEqual(self._states('SP-C')[booking.course_dates('SP-C', b)[1]],
+                         '予約締切')
 
     def test_選択なしで確定するとその日は講義しない日になる(self):
         day = _far_day()
@@ -855,9 +859,14 @@ class Test開催できる曜日(unittest.TestCase):
         saved, err = booking.set_day_courses(self.token, wed, ['SP-C'])
         self.assertIsNone(err)
         self.assertEqual(booking.registered_days(saved), {wed: ['SP-C']})
-        self.assertEqual(
-            {d['日付']: d['状態'] for d in booking.open_days('SP-C')}[wed],
-            '予約可')
+        # ⛔ 全5回なので、1回ぶんの登録では開始日にならない（正しい挙動）
+        st = {d['日付']: d['状態'] for d in booking.open_days('SP-C')}
+        self.assertEqual(st[wed], '予約締切')
+        # 5週ぶん登録すると初回が開始日になる
+        for iso in booking.course_dates('SP-C', wed):
+            booking.set_day_courses(self.token, iso, ['SP-C'])
+        st = {d['日付']: d['状態'] for d in booking.open_days('SP-C')}
+        self.assertEqual(st[wed], '予約可')
 
     def test_台帳に木曜の夜間コースが残っていても公開しない(self):
         # 画面を通らない経路や、制約を入れる前の登録が残っている場合
@@ -871,6 +880,73 @@ class Test開催できる曜日(unittest.TestCase):
                          {d['状態'] for d in booking.open_days('SP-C')})
         with self.assertRaises(ValueError):
             booking.add_booking('SP-C', thu, '鈴木', 's@example.com', '', 1, '')
+
+
+class Test掲載している講座が全部登録されている(unittest.TestCase):
+    """掲載ページ＝唯一の出どころ。載っている講座は全部予約できること。
+
+    ⛔ 2026-08-12 社長ご指摘：子ども向け3・業種別15・GC の計19講座が
+       booking.COURSES に無く、講師登録の選択肢にも出ていなかった。
+       選べない＝担当できる人が永久に0名＝その講座は一生売れない。
+    """
+
+    def _published(self):
+        """掲載ページから講座コードと価格を拾う（人が書いた表に頼らない）"""
+        import io
+        import vibe_coding_courses
+        from vibe_coding_industry import INDUSTRIES
+        out = {}
+        for c in vibe_coding_courses.COURSES.values():
+            out[c['code']] = c['price_num']
+        for ind in INDUSTRIES.values():
+            for c in ind['courses']:
+                out[c['code']] = int(re.sub(r'[^\d]', '', c['price']))
+        # 子ども向けは掲載HTMLが出どころ（Python側に表を持っていない）
+        path = os.path.join(os.path.dirname(HERE), 'templates',
+                            'vibe_coding_kids.html')
+        html = io.open(path, encoding='utf-8').read()
+        for m in re.finditer(r'COURSE (GK\d)</div>.*?course-price">&yen;'
+                             r'([\d,]+)', html, re.S):
+            out[m.group(1)] = int(m.group(2).replace(',', ''))
+        return out
+
+    def test_掲載されている講座はすべて予約できる(self):
+        published = self._published()
+        self.assertGreaterEqual(len(published), 23, '掲載ページが読めていない')
+        missing = [c for c in published if c not in booking.COURSE_BY_CODE]
+        self.assertEqual(missing, [], f'予約できない講座があります: {missing}')
+
+    def test_価格が掲載と一致している(self):
+        for code, price in self._published().items():
+            with self.subTest(course=code):
+                self.assertEqual(booking.COURSE_BY_CODE[code]['price'], price)
+
+    def test_業種別は5業種3段階そろっている(self):
+        for pre in ('GM', 'GH', 'GF', 'GL', 'GN'):
+            for lv in ('A', 'B', 'C'):
+                self.assertIn(f'{pre}-{lv}', booking.COURSE_BY_CODE)
+
+    def test_登録フォームに全講座が出る(self):
+        app.logger.disabled = True
+        html = app.test_client().get('/instructor/register').get_data(as_text=True)
+        for code in booking.COURSE_BY_CODE:
+            with self.subTest(course=code):
+                self.assertIn(f'value="{code}"', html)
+
+    def test_登録フォームは区分ごとにまとまっている(self):
+        # ⛔ 26講座を1列に並べない（自分の担当を見つけられない）
+        html = app.test_client().get('/instructor/register').get_data(as_text=True)
+        for g in ('一人会社AI経営', '汎用', '子ども', '製造業', '建設'):
+            self.assertIn(g, html)
+        self.assertEqual(len(booking.grouped_courses()),
+                         len({c.get('group') for c in booking.COURSES}))
+
+    def test_定員と最少催行の関係が壊れていない(self):
+        for c in booking.COURSES:
+            with self.subTest(course=c['code']):
+                self.assertGreater(c['price'], 0)
+                self.assertGreater(c['min_people'], 0)
+                self.assertGreaterEqual(c['capacity'], c['min_people'])
 
 
 class Test連続する日数(unittest.TestCase):
@@ -897,13 +973,27 @@ class Test連続する日数(unittest.TestCase):
     def _state(self, code, iso):
         return {d['日付']: d['状態'] for d in booking.open_days(code)}[iso]
 
-    def test_掲載の日数と設定が一致している(self):
-        # ⛔ hours の「× N日間」と days がズレたらここで落とす
+    def test_掲載の回数と設定が一致している(self):
+        # ⛔ hours の「× N日間」「全N回」と days がズレたらここで落とす
         for c in booking.COURSES:
-            m = re.search(r'×\s*(\d+)\s*日間', c['hours'])
+            m = (re.search(r'×\s*(\d+)\s*日間', c['hours'])
+                 or re.search(r'全\s*(\d+)\s*回', c['hours'])
+                 or re.search(r'全\s*(\d+)\s*回', c['name']))
             with self.subTest(course=c['code']):
                 self.assertEqual(int(m.group(1)) if m else 1,
                                  booking.course_days(c['code']))
+
+    def test_毎週の講座は1週間ごとに開催する(self):
+        # ⛔ 「全5回」を連続5日にしないこと（毎週水曜が水木金土日になる）
+        self.assertEqual(booking.course_interval('SP-C'), 7)
+        self.assertEqual(booking.course_interval('GC'), 7)
+        self.assertEqual(booking.course_interval('SP-B'), 1)
+        wed = _far_weekday(2)
+        got = booking.course_dates('SP-C', wed)
+        self.assertEqual(len(got), 5)
+        self.assertTrue(all(date.fromisoformat(x).weekday() == 2 for x in got))
+        self.assertEqual(
+            got[1], (date.fromisoformat(wed) + timedelta(days=7)).isoformat())
 
     def test_開催する日を並べられる(self):
         self.assertEqual(booking.course_dates('SP-B', '2026-09-07'),
@@ -1002,6 +1092,13 @@ class Test連続する日数(unittest.TestCase):
         self.assertNotIn('3日間つづけて開催します',
                          self.c.get('/book/SP-A').get_data(as_text=True))
 
+    def test_毎週の講座につづけてと書かない(self):
+        # ⛔ 全5回（毎週水曜）を「5日間つづけて」と書くと水木金土日に読める
+        body = self.c.get('/book/SP-C').get_data(as_text=True)
+        self.assertIn('全5回・1週間おきに開催します', body)
+        self.assertNotIn('5日間つづけて', body)
+        self.assertIn('初回の日', body)
+
     def test_講師の画面に続きの日の登録を促す(self):
         d0 = _far_day()
         url = f'/instructor/schedule/{self.token}/day/{d0}'
@@ -1012,6 +1109,17 @@ class Test連続する日数(unittest.TestCase):
         self._reg(*booking.course_dates('SP-B', d0))
         body = self.c.get(url).get_data(as_text=True)
         self.assertIn('この日を開始日にできます', body)
+
+    def test_講師の画面でも毎週の講座につづけてと書かない(self):
+        i, t = booking.register_instructor('夜間 太郎', 'n@example.com', '',
+                                           ['SP-C'], '')
+        wed = _far_weekday(2)
+        body = self.c.get(f'/instructor/schedule/{t}/day/{wed}'
+                          ).get_data(as_text=True)
+        self.assertIn('全5回・毎週水曜に開催します', body)
+        self.assertNotIn('5日間つづけて', body)
+        # ⛔ 別用途の文（weekday_note）を文中に埋め込まない
+        self.assertNotIn('開催ですに', body)
 
 
 class Test公開されない理由(unittest.TestCase):

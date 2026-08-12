@@ -42,6 +42,7 @@ def register_booking_routes(app):
         if request.method == 'GET':
             return render_template('instructor_register.html',
                                    courses=booking.COURSES,
+                                   groups=booking.grouped_courses(),
                                    lead_days=booking.LEAD_DAYS,
                                    weekdays=booking.WEEKDAYS)
 
@@ -60,6 +61,7 @@ def register_booking_routes(app):
             return render_template('instructor_register.html',
                                    error='お名前とメールアドレスは必須です。',
                                    courses=booking.COURSES,
+                                   groups=booking.grouped_courses(),
                                    lead_days=booking.LEAD_DAYS,
                                    weekdays=booking.WEEKDAYS)
 
@@ -149,17 +151,23 @@ def register_booking_routes(app):
             mine.append(dict(
                 c, 選べる=booking.course_open_on(c['code'], day),
                 理由=booking.weekday_note(c['code']),
-                日数=n, 日程=run, 続きが未登録=missing))
+                日数=n, 日程=run, 続きが未登録=missing,
+                # ⛔ 毎週の講座に「つづけて開催」と書かないこと（連続日に読める）
+                回の説明=booking.series_note(c['code'])))
         chosen = [c for c in (request.form.getlist('courses')
                               if request.method == 'POST'
                               else booking.day_courses(inst, day))
                   if booking.course_open_on(c, day)]
 
         def render(step, error=None):
+            # 掲載ページと同じまとまりで出す（担当が多い方は1列だと探せない）
+            by_code = {m['code']: m for m in mine}
+            groups = [(g, [by_code[c['code']] for c in items])
+                      for g, items in booking.grouped_courses(list(by_code))]
             return render_template(
                 'instructor_day.html', inst=inst, token=token, iso=iso,
                 day=day, weekday=booking.WEEKDAYS[day.weekday()],
-                mine=mine, chosen=chosen, step=step, error=error,
+                mine=mine, groups=groups, chosen=chosen, step=step, error=error,
                 booked=booked, too_soon=day < earliest,
                 earliest=earliest.isoformat(), lead_days=booking.LEAD_DAYS,
                 others=booking.others_on(inst, day))
@@ -293,6 +301,7 @@ def register_booking_routes(app):
         return render_template('course_book.html', c=course, days=days,
                                months=_month_grids(3),
                                course_days=booking.course_days(code),
+                               course_interval=booking.course_interval(code),
                                lead_days=booking.LEAD_DAYS,
                                cancel_policy=booking.CANCEL_POLICY,
                                pay_note=booking.PAY_NOTE,

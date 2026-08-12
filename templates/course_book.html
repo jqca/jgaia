@@ -91,9 +91,15 @@
       緑の日をお選びください。講師の都合により、日程は変わることがあります。<br>
       <strong>開催の{{ lead_days }}日以上前まで</strong>のお申し込みを承っています。
       {% if course_days > 1 %}
-        {# ⛔ 3日間の講座で「1日だけ」と誤解させないこと #}
-        <br><strong>この講座は{{ course_days }}日間つづけて開催します。</strong>
-        お選びいただくのは<strong>初日</strong>で、翌日以降も続けてご参加いただきます。
+        {# ⛔ 「1日だけ」と誤解させないこと。⛔ 毎週の講座に「つづけて」と書かない #}
+        <br>
+        {% if course_interval > 1 %}
+          <strong>この講座は全{{ course_days }}回・1週間おきに開催します。</strong>
+          お選びいただくのは<strong>初回の日</strong>で、以降は毎週同じ曜日に続きます。
+        {% else %}
+          <strong>この講座は{{ course_days }}日間つづけて開催します。</strong>
+          お選びいただくのは<strong>初日</strong>で、翌日以降も続けてご参加いただきます。
+        {% endif %}
       {% endif %}
     </div>
 
