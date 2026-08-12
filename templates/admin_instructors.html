@@ -90,25 +90,18 @@
         <div><span class="k">連絡先</span>{{ r['連絡先'] }}</div>
         <div><span class="k">担当できる講座</span>
           {{ (r['対応コース'] or []) | join(' / ') if r['対応コース'] else '未選択' }}</div>
-        {# 予定は日付ごとの枠が正（2026-08-11〜）。旧式の曜日登録は移行前の講師だけ #}
-        {% if r['講義できる日時'] is not none %}
-          {% set ds = (r['講義できる日時'] or {}) %}
-          <div><span class="k">講義できる日</span>
-            {% if ds %}{{ ds | length }}日（{{ ds.keys() | list | first }} 〜 {{ ds.keys() | list | last }}）
-            {% else %}未登録{% endif %}</div>
-          {% if ds %}
-            <div><span class="k">内訳</span>
-              {% for d, ss in ds.items() %}
-                {{ d }} {% for s in ss %}{{ s['開始'] }}〜{{ s['終了'] }}{% if not loop.last %}、{% endif %}{% endfor %}{% if not loop.last %} / {% endif %}
-              {% endfor %}</div>
-          {% endif %}
-        {% else %}
-          <div><span class="k">毎週の可能時間</span>
-            {% if r['毎週の可能時間'] %}
-              {% for w in r['毎週の可能時間'] %}{{ weekdays[w['曜日']] }} {{ w['開始'] }}-{{ w['終了'] }}{% if not loop.last %} / {% endif %}{% endfor %}
-              <em>（旧形式・本人が保存すると日付形式に移ります）</em>
-            {% else %}未登録{% endif %}</div>
-          <div><span class="k">都合の悪い日</span>{{ (r['不可の日'] or []) | length }}日</div>
+        {# 予定は「日付 → その日に担当する講座」が正（2026-08-12〜）。
+           旧い形（時間帯・曜日）の講師は、同じ形に読み替えて出す #}
+        {% set ds = r['登録済みの日'] or {} %}
+        <div><span class="k">講義できる日</span>
+          {% if ds %}{{ ds | length }}日（{{ ds.keys() | list | first }} 〜 {{ ds.keys() | list | last }}）
+            {% if r['担当できる日'] is none %}<em>（旧形式・本人が保存すると新しい形に移ります）</em>{% endif %}
+          {% else %}未登録{% endif %}</div>
+        {% if ds %}
+          <div><span class="k">内訳</span>
+            {% for d, cs in ds.items() %}
+              {{ d }} {{ cs | join('・') }}{% if not loop.last %} / {% endif %}
+            {% endfor %}</div>
         {% endif %}
         {# 謝礼の希望額は登録フォームから削除済み（2026-08-11）。
            削除前に申請された方の値だけを残して表示する。 #}

@@ -91,47 +91,72 @@ def register_booking_routes(app):
         inst = booking.find_instructor(token)
         if not inst:
             return 'この画面のリンクが正しくありません。運営にお問い合わせください。', 404
-        # 開催時間は COURSES の hours から解いて渡す（画面で書き写さない）
-        courses = []
-        for c in booking.COURSES:
-            h = booking.course_hours(c['code'])
-            courses.append(dict(c, 開始=h[0] if h else '', 終了=h[1] if h else ''))
-        months = _month_grids(3)
-        # 旧式（曜日の決まり）で登録された方には、その内容を日付として見せる。
-        # ⛔ ここで台帳を書き換えないこと。本人が保存したときに移る
-        compat = {}
-        if inst.get('講義できる日時') is None:
-            first = date.fromisoformat([d for d in months[0]['日'] if d][0])
-            last = date.fromisoformat([d for d in months[-1]['日'] if d][-1])
-            compat = booking.materialize(inst, first, last)
+        # 登録済みの日（旧い形で持っている方は、その内容を日付として見せる）
+        # ⛔ ここで台帳を書き換えないこと。本人が1日ぶん保存したときに移る
+        days = booking.registered_days(inst)
+        counts = {}
+        for cs in days.values():
+            for c in cs:
+                counts[c] = counts.get(c, 0) + 1
+        mine = [c for c in booking.COURSES
+                if c['code'] in (inst.get('対応コース') or [])]
         return render_template('instructor_schedule.html', inst=inst, token=token,
                                just_verified=bool(request.args.get('verified')),
+                               saved=request.args.get('saved', ''),
                                blockers=booking.publish_blockers(inst),
                                weekdays=booking.WEEKDAYS,
-                               months=months, compat_days=compat,
+                               months=_month_grids(3),
+                               days=days, counts=counts, courses=mine,
+                               teachable=booking.teachable_courses(inst),
                                lead_days=booking.LEAD_DAYS,
+                               today=booking.today_jst().isoformat(),
                                booked_days=booking.booked_days_for_instructor(inst['id']),
                                earliest=(booking.today_jst()
-                                         + timedelta(days=booking.LEAD_DAYS)).isoformat(),
-                               courses=courses)
+                                         + timedelta(days=booking.LEAD_DAYS)).isoformat())
 
-    @app.route('/api/instructor/schedule', methods=['POST'])
-    def api_instructor_schedule():
-        data = request.get_json(silent=True) or {}
-        token = (data.get('token') or '').strip()
-        if not booking.find_instructor(token):
-            return {'error': 'リンクが正しくありません'}, 403
-        # 予定は日付ごとの枠だけ {'2026-09-05': [{'開始','終了'}]}
-        days = {k: v for k, v in (data.get('days') or {}).items()
-                if _is_day(k) and isinstance(v, list)}
-        inst = booking.update_availability(token, days)
-        # ⛔ 送られた内容ではなく保存された内容を返すこと。予約が入っている日は
-        #    サーバ側で据え置くので、画面がそれを写せないと表示が実態とズレる
-        # ⛔ 保存できたことと、公開されることは別。担当できる講座が無い予定を
-        #    「保存しました」だけで返すと、本人は公開されたつもりで待ち続ける
-        return {'ok': True, '更新日時': inst.get('更新日時'),
-                'days': inst.get('講義できる日時') or {},
-                '公開されない理由': booking.publish_blockers(inst)}
+    # ─────────────── 1日ぶんの登録（選ぶ → 確認 → 保存）
+    @app.route('/instructor/schedule/<token>/day/<iso>',
+               methods=['GET', 'POST'])
+    def instructor_day(token, iso):
+        inst = booking.find_instructor(token)
+        if not inst or not _is_day(iso):
+            return 'この画面のリンクが正しくありません。', 404
+
+        day = date.fromisoformat(iso)
+        booked = iso in booking.booked_days_for_instructor(inst['id'])
+        earliest = booking.today_jst() + timedelta(days=booking.LEAD_DAYS)
+        # 選べるのは、登録時に「担当できる」とされた講座だけ
+        mine = [c for c in booking.COURSES
+                if c['code'] in (inst.get('対応コース') or [])]
+        chosen = (request.form.getlist('courses') if request.method == 'POST'
+                  else booking.day_courses(inst, day))
+
+        def render(step, error=None):
+            return render_template(
+                'instructor_day.html', inst=inst, token=token, iso=iso,
+                day=day, weekday=booking.WEEKDAYS[day.weekday()],
+                mine=mine, chosen=chosen, step=step, error=error,
+                booked=booked, too_soon=day < earliest,
+                earliest=earliest.isoformat(), lead_days=booking.LEAD_DAYS,
+                others=booking.others_on(inst, day))
+
+        if request.method == 'GET':
+            return render('select')
+
+        if request.form.get('confirm') != '1':
+            # ⛔ いきなり保存しないこと。ここは確認画面を出すだけ
+            bad = booking.overlapping_courses(chosen)
+            if bad:
+                a, b = bad[0]
+                return render('select',
+                              f'{a} と {b} は開催時間が重なるため、'
+                              '同じ日にはお受けいただけません。')
+            return render('confirm')
+
+        saved, err = booking.set_day_courses(token, iso, chosen)
+        if err:
+            return render('select', err)
+        return redirect(url_for('instructor_schedule', token=token, saved=iso))
 
     # ─────────────── 承認画面
     @app.route('/admin/instructors')
@@ -142,7 +167,8 @@ def register_booking_routes(app):
                     'message': '管理用の合言葉が未設定のため無効です。'}, 503
         if not ok:
             return {'error': 'forbidden'}, 403
-        rows = [dict(r, 公開されない理由=booking.publish_blockers(r))
+        rows = [dict(r, 公開されない理由=booking.publish_blockers(r),
+                     登録済みの日=booking.registered_days(r))
                 for r in booking.instructors()]
         return render_template('admin_instructors.html', rows=rows,
                                token=request.args.get('token', ''),
@@ -173,6 +199,7 @@ def register_booking_routes(app):
                 予約人数=sum(int(b.get('人数') or 1) for b in mine),
                 公開されない理由=booking.publish_blockers(r),
                 担当できる講座=booking.teachable_courses(r),
+                登録済みの日=booking.registered_days(r),
                 予定URL=url_for('instructor_schedule', token=r.get('鍵'),
                                 _external=True),
             ))

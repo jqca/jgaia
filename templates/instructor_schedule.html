@@ -1,13 +1,11 @@
 {% extends "base.html" %}
 {% block title %}講義できる日の登録 | JGAIA{% endblock %}
-{% block description %}JGAIA 講師の方が、講義できる日と時間をカレンダーから選ぶ画面です。{% endblock %}
+{% block description %}JGAIA 講師の方が、講義できる日と担当する講座をカレンダーから登録する画面です。{% endblock %}
 
 {% block extra_head %}
 <style>
 /* 兼業の方がスマホで触るので、指で押せる大きさを優先する */
-/* 下の余白は固定された保存バーの高さぶん（バーが本文の最後を隠さないため）。
-   ⛔ ここを小さくしないこと。ページ末尾の内容が押せなくなる。 */
-.iv-wrap { max-width: 900px; margin: 0 auto; padding: 24px 16px 150px; }
+.iv-wrap { max-width: 900px; margin: 0 auto; padding: 24px 16px 60px; }
 .iv-head { background:#0d1b3e; color:#fff; border-radius:10px; padding:20px 22px; }
 .iv-head h1 { font-size:22px; font-weight:800; margin:0 0 6px; }
 .iv-head .sub { font-size:14px; opacity:.85; line-height:1.7; }
@@ -19,6 +17,9 @@
 
 .iv-card { background:#fff; border:1px solid #e2e8f0; border-radius:10px;
            padding:20px; margin-top:18px; }
+.iv-card h2 { font-size:17px; font-weight:800; color:#0d1b3e; margin:0 0 4px; }
+.iv-card .hint { font-size:13px; color:#64748b; line-height:1.7; margin-bottom:14px; }
+
 /* お知らせ帯。⛔ 文字色を必ず指定すること（サイト共通CSSが白文字を継承させ、
    薄い背景の上で1文字も読めなくなる。2026-08-09 本番で実測） */
 .iv-note { border-radius:10px; padding:14px 18px; margin-top:16px;
@@ -26,8 +27,6 @@
 .iv-note.ok   { background:#ecfdf5; border:1px solid #a7f3d0; color:#065f46; }
 .iv-note.warn { background:#fffbeb; border:1px solid #fde68a; color:#92400e; }
 .iv-note strong { color:inherit; }
-.iv-card h2 { font-size:17px; font-weight:800; color:#0d1b3e; margin:0 0 4px; }
-.iv-card .hint { font-size:13px; color:#64748b; line-height:1.7; margin-bottom:14px; }
 
 /* カレンダー */
 .cal { margin-top:8px; }
@@ -37,47 +36,28 @@
 .cal-grid .dow { text-align:center; font-size:11px; font-weight:700; color:#64748b;
                  padding-bottom:2px; }
 .cal-grid .dow.sat { color:#2563eb; } .cal-grid .dow.sun { color:#dc2626; }
-/* ⛔ 高さを固定しないこと。時間帯を2本入れた日が枠から溢れる */
+/* ⛔ 高さを固定しないこと。講座を2つ入れた日が枠から溢れる */
 .day { min-height:56px; border-radius:8px; border:1px solid #e2e8f0; background:#fff;
        display:flex; flex-direction:column; align-items:center; justify-content:center;
-       gap:2px; font-size:14px; font-weight:700; color:#334155; cursor:pointer;
-       user-select:none; padding:4px 2px; }
-.day .t { font-size:10px; font-weight:700; line-height:1.35; opacity:.95; }
-.day.empty { border:none; background:none; cursor:default; min-height:0; }
+       gap:2px; font-size:14px; font-weight:700; color:#334155;
+       text-decoration:none; padding:4px 2px; }
+.day .t { font-size:10px; font-weight:700; line-height:1.35; }
+.day.empty { border:none; background:none; min-height:0; }
 /* 「14日以内で受付対象外」は斜線で示す。
-   ⛔ 薄いグレー(#f8fafc)だけにしないこと。「講義しない日(#e5e7eb)」と目で区別できず、
-      講師が「自分が外した日」と「そもそも対象外の日」を取り違える（2026-08-09 実測）。 */
-.day.past { background:none; border-color:transparent; color:#e2e8f0; cursor:default; }
-.day.lead { color:#cbd5e1; cursor:not-allowed;
+   ⛔ 薄いグレーだけにしないこと。「講義しない日」と目で区別できず、
+      講師が「自分が外した日」と「対象外の日」を取り違える（2026-08-09 実測） */
+.day.past { background:none; border-color:transparent; color:#e2e8f0; }
+.day.lead { color:#cbd5e1;
             background:repeating-linear-gradient(45deg,#f8fafc 0 5px,#eef2f7 5px 10px); }
 .day.can  { background:#10b981; color:#fff; border-color:#10b981; }
-.day.cant { background:#fff; color:#94a3b8; border-color:#e2e8f0; }
-.day.booked { background:#2563eb; color:#fff; border-color:#2563eb; cursor:not-allowed; }
-.day.sel { outline:3px solid #0d1b3e; outline-offset:1px; }
+.day.can .t { color:#fff; }
+.day.booked { background:#2563eb; color:#fff; border-color:#2563eb; }
+.day.booked .t { color:#fff; }
+.day.saved { outline:3px solid #0d1b3e; outline-offset:1px; }
 .legend { display:flex; gap:14px; flex-wrap:wrap; font-size:12px; color:#475569;
           margin:12px 0 4px; }
 .legend i { display:inline-block; width:13px; height:13px; border-radius:4px;
             margin-right:5px; vertical-align:-2px; }
-
-/* まとめて入れる */
-.bulk { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
-.chip { font-size:14px; font-weight:700; padding:9px 13px; border-radius:999px;
-        border:1px solid #cbd5e1; background:#fff; color:#0d1b3e; cursor:pointer; }
-.chip.on { background:#0d1b3e; color:#fff; border-color:#0d1b3e; }
-.mini { font-size:13px; font-weight:700; padding:9px 13px; border-radius:999px;
-        border:1px solid #cbd5e1; background:#fff; color:#0d1b3e; cursor:pointer; }
-.mini:hover { background:#f1f5f9; }
-.mini.strong { background:#0d1b3e; color:#fff; border-color:#0d1b3e; }
-select.t { padding:9px 11px; border:1px solid #cbd5e1; border-radius:6px;
-           font-size:15px; background:#fff; color:#0f172a; }
-.to { color:#64748b; }
-
-/* 選んだ日の編集 */
-.pick-none { font-size:14px; color:#64748b; }
-.pick-head { font-size:16px; font-weight:800; color:#0d1b3e; margin-bottom:10px; }
-.slot { display:flex; align-items:center; gap:8px; margin-bottom:8px; flex-wrap:wrap; }
-.pick-acts { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
-.pick-msg { font-size:13px; font-weight:700; color:#dc2626; margin-top:8px; }
 
 /* 担当できるコース */
 .cov { list-style:none; margin:0; padding:0; }
@@ -88,28 +68,11 @@ select.t { padding:9px 11px; border:1px solid #cbd5e1; border-radius:6px;
 .cov-h { color:#64748b; font-size:13px; }
 .cov-badge { font-size:12px; font-weight:700; border-radius:999px; padding:4px 11px; }
 .cov-badge.ok { background:#d1fae5; color:#065f46; }
-.cov-badge.no { background:#fee2e2; color:#991b1b; }
-
-/* 保存バーは画面下に固定する。
-   ⛔ sticky＋負の下マージンにしないこと。バーが本文の上に重なり、
-      最後の行が隠れて押せなくなる（2026-08-09 実測で発生）。
-   ⛔ 半透明にしないこと（下の文字が透けて読めない）。 */
-.iv-save { position:fixed; left:0; right:0; bottom:0; z-index:50; background:#fff;
-           border-top:1px solid #e2e8f0; padding:14px 16px;
-           box-shadow:0 -6px 18px rgba(13,27,62,.10);
-           display:flex; align-items:center; gap:14px; flex-wrap:wrap;
-           max-width:1000px; margin:0 auto; }
-.iv-save button { flex:1; min-width:180px; background:#0d1b3e; color:#fff; border:none;
-                  border-radius:8px; padding:15px 20px; font-size:16px; font-weight:800;
-                  cursor:pointer; }
-.iv-save .msg { font-size:14px; font-weight:700; }
-.iv-save .msg.ok { color:#059669; } .iv-save .msg.err { color:#dc2626; }
-.iv-save .cnt { font-size:13px; color:#475569; font-weight:700; }
+.cov-badge.no { background:#f1f5f9; color:#475569; }
 
 @media (max-width: 560px) {
   .day { min-height:50px; font-size:13px; }
   .day .t { font-size:9px; }
-  select.t { font-size:14px; padding:8px 9px; }
 }
 </style>
 {% endblock %}
@@ -121,13 +84,14 @@ select.t { padding:9px 11px; border:1px solid #cbd5e1; border-radius:6px;
   <div class="iv-head">
     <h1>{{ inst['氏名'] }} 様の 講義できる日</h1>
     <div class="sub">
-      <strong>カレンダーで日付を選ぶだけ</strong>です。選んだ日が、受講者から見える予約カレンダーに反映されます。<br>
-      予約は<strong>開催の{{ lead_days }}日以上前</strong>までしか入りません。直前の予約は入らないのでご安心ください。
+      <strong>ステップ 1 / 3 — カレンダーで日付を押してください。</strong><br>
+      次の画面で、その日に担当する講座を選びます。予約が入るのは
+      <strong>開催の{{ lead_days }}日以上前</strong>まで。直前の予約は入りません。
     </div>
     {% if inst['状態'] == '承認' %}
-      <span class="iv-state ok">承認済み — 選んだ日が公開されます</span>
+      <span class="iv-state ok">承認済み — 登録した日が公開されます</span>
     {% elif inst['状態'] == '申請中' %}
-      <span class="iv-state wait">承認待ち — 承認までは公開されません（先に選べます）</span>
+      <span class="iv-state wait">承認待ち — 承認までは公開されません（先に登録できます）</span>
     {% else %}
       <span class="iv-state no">{{ inst['状態'] }}</span>
     {% endif %}
@@ -148,26 +112,34 @@ select.t { padding:9px 11px; border:1px solid #cbd5e1; border-radius:6px;
     </div>
   {% endif %}
 
+  {% if saved %}
+    <div class="iv-note ok">
+      <strong>{{ saved }} の登録を保存しました。</strong>
+      続けて別の日も登録できます。
+    </div>
+  {% endif %}
+
   {# ⛔ 「公開されていない」ことを本人に必ず出す。承認済みなのに日程が
      受講者に出ない状態が、画面のどこにも書かれていなかった（2026-08-12 実害） #}
-  <div class="iv-note warn" id="blockBox"
-       {% if not blockers %}style="display:none;"{% endif %}>
-    <strong>いまの登録内容では、受講者に日程が公開されません。</strong>
-    <ul id="blockList" style="margin:8px 0 0;padding-left:20px;">
-      {% for b in blockers %}<li>{{ b }}</li>{% endfor %}
-    </ul>
-  </div>
+  {% if blockers %}
+    <div class="iv-note warn">
+      <strong>いまの登録内容では、受講者に日程が公開されません。</strong>
+      <ul style="margin:8px 0 0;padding-left:20px;">
+        {% for b in blockers %}<li>{{ b }}</li>{% endfor %}
+      </ul>
+    </div>
+  {% endif %}
 
   <div class="iv-card">
-    <h2>1. 講義できる日を選ぶ</h2>
+    <h2>講義できる日を選ぶ</h2>
     <div class="hint">
-      日付を押すと「講義できる日（緑）」になります。もう一度押すと、その日の時間を変えられます。<br>
-      1日に<strong>朝と夜のように複数の時間帯</strong>を入れられます。時間は日ごとに違ってかまいません。
+      日付を押すと、その日に担当する講座を選ぶ画面になります。
+      緑の日は登録済みで、押すと変更・取り消しができます。
     </div>
 
     <div class="legend">
-      <span><i style="background:#10b981"></i>講義できる（時間を表示）</span>
-      <span><i style="background:#fff;border:1px solid #e2e8f0"></i>講義しない</span>
+      <span><i style="background:#10b981"></i>登録済み（担当する講座を表示）</span>
+      <span><i style="background:#fff;border:1px solid #e2e8f0"></i>未登録</span>
       <span><i style="background:#2563eb"></i>予約が入っている（変更不可）</span>
       <span><i style="background:repeating-linear-gradient(45deg,#f8fafc 0 4px,#eef2f7 4px 8px);border:1px solid #e2e8f0"></i>{{ lead_days }}日以内（対象外）</span>
     </div>
@@ -180,10 +152,24 @@ select.t { padding:9px 11px; border:1px solid #cbd5e1; border-radius:6px;
             <div class="dow {% if loop.index0 == 5 %}sat{% elif loop.index0 == 6 %}sun{% endif %}">{{ w }}</div>
           {% endfor %}
           {% for d in m['日'] %}
-            {% if d %}
-              <div class="day" data-day="{{ d }}"><span class="n">{{ d[8:]|int }}</span></div>
-            {% else %}
+            {% if not d %}
               <div class="day empty"></div>
+            {% elif d < today %}
+              {# ⛔ 過ぎた日を「14日以内」と説明しないこと。理由が違う #}
+              <div class="day past" title="過ぎた日です">{{ d[8:]|int }}</div>
+            {% else %}
+              <a class="day
+                    {% if d in booked_days %}booked
+                    {% elif days.get(d) %}can
+                    {% elif d < earliest %}lead{% endif %}
+                    {% if d == saved %}saved{% endif %}"
+                 href="{{ url_for('instructor_day', token=token, iso=d) }}"
+                 title="{% if d in booked_days %}予約が入っています{% elif d < earliest %}{{ lead_days }}日以内のため予約対象外です{% else %}押すと担当する講座を選べます{% endif %}">
+                <span class="n">{{ d[8:]|int }}</span>
+                {% if days.get(d) %}
+                  <span class="t">{{ days[d] | join(' ') }}</span>
+                {% endif %}
+              </a>
             {% endif %}
           {% endfor %}
         </div>
@@ -191,329 +177,27 @@ select.t { padding:9px 11px; border:1px solid #cbd5e1; border-radius:6px;
     {% endfor %}
   </div>
 
-  <div class="iv-card" id="pickCard">
-    <h2>2. 選んだ日の時間</h2>
-    <div id="pickBody"><div class="pick-none">上のカレンダーで日付を押してください。</div></div>
-  </div>
-
   <div class="iv-card">
-    <h2>3. 同じ曜日にまとめて入れる（任意）</h2>
+    <h2>いま受けられる講座</h2>
     <div class="hint">
-      毎週決まった曜日に講義できる方は、ここでまとめて入れられます。
-      <strong>入るのは表示中の3か月ぶんの日付</strong>で、あとから1日ずつ直せます。
-      （毎週の決まりとして保存されるわけではありません）
-    </div>
-    <div class="bulk">
-      {% for w in weekdays %}
-        <button type="button" class="chip" data-wd="{{ loop.index0 }}">{{ w }}</button>
-      {% endfor %}
-    </div>
-    <div class="bulk" style="margin-top:12px;">
-      <select class="t" id="bulkFrom">
-        {% for h in range(7, 22) %}
-          {% set t = '%02d:00' % h %}
-          <option value="{{ t }}" {% if h == 10 %}selected{% endif %}>{{ t }}</option>
-        {% endfor %}
-      </select>
-      <span class="to">〜</span>
-      <select class="t" id="bulkTo">
-        {% for h in range(8, 23) %}
-          {% set t = '%02d:00' % h %}
-          <option value="{{ t }}" {% if h == 17 %}selected{% endif %}>{{ t }}</option>
-        {% endfor %}
-      </select>
-      <button type="button" class="mini strong" id="bulkAdd">選んだ曜日に入れる</button>
-      <button type="button" class="mini" id="bulkClear">表示中をすべて空にする</button>
-    </div>
-    <div class="pick-msg" id="bulkMsg"></div>
-  </div>
-
-  <div class="iv-card">
-    <h2>担当できるコースの開催時間</h2>
-    <div class="hint">
-      コースには決まった開催時間があります。
-      <strong>その時間を含む枠がある日だけ</strong>、そのコースの予約が入ります。
-      いまのご登録で受けられるコースは、次のとおりです。
+      どれか1日でも担当すると選んだ講座が、受講者の予約カレンダーに出ます。
     </div>
     <ul class="cov">
       {% for c in courses %}
         <li>
           <span class="cov-name">{{ c['code'] }} {{ c['name'] }}</span>
           <span class="cov-h">{{ c['hours'] }}</span>
-          <span class="cov-badge" data-course="{{ c['code'] }}"
-                data-from="{{ c['開始'] }}" data-to="{{ c['終了'] }}"></span>
+          {% if c['code'] in teachable %}
+            <span class="cov-badge ok">
+              {{ counts.get(c['code'], 0) }}日 登録済み</span>
+          {% else %}
+            <span class="cov-badge no">まだ1日も選んでいません</span>
+          {% endif %}
         </li>
       {% endfor %}
     </ul>
   </div>
 
-  <div class="iv-save">
-    <button type="button" id="saveBtn">この内容で保存する</button>
-    <span class="cnt" id="cnt"></span>
-    <span class="msg" id="saveMsg"></span>
-  </div>
-
 </div>
 </main>
-
-<script>
-(function () {
-  var TOKEN = {{ token | tojson }};
-  var LEAD  = {{ lead_days }};
-  var WD    = {{ weekdays | tojson }};
-  // 予定は日付ごとの枠だけ {'2026-09-05':[{'開始','終了'}]}
-  var days   = {{ (inst['講義できる日時'] or compat_days or {}) | tojson }};
-  var booked = new Set({{ booked_days | default([]) | tojson }});
-  var today = new Date(); today.setHours(0,0,0,0);
-  var earliest = new Date(today.getTime() + LEAD*86400000);
-  var picked = null;
-
-  function dayOf(iso) { var p = iso.split('-'); return new Date(+p[0], +p[1]-1, +p[2]); }
-  // 月曜=0 に合わせる（JSは日曜=0）
-  function wdOf(iso) { return (dayOf(iso).getDay() + 6) % 7; }
-  function slotsOf(iso) { return days[iso] || []; }
-  function editable(iso) { return !booked.has(iso) && dayOf(iso) >= earliest; }
-  function opts(from, to, sel) {
-    var s = '';
-    for (var h = from; h <= to; h++) {
-      var t = ('0' + h).slice(-2) + ':00';
-      s += '<option value="' + t + '"' + (t === sel ? ' selected' : '') + '>' + t + '</option>';
-    }
-    return s;
-  }
-  function sortSlots(list) {
-    // 保存側（booking.normalize_slots）と同じ扱いにする＝並べて、同じ枠は1本にする
-    var seen = {}, out = [];
-    list.forEach(function (s) {
-      var k = s['開始'] + '-' + s['終了'];
-      if (!seen[k]) { seen[k] = 1; out.push(s); }
-    });
-    return out.sort(function (a, b) { return a['開始'] < b['開始'] ? -1 : 1; });
-  }
-
-  function paint() {
-    document.querySelectorAll('.day[data-day]').forEach(function (el) {
-      var iso = el.dataset.day;
-      var ss = slotsOf(iso);
-      el.className = 'day';
-      var label = '';
-      if (booked.has(iso)) {
-        el.classList.add('booked');
-        el.title = '予約が入っています（変更は info@jgaia.org へ）';
-        label = ss.map(function (s) { return s['開始']; }).join(' ');
-      } else if (dayOf(iso) < today) {
-        // ⛔ 過ぎた日を「14日以内」と説明しないこと。理由が違う（説明が嘘になる）
-        el.classList.add('past'); el.title = '過ぎた日です';
-      } else if (dayOf(iso) < earliest) {
-        el.classList.add('lead');
-        el.title = LEAD + '日以内のため予約対象外です';
-      } else if (ss.length) {
-        el.classList.add('can');
-        el.title = ss.map(function (s) { return s['開始'] + '〜' + s['終了']; }).join('、');
-        label = ss.map(function (s) { return s['開始'] + '-' + s['終了']; }).join('<br>');
-      } else {
-        el.classList.add('cant'); el.title = 'この日は講義しません（押すと入れられます）';
-      }
-      if (picked === iso) { el.classList.add('sel'); }
-      el.innerHTML = '<span class="n">' + parseInt(iso.slice(8), 10) + '</span>'
-                   + (label ? '<span class="t">' + label + '</span>' : '');
-    });
-    paintPick();
-    paintCoverage();
-    var n = Object.keys(days).filter(function (k) { return days[k].length; }).length;
-    document.getElementById('cnt').textContent = '講義できる日：' + n + '日';
-  }
-
-  function paintPick() {
-    var box = document.getElementById('pickBody');
-    if (!picked) {
-      box.innerHTML = '<div class="pick-none">上のカレンダーで日付を押してください。</div>';
-      return;
-    }
-    var ss = slotsOf(picked);
-    var html = '<div class="pick-head">' + picked + '（' + WD[wdOf(picked)] + '）</div>';
-    if (!editable(picked)) {
-      html += '<div class="pick-none">この日は予約が入っているため変更できません。'
-            + '（' + (ss.map(function (s) { return s['開始'] + '〜' + s['終了']; }).join('、') || '—')
-            + '）変更が必要なときは info@jgaia.org までご連絡ください。</div>';
-      box.innerHTML = html; return;
-    }
-    if (!ss.length) {
-      html += '<div class="pick-none">この日は「講義しない」になっています。</div>';
-    }
-    ss.forEach(function (s, i) {
-      html += '<div class="slot" data-i="' + i + '">'
-        + '<select class="t s-from">' + opts(7, 21, s['開始']) + '</select>'
-        + '<span class="to">〜</span>'
-        + '<select class="t s-to">' + opts(8, 22, s['終了']) + '</select>'
-        + '<button type="button" class="mini s-del">✕ この時間帯を消す</button></div>';
-    });
-    html += '<div class="pick-acts">'
-      + '<button type="button" class="mini strong" id="slotAdd">＋ 時間帯を追加</button>'
-      + (ss.length ? '<button type="button" class="mini" id="dayClear">この日は講義しない</button>' : '')
-      + '</div><div class="pick-msg" id="pickMsg"></div>';
-    box.innerHTML = html;
-  }
-
-  // いまの登録でどのコースを受けられるか。
-  // ⛔ 「選んだ日数」で表さないこと。実際の足切りは開催時間を含む枠があるかどうか
-  function paintCoverage() {
-    var all = [];
-    Object.keys(days).forEach(function (k) { all = all.concat(days[k]); });
-    document.querySelectorAll('.cov-badge').forEach(function (b) {
-      var f = b.dataset.from, t = b.dataset.to;
-      if (!f || !t) { b.className = 'cov-badge'; b.textContent = ''; return; }
-      var ok = all.some(function (s) { return s['開始'] <= f && s['終了'] >= t; });
-      b.className = 'cov-badge ' + (ok ? 'ok' : 'no');
-      b.textContent = ok ? '受けられます' : 'この時間を含む枠がありません';
-    });
-  }
-
-  document.addEventListener('click', function (e) {
-    var cell = e.target.closest ? e.target.closest('.day[data-day]') : null;
-    if (cell) {
-      var iso = cell.dataset.day;
-      if (dayOf(iso) < earliest && !booked.has(iso)) { return; }
-      picked = iso;
-      // 空いている日を押したら、その場で既定の時間帯を1本入れる（1タップで登録できる）
-      if (editable(iso) && !slotsOf(iso).length) {
-        days[iso] = [{'開始': document.getElementById('bulkFrom').value,
-                      '終了': document.getElementById('bulkTo').value}];
-      }
-      paint();
-      document.getElementById('pickCard').scrollIntoView({block: 'nearest'});
-      return;
-    }
-    var del = e.target.closest ? e.target.closest('.s-del') : null;
-    if (del) {
-      var i = parseInt(del.closest('.slot').dataset.i, 10);
-      days[picked].splice(i, 1);
-      if (!days[picked].length) { delete days[picked]; }
-      paint(); return;
-    }
-    if (e.target.id === 'slotAdd') {
-      var cur = days[picked] || [];
-      // ⛔ まったく同じ枠を2本作らないこと（押した回数だけ増えて見える）
-      var add = {'開始': '18:00', '終了': '21:00'};
-      if (cur.some(function (s) { return s['開始'] === add['開始'] && s['終了'] === add['終了']; })) {
-        document.getElementById('pickMsg').textContent =
-          '18:00〜21:00 はすでに入っています。時間を選び直してください。';
-        return;
-      }
-      days[picked] = sortSlots(cur.concat([add]));
-      paint(); return;
-    }
-    if (e.target.id === 'dayClear') { delete days[picked]; paint(); return; }
-
-    var chip = e.target.closest ? e.target.closest('.chip') : null;
-    if (chip) { chip.classList.toggle('on'); return; }
-
-    if (e.target.id === 'bulkAdd') {
-      var msg = document.getElementById('bulkMsg');
-      var wds = [].map.call(document.querySelectorAll('.chip.on'),
-                            function (c) { return parseInt(c.dataset.wd, 10); });
-      var a = document.getElementById('bulkFrom').value;
-      var b = document.getElementById('bulkTo').value;
-      msg.textContent = '';
-      if (!wds.length) { msg.textContent = '曜日を1つ以上選んでください。'; return; }
-      if (a >= b) { msg.textContent = '終了は開始より後の時刻をお選びください。'; return; }
-      var n = 0;
-      document.querySelectorAll('.day[data-day]').forEach(function (el) {
-        var iso = el.dataset.day;
-        if (!editable(iso) || wds.indexOf(wdOf(iso)) < 0) { return; }
-        var ss = slotsOf(iso);
-        // ⛔ すでに入っている枠を消さないこと（1日ずつ直した内容が消える）
-        if (ss.some(function (s) { return s['開始'] === a && s['終了'] === b; })) { return; }
-        days[iso] = sortSlots(ss.concat([{'開始': a, '終了': b}]));
-        n++;
-      });
-      msg.style.color = '#059669';
-      msg.textContent = n + '日に ' + a + '〜' + b + ' を入れました。'
-                      + '個別の調整は上のカレンダーからどうぞ。';
-      paint(); return;
-    }
-    if (e.target.id === 'bulkClear') {
-      document.querySelectorAll('.day[data-day]').forEach(function (el) {
-        if (editable(el.dataset.day)) { delete days[el.dataset.day]; }
-      });
-      document.getElementById('bulkMsg').style.color = '#dc2626';
-      document.getElementById('bulkMsg').textContent =
-        '表示中の日をすべて空にしました（保存するまで確定しません）。';
-      paint(); return;
-    }
-  });
-
-  document.addEventListener('change', function (e) {
-    if (!e.target.classList || !picked) { return; }
-    if (!e.target.classList.contains('s-from') && !e.target.classList.contains('s-to')) { return; }
-    var row = e.target.closest('.slot');
-    var i = parseInt(row.dataset.i, 10);
-    var a = row.querySelector('.s-from').value, b = row.querySelector('.s-to').value;
-    if (a >= b) {
-      // ⛔ 開始≧終了を黙って直さない（勝手に別の時間で保存される方が困る）
-      document.getElementById('pickMsg').textContent =
-        '終了は開始より後の時刻をお選びください。';
-      return;
-    }
-    days[picked][i] = {'開始': a, '終了': b};
-    days[picked] = sortSlots(days[picked]);   // 同じ枠になったら1本に畳む
-    paint();
-  });
-
-  document.getElementById('saveBtn').addEventListener('click', function () {
-    var btn = this, msg = document.getElementById('saveMsg');
-    var bad = [];
-    Object.keys(days).forEach(function (k) {
-      days[k].forEach(function (s) { if (s['開始'] >= s['終了']) { bad.push(k); } });
-    });
-    if (bad.length) {
-      msg.className = 'msg err';
-      msg.textContent = '終了が開始より前の時間帯があります（' + bad.join('、') + '）。';
-      return;
-    }
-    btn.disabled = true; btn.textContent = '保存中…';
-    msg.className = 'msg'; msg.textContent = '';
-    fetch('/api/instructor/schedule', {
-      method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({token: TOKEN, days: days})
-    }).then(function (r) {
-      return r.json().catch(function () { return {}; }).then(function (j) {
-        if (!r.ok || !j.ok) { throw new Error(j.error || '保存できませんでした'); }
-        return j;
-      });
-    }).then(function (j) {
-      // ⛔ 送った内容ではなく、保存された内容を画面に反映すること
-      //    （予約が入っている日はサーバ側で据え置かれる）
-      if (j.days) { days = j.days; }
-      paint();
-      // ⛔ 保存できたことと、公開されることは別。担当できる講座が無い予定を
-      //    「保存しました」だけで返すと、本人は公開されたつもりで待ち続ける
-      var reasons = j['公開されない理由'] || [];
-      var box = document.getElementById('blockBox');
-      var list = document.getElementById('blockList');
-      list.innerHTML = reasons.map(function (t) {
-        var li = document.createElement('li');
-        li.textContent = t;                       // ⛔ 生のHTMLにしない
-        return li.outerHTML;
-      }).join('');
-      box.style.display = reasons.length ? '' : 'none';
-      if (reasons.length) {
-        msg.className = 'msg err';
-        msg.textContent = '保存しましたが、まだ公開されません（上の理由をご確認ください）';
-        box.scrollIntoView({block: 'nearest'});
-      } else {
-        msg.className = 'msg ok';
-        msg.textContent = '保存しました（' + (j['更新日時'] || '') + '）';
-      }
-    }).catch(function (e) {
-      msg.className = 'msg err';
-      msg.textContent = e.message + ' — info@jgaia.org までご連絡ください。';
-    }).finally(function () {
-      btn.disabled = false; btn.textContent = 'この内容で保存する';
-    });
-  });
-
-  paint();
-})();
-</script>
 {% endblock %}

@@ -155,7 +155,7 @@ def register_instructor(name, email, org, courses, note, days=None):
 
     ⛔ 登録フォームで予定を聞かないこと（2026-08-11 社長ご指示）。
        日付はカレンダー画面で選ぶ。登録の入口を軽くする方が申請が増える。
-       days は移行・試験用の入口で、画面からは渡らない。
+       days（{'2026-08-26': ['SP-A']}）は移行・試験用で、画面からは渡らない。
     """
     name = (name or '').strip()
     email = (email or '').strip()
@@ -177,9 +177,11 @@ def register_instructor(name, email, org, courses, note, days=None):
         '状態': '申請中',                   # 申請中 / 承認 / 見送り
         # 本人が確認リンクを踏んだ日時。空＝未確認で、承認しても公開されない
         'メール確認済み': None,
-        # 予定は日付ごとの枠だけが正 {'2026-09-05':[{'開始':'10:00','終了':'17:00'}]}
-        # 1日に朝と夜のように複数の枠を持てる。空＝その日は講義しない
-        '講義できる日時': normalize_daily(days),
+        # 予定は「日付 → その日に担当する講座」だけが正
+        # {'2026-08-26': ['SP-A', 'GA']}。時刻は COURSES が持つ
+        '担当できる日': {k: sorted(c for c in v if c in COURSE_BY_CODE)
+                        for k, v in (days or {}).items()
+                        if _is_iso(k) and v},
         '登録日時': now_jst().strftime('%Y-%m-%d %H:%M'),
     }
     rows.append(rec)
@@ -205,36 +207,12 @@ def set_state(instructor_id, state):
     return hit
 
 
-def update_availability(token, days):
-    """講師本人が自分の予定を書き換える。days = {'2026-09-05': [{'開始','終了'}]}
+"""⛔ 予定の書き込み口は set_day_courses（1日ずつ確定）だけ。
 
-    ⛔ すでに受講者の申込が入っている日は、閉じることも時間を変えることも
-       できない。約束した日をあとから一方的に消せると、受講料をいただいた
-       講座が無人になる。変更が必要なときは運営が個別に調整する。
-    ⛔ 保存時に旧式の欄（毎週の可能時間・不可の日・日別の可能時間）を落とすこと。
-       残すと「予定の正がどれか」が2つになり、画面と実装で答えが割れる。
-    """
-    rows = instructors()
-    hit = None
-    for r in rows:
-        if r.get('鍵') != token:
-            continue
-        new = normalize_daily(days)
-        for iso in booked_days_for_instructor(r.get('id')):
-            try:
-                cur = slots_on(r, date.fromisoformat(iso))
-            except ValueError:
-                continue
-            if cur:                      # 約束した日は今のまま据え置く
-                new[iso] = cur
-        r['講義できる日時'] = dict(sorted(new.items()))
-        for old in ('毎週の可能時間', '不可の日', '日別の可能時間'):
-            r.pop(old, None)
-        r['更新日時'] = now_jst().strftime('%Y-%m-%d %H:%M')
-        hit = r
-    if hit:
-        _save('instructors.json', rows)
-    return hit
+2026-08-12 社長ご指示で「日を選ぶ → その日に担当するコースを選ぶ →
+確認 → 保存」の1日単位に変えたため、時間帯をまとめて送る旧APIは廃止した。
+⛔ 書き込み口を2つにしないこと（同じ予定に別々の作法ができ、片方だけ直す
+   壊れ方が起きる）。"""
 
 
 # ────────────────────────────── 講義できる時間帯
@@ -271,6 +249,14 @@ def normalize_weekly(weekly):
         for s in normalize_slots([w]):
             out.append({'曜日': int(w['曜日']), **s})
     return sorted(out, key=lambda w: (w['曜日'], w['開始'], w['終了']))
+
+
+def _is_iso(v):
+    try:
+        date.fromisoformat(str(v))
+        return True
+    except ValueError:
+        return False
 
 
 def normalize_daily(daily):
@@ -335,23 +321,150 @@ def materialize(inst, start, end):
     return out
 
 
+def day_courses(inst, d):
+    """その日に担当すると登録されている講座コード。
+
+    2026-08-12 社長ご指示で「時間帯を自分で組む」→「その日に担当できる
+    コースを選ぶ」に変えた。時間はコースが持っているので、講師が
+    10:00〜11:00 のような担当できない枠を作ってしまう余地が消える。
+
+    ⛔ 時刻は COURSES の hours が唯一の出どころ。ここで持たないこと。
+    """
+    iso = d.isoformat()
+    days = inst.get('担当できる日')
+    if days is not None:
+        return [c for c in (days.get(iso) or []) if c in COURSE_BY_CODE]
+
+    # ── 以下は 2026-08-12 より前の登録（時間帯で持っていた）の読み取り互換。
+    #    本人が1日ぶんでも確定すると新しい形に移る（保存側で旧欄を落とす）。
+    slots = slots_on(inst, d)
+    out = []
+    for c in (inst.get('対応コース') or []):
+        h = course_hours(c)
+        if h and any(s['開始'] <= h[0] and s['終了'] >= h[1] for s in slots):
+            out.append(c)
+    return out
+
+
+def overlapping_courses(codes):
+    """同時に担当できない組み合わせ（開催時間が重なるもの）を返す。
+
+    ⛔ 同じ日に時間の重なる2つを受け付けないこと。1人が同時刻に
+       2つの講座を担当することはできない（＝バッティング）。
+    """
+    hours = {}
+    for c in codes:
+        h = course_hours(c)
+        if h:
+            hours[c] = h
+    bad = []
+    seen = sorted(hours)
+    for i, a in enumerate(seen):
+        for b in seen[i + 1:]:
+            if hours[a][0] < hours[b][1] and hours[b][0] < hours[a][1]:
+                bad.append((a, b))
+    return bad
+
+
+def set_day_courses(token, iso, codes):
+    """1日ぶんを確定する。戻り値: (講師, エラー文 or None)
+
+    ⛔ 予約が入っている日は変更させないこと（受講者に案内済み）。
+    ⛔ 担当できない講座（対応コース外）を受け付けないこと。
+    """
+    inst = find_instructor(token)
+    if not inst:
+        return None, 'リンクが正しくありません'
+    try:
+        date.fromisoformat(iso)
+    except ValueError:
+        return None, '日付が正しくありません'
+    if iso in booked_days_for_instructor(inst.get('id')):
+        return None, ('この日はすでに予約が入っているため変更できません。'
+                      'info@jgaia.org までご連絡ください')
+
+    ok = [c for c in (codes or []) if c in (inst.get('対応コース') or [])]
+    ng = [c for c in (codes or []) if c not in ok]
+    if ng:
+        return None, '担当できる講座として登録されていないものが含まれています'
+    bad = overlapping_courses(ok)
+    if bad:
+        a, b = bad[0]
+        return None, (f'{a} と {b} は開催時間が重なるため、同じ日には'
+                      'お受けいただけません')
+
+    rows = instructors()
+    hit = None
+    for r in rows:
+        if r.get('鍵') != token:
+            continue
+        days = dict(r.get('担当できる日') or {})
+        if days == {} and r.get('担当できる日') is None:
+            # 旧い形で持っていた予定を、いまの形に写してから触る
+            # ⛔ 写さずに上書きすると、他の日の登録が黙って消える
+            days = _legacy_day_courses(r)
+        if ok:
+            days[iso] = sorted(ok)
+        else:
+            days.pop(iso, None)          # 選択なし＝その日は講義しない
+        r['担当できる日'] = dict(sorted(days.items()))
+        for old in ('毎週の可能時間', '不可の日', '日別の可能時間', '講義できる日時'):
+            r.pop(old, None)
+        r['更新日時'] = now_jst().strftime('%Y-%m-%d %H:%M')
+        hit = r
+    if hit:
+        _save('instructors.json', rows)
+    return hit, None
+
+
+def others_on(inst, d):
+    """その日に、他の承認済み講師が担当すると登録している講座。
+
+    ⛔ これは「重複＝禁止」ではない（同じ日に複数の講師がいて構わない）。
+       予約が入るのは1人だけなので、知らせるだけにとどめること。
+    """
+    out = []
+    for r in approved_instructors():
+        if r.get('id') == inst.get('id'):
+            continue
+        cs = day_courses(r, d)
+        if cs:
+            out.append({'氏名': r.get('氏名'), 'コース': cs})
+    return out
+
+
+def _legacy_day_courses(inst, span=180):
+    """旧い形（時間帯・曜日）の予定を「日付→担当コース」に写す。"""
+    out, d = {}, today_jst()
+    end = d + timedelta(days=span)
+    while d <= end:
+        cs = day_courses(inst, d)
+        if cs:
+            out[d.isoformat()] = sorted(cs)
+        d += timedelta(days=1)
+    return out
+
+
 def teachable_courses(inst):
     """その講師の登録内容で、実際に担当できる講座コード。
 
     ⛔ 「登録した日数」で判断しないこと。コースは終日（例 10:00〜17:00）なので、
        1時間の枠を何本並べても担当できない（2026-08-12 本番で実際に起きた）。
     """
-    days = inst.get('講義できる日時')
-    if days is None:                     # 旧式（曜日の決まり）は展開して見る
-        start = today_jst()
-        days = materialize(inst, start, start + timedelta(days=90))
-    slots = [s for v in days.values() for s in normalize_slots(v)]
     out = []
-    for c in (inst.get('対応コース') or []):
-        h = course_hours(c)
-        if not h or any(s['開始'] <= h[0] and s['終了'] >= h[1] for s in slots):
-            out.append(c)
-    return out
+    for cs in registered_days(inst).values():
+        for c in cs:
+            if c not in out:
+                out.append(c)
+    return [c for c in (inst.get('対応コース') or []) if c in out]
+
+
+def registered_days(inst):
+    """{'2026-08-26': ['SP-A', ...]} 登録されている日と、その日の担当講座。"""
+    days = inst.get('担当できる日')
+    if days is None:
+        days = _legacy_day_courses(inst)
+    return {k: v for k, v in sorted(days.items()) if v}
 
 
 def publish_blockers(inst):
@@ -366,13 +479,16 @@ def publish_blockers(inst):
     if not inst.get('メール確認済み'):
         out.append('メールアドレスの確認が済んでいません')
 
-    days = inst.get('講義できる日時')
-    if days is None:
-        start = today_jst()
-        days = materialize(inst, start, start + timedelta(days=90))
-    days = {k: v for k, v in days.items() if v}
+    days = registered_days(inst)
     if not days:
-        out.append('講義できる日が1日も登録されていません')
+        # ⛔ 旧い形（時間帯）で登録した方に「1日も登録されていません」と言わない。
+        #    登録はしている。その時間帯では担当できる講座が無いだけ
+        legacy = (inst.get('担当できる日') is None
+                  and (inst.get('講義できる日時') or inst.get('毎週の可能時間')))
+        out.append('登録されている時間帯では、担当できる講座がありません'
+                   '（講座は開催時間を通しで担当する必要があります）。'
+                   'カレンダーから日付を選び直してください'
+                   if legacy else '講義できる日が1日も登録されていません')
         return out
 
     # 受付は LEAD_DAYS 日以上先だけ。手前しか無ければ実質公開されない
@@ -381,14 +497,10 @@ def publish_blockers(inst):
         out.append(f'登録された日がすべて{LEAD_DAYS}日以内です'
                    f'（予約は{earliest}以降の日にしか入りません）')
 
-    can = teachable_courses(inst)
-    ng = [c for c in (inst.get('対応コース') or []) if c not in can]
-    if ng:
-        detail = '／'.join(
-            f"{c}（{(COURSE_BY_CODE.get(c) or {}).get('hours', '')}）" for c in ng)
-        head = ('登録した時間帯では、担当できる講座がありません'
-                if not can else '一部の講座は、登録した時間帯では担当できません')
-        out.append(f'{head}：{detail} を通しで担当できる枠が必要です')
+    # ⛔ 「一部の講座を選んでいない」は公開されない理由ではない（選んだ講座は
+    #    公開されている）。ここに混ぜると、公開中なのに未公開と読める
+    if not teachable_courses(inst):
+        out.append('どの日にも担当する講座が選ばれていません')
     return out
 
 
@@ -398,7 +510,7 @@ def availability_end(inst):
     ⛔ 日付形式は「入れた先まで」しか公開されない。いつまで入っているかを
        画面に出さないと、気づかないうちに予約可の日が尽きる。
     """
-    days = [k for k, v in (inst.get('講義できる日時') or {}).items() if v]
+    days = list(registered_days(inst))
     return max(days) if days else None
 
 
@@ -438,12 +550,7 @@ def instructor_can_teach(inst, d, course_code, booked=None):
     """
     if booked and d.isoformat() in booked:
         return True
-    hours = course_hours(course_code)
-    slots = slots_on(inst, d)
-    if not hours:
-        # 開催時間が読めないコースは、時間での足切りをしない（曜日どおり）
-        return bool(slots)
-    return any(s['開始'] <= hours[0] and s['終了'] >= hours[1] for s in slots)
+    return course_code in day_courses(inst, d)
 
 
 def open_days(course_code, months=3):
