@@ -129,11 +129,20 @@ def register_booking_routes(app):
         day = date.fromisoformat(iso)
         booked = iso in booking.booked_days_for_instructor(inst['id'])
         earliest = booking.today_jst() + timedelta(days=booking.LEAD_DAYS)
-        # 選べるのは、登録時に「担当できる」とされた講座だけ
-        mine = [c for c in booking.COURSES
-                if c['code'] in (inst.get('対応コース') or [])]
-        chosen = (request.form.getlist('courses') if request.method == 'POST'
-                  else booking.day_courses(inst, day))
+        # 選べるのは、登録時に「担当できる」とされた講座のうち、
+        # その曜日に開催できるものだけ。⛔ 選べないものを黙って消さず、
+        # 理由（毎週水曜の開催です等）を添えて出す（無いと「なぜ出ないのか」が分からない）
+        mine = []
+        for c in booking.COURSES:
+            if c['code'] not in (inst.get('対応コース') or []):
+                continue
+            mine.append(dict(
+                c, 選べる=booking.course_open_on(c['code'], day),
+                理由=booking.weekday_note(c['code'])))
+        chosen = [c for c in (request.form.getlist('courses')
+                              if request.method == 'POST'
+                              else booking.day_courses(inst, day))
+                  if booking.course_open_on(c, day)]
 
         def render(step, error=None):
             return render_template(

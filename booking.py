@@ -33,13 +33,18 @@ _LOCK = threading.Lock()
 LEAD_DAYS = 14
 
 # 講座の一覧。⛔価格・時間は各コースページの掲載値と一致させること
+# weekdays … 開催できる曜日（月=0）。省略＝どの曜日でもよい。
+# ⛔ 曜日の制約を hours の文字列の中だけに書かないこと。文章は判定に使えず、
+#    「毎週水曜」の講座が木曜にも選べて予約まで成立していた（2026-08-12 実測）。
+#    hours と weekdays がズレたら tests/test_booking.py が落ちる。
 COURSES = [
     {'code': 'SP-A', 'name': 'AI経営 入門1日', 'price': 49800,
      'hours': '10:00〜17:00', 'min_people': 4, 'capacity': 20},
     {'code': 'SP-B', 'name': 'AI経営 実践3日間マスター', 'price': 128000,
      'hours': '10:00〜17:00 × 3日間', 'min_people': 3, 'capacity': 15},
     {'code': 'SP-C', 'name': 'AI経営 夜間マスター 全5回', 'price': 68000,
-     'hours': '毎週水曜 19:00〜21:30', 'min_people': 5, 'capacity': 30},
+     'hours': '毎週水曜 19:00〜21:30', 'weekdays': [2],
+     'min_people': 5, 'capacity': 30},
     {'code': 'GA', 'name': '生成AI入門1日', 'price': 49800,
      'hours': '10:00〜17:00', 'min_people': 4, 'capacity': 20},
     {'code': 'GB', 'name': 'バイブコーディング実践1日', 'price': 49800,
@@ -321,6 +326,30 @@ def materialize(inst, start, end):
     return out
 
 
+def course_weekdays(course_code):
+    """その講座を開催できる曜日（月=0）。制約が無ければ None"""
+    wd = (COURSE_BY_CODE.get(course_code) or {}).get('weekdays')
+    return list(wd) if wd else None
+
+
+def course_open_on(course_code, d):
+    """その日にその講座を開催できるか（曜日の制約）。
+
+    ⛔ 「毎週水曜」の講座を木曜に選ばせないこと。選べてしまうと、
+       木曜開始の予約が成立する（2026-08-12 社長ご指摘で判明）。
+    """
+    wd = course_weekdays(course_code)
+    return wd is None or d.weekday() in wd
+
+
+def weekday_note(course_code):
+    """曜日の制約を1行で。制約が無ければ空文字"""
+    wd = course_weekdays(course_code)
+    if not wd:
+        return ''
+    return '毎週' + '・'.join(WEEKDAYS[i] for i in wd) + '曜の開催です'
+
+
 def day_courses(inst, d):
     """その日に担当すると登録されている講座コード。
 
@@ -329,11 +358,15 @@ def day_courses(inst, d):
     10:00〜11:00 のような担当できない枠を作ってしまう余地が消える。
 
     ⛔ 時刻は COURSES の hours が唯一の出どころ。ここで持たないこと。
+    ⛔ 曜日の制約（例：SP-C は毎週水曜）をここで必ず効かせること。台帳に
+       木曜の SP-C が残っていても、読み出した時点で落とす。過去に保存された
+       ものや、画面を通らない経路から入ったものを公開しないため。
     """
     iso = d.isoformat()
     days = inst.get('担当できる日')
     if days is not None:
-        return [c for c in (days.get(iso) or []) if c in COURSE_BY_CODE]
+        return [c for c in (days.get(iso) or []) if c in COURSE_BY_CODE
+                and course_open_on(c, d)]
 
     # ── 以下は 2026-08-12 より前の登録（時間帯で持っていた）の読み取り互換。
     #    本人が1日ぶんでも確定すると新しい形に移る（保存側で旧欄を落とす）。
@@ -341,7 +374,8 @@ def day_courses(inst, d):
     out = []
     for c in (inst.get('対応コース') or []):
         h = course_hours(c)
-        if h and any(s['開始'] <= h[0] and s['終了'] >= h[1] for s in slots):
+        if h and course_open_on(c, d) and any(
+                s['開始'] <= h[0] and s['終了'] >= h[1] for s in slots):
             out.append(c)
     return out
 
@@ -387,6 +421,13 @@ def set_day_courses(token, iso, codes):
     ng = [c for c in (codes or []) if c not in ok]
     if ng:
         return None, '担当できる講座として登録されていないものが含まれています'
+    # ⛔ 曜日の合わない講座を受け取らないこと（画面を通らない経路もある）
+    d = date.fromisoformat(iso)
+    bad_wd = [c for c in ok if not course_open_on(c, d)]
+    if bad_wd:
+        c = bad_wd[0]
+        return None, (f'{c} は{weekday_note(c)}。'
+                      f'{WEEKDAYS[d.weekday()]}曜のこの日にはお受けいただけません')
     bad = overlapping_courses(ok)
     if bad:
         a, b = bad[0]

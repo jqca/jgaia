@@ -59,6 +59,17 @@ def _far_day(offset=30):
     return (date.today() + timedelta(days=offset)).isoformat()
 
 
+def _far_weekday(weekday, offset=20):
+    """offset 日より先で、最初にその曜日（月=0）になる日。
+
+    SP-C のように開催曜日が決まっている講座を試すときに使う。
+    """
+    d = date.today() + timedelta(days=offset)
+    while d.weekday() != weekday:
+        d += timedelta(days=1)
+    return d.isoformat()
+
+
 class Test講師の登録(unittest.TestCase):
     def setUp(self):
         _clear()
@@ -606,7 +617,8 @@ class Test担当できる日(unittest.TestCase):
 
     def test_同じ日に複数の講座を担当できる(self):
         # 時間が重ならない組み合わせ（昼のSP-Aと夜のSP-C）
-        day = _far_day()
+        # ⛔ SP-C は毎週水曜の開催なので、水曜で試すこと
+        day = _far_weekday(2)
         inst, token = self._reg(courses=('SP-A', 'SP-C'))
         saved, err = booking.set_day_courses(token, day, ['SP-A', 'SP-C'])
         self.assertIsNone(err)
@@ -623,7 +635,9 @@ class Test担当できる日(unittest.TestCase):
         self.assertIn('重なる', err)
 
     def test_日によって担当する講座を変えられる(self):
-        a, b = _far_day(30), _far_day(37)      # 同じ曜日の別の週
+        # 同じ曜日の別の週。⛔ SP-C は毎週水曜の開催なので水曜どうしで比べる
+        a = _far_weekday(2)
+        b = (date.fromisoformat(a) + timedelta(days=7)).isoformat()
         self.assertEqual(date.fromisoformat(a).weekday(),
                          date.fromisoformat(b).weekday())
         inst, token = self._reg(courses=('SP-A', 'SP-C'))
@@ -737,6 +751,94 @@ class Test担当できる日(unittest.TestCase):
     def test_登録されている予定の最終日を出せる(self):
         inst, _ = self._reg({_far_day(20): ['SP-A'], _far_day(50): ['SP-A']})
         self.assertEqual(booking.availability_end(inst), _far_day(50))
+
+
+class Test開催できる曜日(unittest.TestCase):
+    """「毎週水曜」の講座を木曜に選ばせない（2026-08-12 社長ご指摘）。
+
+    ⛔ 曜日の制約を hours の文章の中だけに書いていたため、判定に使えず、
+       木曜の選択肢に夜間コースが並び、木曜開始の予約まで成立しうる状態だった。
+    """
+
+    def setUp(self):
+        _clear()
+        app.logger.disabled = True
+        self.c = app.test_client()
+        self.inst, self.token = booking.register_instructor(
+            '山田', 'y@example.com', '', ['SP-A', 'SP-C'], '')
+        booking.verify_email(self.token)
+        booking.set_state(self.inst['id'], '承認')
+
+    def _next(self, weekday, offset=20):
+        d = date.today() + timedelta(days=offset)
+        while d.weekday() != weekday:
+            d += timedelta(days=1)
+        return d.isoformat()
+
+    def test_掲載の曜日と設定が一致している(self):
+        # ⛔ hours の文章と weekdays がズレたらここで落とす
+        for c in booking.COURSES:
+            named = [i for i, w in enumerate(booking.WEEKDAYS)
+                     if w + '曜' in c['hours']]
+            with self.subTest(course=c['code']):
+                self.assertEqual(named, booking.course_weekdays(c['code']) or [],
+                                 f"{c['code']} の hours と weekdays が違う")
+
+    def test_曜日の制約を持つのは夜間コースだけ(self):
+        self.assertEqual(booking.course_weekdays('SP-C'), [2])   # 水曜
+        self.assertIsNone(booking.course_weekdays('SP-A'))
+
+    def test_木曜には夜間コースを選べない(self):
+        thu = self._next(3)
+        body = self.c.get(f'/instructor/schedule/{self.token}/day/{thu}'
+                          ).get_data(as_text=True)
+        i = body.index('value="SP-C"')
+        # ⛔ 一覧から黙って消さず、選べない理由を出す
+        self.assertIn('disabled', body[i:i + 200])
+        self.assertIn('毎週水曜の開催です', body)
+        # SP-A は同じ画面で選べる
+        j = body.index('value="SP-A"')
+        self.assertNotIn('disabled', body[j:j + 200])
+
+    def test_水曜なら夜間コースを選べる(self):
+        wed = self._next(2)
+        body = self.c.get(f'/instructor/schedule/{self.token}/day/{wed}'
+                          ).get_data(as_text=True)
+        i = body.index('value="SP-C"')
+        self.assertNotIn('disabled', body[i:i + 200])
+
+    def test_木曜に夜間コースを送っても受け取らない(self):
+        # ⛔ 画面だけ塞いでAPIが空いている状態にしない
+        thu = self._next(3)
+        saved, err = booking.set_day_courses(self.token, thu, ['SP-C'])
+        self.assertIsNone(saved)
+        self.assertIn('毎週水曜', err)
+        r = self.c.post(f'/instructor/schedule/{self.token}/day/{thu}',
+                        data={'courses': ['SP-C'], 'confirm': '1'})
+        self.assertEqual(booking.registered_days(
+            booking.find_instructor(self.token)), {})
+
+    def test_水曜に夜間コースを保存できる(self):
+        wed = self._next(2)
+        saved, err = booking.set_day_courses(self.token, wed, ['SP-C'])
+        self.assertIsNone(err)
+        self.assertEqual(booking.registered_days(saved), {wed: ['SP-C']})
+        self.assertEqual(
+            {d['日付']: d['状態'] for d in booking.open_days('SP-C')}[wed],
+            '予約可')
+
+    def test_台帳に木曜の夜間コースが残っていても公開しない(self):
+        # 画面を通らない経路や、制約を入れる前の登録が残っている場合
+        thu = self._next(3)
+        rows = booking.instructors()
+        rows[0]['担当できる日'] = {thu: ['SP-C']}
+        booking._save('instructors.json', rows)
+        inst = booking.instructors()[0]
+        self.assertEqual(booking.day_courses(inst, date.fromisoformat(thu)), [])
+        self.assertNotIn('予約可',
+                         {d['状態'] for d in booking.open_days('SP-C')})
+        with self.assertRaises(ValueError):
+            booking.add_booking('SP-C', thu, '鈴木', 's@example.com', '', 1, '')
 
 
 class Test公開されない理由(unittest.TestCase):

@@ -22,6 +22,10 @@
 .pick .nm { font-weight:800; font-size:15px; color:#0d1b3e; }
 .pick .hr { display:block; margin:6px 0 0 32px; font-size:14px; color:#334155; }
 .pick .note { display:block; margin:4px 0 0 32px; font-size:12px; color:#b45309; }
+/* その曜日に開催できない講座。⛔ 一覧から消さずに、選べない理由を出す */
+.pick.off { background:#f8fafc; border-style:dashed; cursor:not-allowed; }
+.pick.off .nm, .pick.off .hr { color:#94a3b8; }
+.pick .note.ng { color:#64748b; }
 .dy-acts { display:flex; gap:10px; flex-wrap:wrap; margin-top:20px; }
 .dy-acts button, .dy-acts a { flex:1; min-width:150px; text-align:center;
   border-radius:8px; padding:15px 18px; font-size:16px; font-weight:800;
@@ -93,12 +97,21 @@
           {% for o in others %}{% if c['code'] in o['コース'] %}
             {% set _ = dup.append(o['氏名']) %}
           {% endif %}{% endfor %}
-          <label class="pick {% if c['code'] in chosen %}on{% endif %}">
+          {# ⛔ その曜日に開催できない講座を選ばせないこと。選べてしまうと
+             「毎週水曜」の講座に木曜開始の予約が入る（2026-08-12 社長ご指摘）。
+             ⛔ ただし黙って一覧から消さない＝理由を出す #}
+          <label class="pick {% if c['code'] in chosen %}on{% endif %}
+                             {% if not c['選べる'] %}off{% endif %}">
             <input type="checkbox" name="courses" value="{{ c['code'] }}"
-                   {% if c['code'] in chosen %}checked{% endif %}>
+                   {% if c['code'] in chosen %}checked{% endif %}
+                   {% if not c['選べる'] %}disabled{% endif %}>
             <span class="nm">{{ c['code'] }} {{ c['name'] }}</span>
             <span class="hr">開催時間：{{ c['hours'] }}</span>
-            {% if dup %}
+            {% if not c['選べる'] %}
+              <span class="note ng">
+                {{ c['理由'] }}。この日（{{ weekday }}曜）はお選びいただけません
+              </span>
+            {% elif dup %}
               {# ⛔ 「重複＝禁止」と書かないこと。予約が入るのは1人だけで、
                  複数の講師が同じ日に登録していること自体は問題ではない #}
               <span class="note">
