@@ -65,6 +65,13 @@
         {% if r['状態'] == '承認' %}<span class="tag ok">承認済み</span>
         {% elif r['状態'] == '申請中' %}<span class="tag wait">承認待ち</span>
         {% else %}<span class="tag no">{{ r['状態'] }}</span>{% endif %}
+        {# ⛔ メール未確認は必ず出すこと。承認しても公開されない状態が、
+           運営の画面で「承認済み」としか見えないと原因を追えない #}
+        {% if r['メール確認済み'] %}
+          <span class="tag ok">メール確認済み</span>
+        {% else %}
+          <span class="tag no">メール未確認 — 承認しても公開されません</span>
+        {% endif %}
       </div>
       <div class="kv">
         <div><span class="k">ご所属</span>{{ r['所属'] or '—' }}</div>
@@ -103,6 +110,9 @@
         {% if r['状態'] != '承認' %}<button class="ok" data-state="承認">承認する</button>{% endif %}
         {% if r['状態'] != '見送り' %}<button class="no" data-state="見送り">見送る</button>{% endif %}
         {% if r['状態'] != '申請中' %}<button class="back" data-state="申請中">承認待ちに戻す</button>{% endif %}
+        {% if not r['メール確認済み'] %}
+          <button class="back" data-resend="1">確認メールを再送する</button>
+        {% endif %}
         <a href="{{ url_for('instructor_schedule', token=r['鍵'], _external=True) }}">
           本人用の予定画面リンク（この方にお送りください）</a>
       </div>
@@ -118,14 +128,24 @@
     var b = e.target.closest ? e.target.closest('.acts button') : null;
     if (!b) { return; }
     var row = b.closest('.row');
+    var resend = b.dataset.resend === '1';
     b.disabled = true;
-    fetch('/api/instructor/decide', {
+    fetch(resend ? '/api/instructor/resend' : '/api/instructor/decide', {
       method: 'POST',
       headers: {'Content-Type': 'application/json', 'X-Admin-Token': TOKEN},
-      body: JSON.stringify({id: row.dataset.id, state: b.dataset.state})
+      body: JSON.stringify(resend ? {id: row.dataset.id}
+                                  : {id: row.dataset.id, state: b.dataset.state})
     }).then(function (r) { return r.json(); })
       .then(function (j) {
         if (!j.ok) { throw new Error(j.error || '変更できませんでした'); }
+        if (resend) {
+          alert('確認メールを再送しました：' + (j['宛先'] || ''));
+          b.disabled = false;
+          return;
+        }
+        // ⛔ 承認できたのに公開されない理由（メール未確認）を黙らないこと
+        if (j['警告']) { alert(j['警告']); }
+        if (j['通知'] === false) { alert('本人へのお知らせメールは送れませんでした。'); }
         location.reload();
       })
       .catch(function (err) { alert(err.message); b.disabled = false; });

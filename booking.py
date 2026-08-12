@@ -109,7 +109,32 @@ def instructors():
 
 
 def approved_instructors():
-    return [i for i in instructors() if i.get('状態') == '承認']
+    """受講者に公開してよい講師。
+
+    ⛔ 承認だけでは公開しないこと。メールの確認（本人がリンクを踏んだ）が
+       済んでいない相手を公開すると、申込が入った日に依頼メールが届かず、
+       当日に誰も来ない事故になる。打ち間違いのアドレスでも登録は通るため、
+       ここが唯一の到達性の担保になる。
+    """
+    return [i for i in instructors()
+            if i.get('状態') == '承認' and i.get('メール確認済み')]
+
+
+def verify_email(token):
+    """本人が確認リンクを踏んだ。戻り値: 講師 or None（鍵が違う）
+
+    ⛔ 何度踏まれても最初の日時を残すこと（受け取った証拠なので上書きしない）。
+    """
+    rows = instructors()
+    hit = None
+    for r in rows:
+        if r.get('鍵') == token:
+            if not r.get('メール確認済み'):
+                r['メール確認済み'] = now_jst().strftime('%Y-%m-%d %H:%M')
+            hit = r
+    if hit:
+        _save('instructors.json', rows)
+    return hit
 
 
 def find_instructor(token):
@@ -150,6 +175,8 @@ def register_instructor(name, email, org, courses, note, days=None):
         '対応コース': courses,
         '備考': note,
         '状態': '申請中',                   # 申請中 / 承認 / 見送り
+        # 本人が確認リンクを踏んだ日時。空＝未確認で、承認しても公開されない
+        'メール確認済み': None,
         # 予定は日付ごとの枠だけが正 {'2026-09-05':[{'開始':'10:00','終了':'17:00'}]}
         # 1日に朝と夜のように複数の枠を持てる。空＝その日は講義しない
         '講義できる日時': normalize_daily(days),

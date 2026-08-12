@@ -19,6 +19,13 @@
 
 .iv-card { background:#fff; border:1px solid #e2e8f0; border-radius:10px;
            padding:20px; margin-top:18px; }
+/* お知らせ帯。⛔ 文字色を必ず指定すること（サイト共通CSSが白文字を継承させ、
+   薄い背景の上で1文字も読めなくなる。2026-08-09 本番で実測） */
+.iv-note { border-radius:10px; padding:14px 18px; margin-top:16px;
+           font-size:14px; line-height:1.8; }
+.iv-note.ok   { background:#ecfdf5; border:1px solid #a7f3d0; color:#065f46; }
+.iv-note.warn { background:#fffbeb; border:1px solid #fde68a; color:#92400e; }
+.iv-note strong { color:inherit; }
 .iv-card h2 { font-size:17px; font-weight:800; color:#0d1b3e; margin:0 0 4px; }
 .iv-card .hint { font-size:13px; color:#64748b; line-height:1.7; margin-bottom:14px; }
 
@@ -125,6 +132,21 @@ select.t { padding:9px 11px; border:1px solid #cbd5e1; border-radius:6px;
       <span class="iv-state no">{{ inst['状態'] }}</span>
     {% endif %}
   </div>
+
+  {% if just_verified %}
+    <div class="iv-note ok">
+      <strong>メールアドレスの確認が完了しました。</strong><br>
+      続けて、講義できる日をカレンダーからお選びください。
+    </div>
+  {% elif not inst['メール確認済み'] %}
+    {# ⛔ 未確認のまま放置させないこと。承認されても公開されない状態に気づけない #}
+    <div class="iv-note warn">
+      <strong>メールアドレスの確認がまだ済んでいません。</strong><br>
+      ご登録時にお送りしたメールのリンクを押してください。
+      確認が済むまでは、承認されても受講者には公開されません。<br>
+      メールが見当たらない場合は info@jgaia.org までご連絡ください（再送します）。
+    </div>
+  {% endif %}
 
   <div class="iv-card">
     <h2>1. 講義できる日を選ぶ</h2>

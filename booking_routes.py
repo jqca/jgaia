@@ -66,10 +66,24 @@ def register_booking_routes(app):
             (request.form.get('note') or '').strip())
 
         app.logger.info('[instructor_register] 申請: %s', name)
+        # ⛔ 送れなくても登録は成立させる。ただし黙らないこと＝完了画面に出し、
+        #    専用URLは画面にも必ず表示する（メールだけが受け渡し口だと消える）
+        mailed = _notify_registered(app, rec, token)
         return render_template('instructor_register.html', done=True,
-                               token=token, rec=rec,
+                               token=token, rec=rec, mailed=mailed,
                                courses=booking.COURSES,
                                weekdays=booking.WEEKDAYS)
+
+    # ─────────────── メールの確認（仮登録 → 本登録）
+    @app.route('/instructor/verify/<token>')
+    def instructor_verify(token):
+        inst = booking.verify_email(token)
+        if not inst:
+            return ('このリンクは正しくありません。'
+                    'info@jgaia.org までお問い合わせください。', 404)
+        # 確認できたら、そのまま日程を選べる画面へ送る（もう1手を要求しない）
+        return redirect(url_for('instructor_schedule', token=token,
+                                verified=1))
 
     # ─────────────── 講師本人が予定を編集
     @app.route('/instructor/schedule/<token>')
@@ -91,6 +105,7 @@ def register_booking_routes(app):
             last = date.fromisoformat([d for d in months[-1]['日'] if d][-1])
             compat = booking.materialize(inst, first, last)
         return render_template('instructor_schedule.html', inst=inst, token=token,
+                               just_verified=bool(request.args.get('verified')),
                                weekdays=booking.WEEKDAYS,
                                months=months, compat_days=compat,
                                lead_days=booking.LEAD_DAYS,
@@ -174,7 +189,36 @@ def register_booking_routes(app):
         if not booking.set_state(data.get('id'), state):
             # 画面を再読込しても直らないので、押した人にそのまま伝える
             return {'error': 'その講師が見つかりませんでした。画面を再読込してください'}, 404
-        return {'ok': True}
+
+        inst = next((i for i in booking.instructors()
+                     if str(i.get('id')) == str(data.get('id'))), None)
+        out = {'ok': True}
+        if inst and state in ('承認', '見送り'):
+            # ⛔ 判定を本人に伝えること。承認しても何も届かないと、講師は
+            #    自分が公開されたことも、日程を入れる画面があることも知らない
+            out['通知'] = _send(app, [_instructor_mail(inst, inst['鍵'], state)],
+                                'instructor_decide', inst['氏名'])
+        if inst and state == '承認' and not inst.get('メール確認済み'):
+            # ⛔ 承認したのに公開されない理由を、押した人にその場で伝える
+            out['警告'] = ('この方はメールの確認がまだ済んでいません。'
+                           '確認されるまで受講者には公開されません。')
+        return out
+
+    @app.route('/api/instructor/resend', methods=['POST'])
+    def api_instructor_resend():
+        """確認メールを送り直す（運営用）。届かない・消したという連絡への対応。"""
+        ok = _admin_ok()
+        if ok is None or not ok:
+            return {'error': 'forbidden'}, 403
+        data = request.get_json(silent=True) or {}
+        inst = next((i for i in booking.instructors()
+                     if str(i.get('id')) == str(data.get('id'))), None)
+        if not inst:
+            return {'error': 'その講師が見つかりませんでした'}, 404
+        sent = _notify_registered(app, inst, inst['鍵'])
+        if not sent:
+            return {'error': 'メールを送れませんでした（送信設定をご確認ください）'}, 502
+        return {'ok': True, '宛先': inst['連絡先']}
 
     # ─────────────── コースごとの予約
     @app.route('/book/<code>')
@@ -250,6 +294,102 @@ def _month_grids(n):
         out.append({'年': d.year, '月': d.month, '日': days})
         d = cur
     return out
+
+
+SIGN = ('---\n一般社団法人日本生成AI協会（JGAIA）\n'
+        '〒104-0061 東京都中央区銀座1-22-11 銀座大竹ビジデンス2階\n'
+        'info@jgaia.org / https://www.jgaia.org/\n')
+
+
+def _send(app, payloads, tag, who):
+    """メールを送る。戻り値: 送れたか（True/False）
+
+    ⛔ 送れなくても登録・申込は保存済み。ここで例外を投げないこと
+       （メールは付随物。落ちたら本体まで巻き添えになる作りにしない）。
+    ⛔ 失敗を握りつぶさないこと＝ログに残し、呼び出し元は画面に出す。
+    """
+    key = os.environ.get('RESEND_API_KEY', '')
+    if not key:
+        app.logger.error('[%s] 送信手段が未設定（RESEND_API_KEY）。保存は済み: %s',
+                         tag, who)
+        return False
+    try:
+        import resend
+        resend.api_key = key
+        for p in payloads:
+            resend.Emails.send(p)
+        return True
+    except Exception:
+        app.logger.exception('[%s] 送信に失敗。保存は済み: %s', tag, who)
+        return False
+
+
+def _instructor_mail(rec, token, kind):
+    """講師あての本文を1か所で組み立てる。kind: 仮登録 / 承認 / 見送り
+
+    ⛔ 本文をルートごとに書き散らさないこと（同じ案内が3通りに割れる）。
+    """
+    from mail_targets import FROM_EMAIL
+    verify_url = url_for('instructor_verify', token=token, _external=True)
+    cal_url = url_for('instructor_schedule', token=token, _external=True)
+    courses = ' / '.join(rec.get('対応コース') or []) or '未選択'
+    if kind == '仮登録':
+        subject = '【JGAIA】講師のご登録ありがとうございます（メールのご確認をお願いします）'
+        text = (f"{rec['氏名']} 様\n\n"
+                "JGAIA／JQCA の認定講座 講師にご登録いただき、ありがとうございます。\n"
+                "まず、このメールが届くことの確認をお願いいたします。\n\n"
+                "▼ こちらを押すと確認が完了し、そのまま\n"
+                "　「講義できる日」を選ぶカレンダーが開きます\n"
+                f"{verify_url}\n\n"
+                "カレンダーは日付を押すだけです。1日に朝と夜のような\n"
+                "複数の時間帯も登録でき、あとからいつでも変更できます。\n\n"
+                f"■ 担当できる講座: {courses}\n"
+                f"■ 受付日時: {rec.get('登録日時')}\n\n"
+                "内容を確認のうえ、運営より2営業日以内にご連絡いたします。\n"
+                "承認までは、選んだ日程が受講者に公開されることはありません。\n\n"
+                "※このリンクはあなた専用です。他の方に転送しないでください。\n"
+                "※お心当たりがない場合は、このメールを破棄してください。\n\n"
+                + SIGN)
+    elif kind == '承認':
+        subject = '【JGAIA】講師のご登録を承認しました'
+        text = (f"{rec['氏名']} 様\n\n"
+                "講師のご登録を承認いたしました。ありがとうございます。\n"
+                "選んでいただいた日程が、受講者の予約カレンダーに公開されます。\n\n"
+                "▼ 講義できる日はこちらからいつでも変更できます\n"
+                f"{cal_url}\n\n"
+                "※すでに予約が入った日は、変更できません。\n"
+                "　ご都合が変わった場合は info@jgaia.org までご連絡ください。\n\n"
+                + SIGN)
+    else:
+        subject = '【JGAIA】講師のご登録について'
+        text = (f"{rec['氏名']} 様\n\n"
+                "このたびは講師にご登録いただき、ありがとうございました。\n"
+                "検討の結果、今回はご一緒できる講座がございませんでした。\n"
+                "講座が増えた際に、あらためてご相談させてください。\n\n"
+                + SIGN)
+    return {'from': f'JGAIA <{FROM_EMAIL}>', 'to': [rec['連絡先']],
+            'subject': subject, 'text': text}
+
+
+def _notify_registered(app, rec, token):
+    """仮登録メール（本人）と新規申請の通知（運営）。戻り値: 本人に送れたか"""
+    from mail_targets import notify_payload
+    admin = notify_payload(
+        f"【講師登録】{rec['氏名']} 様（{ ' / '.join(rec.get('対応コース') or []) or '講座未選択'}）",
+        reply_to=rec['連絡先'],
+        text=('講師の登録申請が届きました。\n\n'
+              f"お名前: {rec['氏名']}\n"
+              f"メール: {rec['連絡先']}\n"
+              f"ご所属: {rec.get('所属') or '—'}\n"
+              f"担当できる講座: {' / '.join(rec.get('対応コース') or []) or '未選択'}\n"
+              f"ご経歴・ご要望: {rec.get('備考') or '—'}\n"
+              f"受付日時: {rec.get('登録日時')}\n\n"
+              '本人がメールの確認リンクを踏むまでは、承認しても公開されません。\n'
+              f"承認画面: {url_for('admin_instructors', _external=True)}\n"))
+    # ⛔ 本人あてと運営あてを1回の呼び出しで送ること。分けると、本人には
+    #    届いたのに運営には届かない（または逆）が静かに起きる
+    return _send(app, [_instructor_mail(rec, token, '仮登録'), admin],
+                 'instructor_register', rec['氏名'])
 
 
 def _notify_booking(app, rec, inst):

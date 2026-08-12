@@ -98,11 +98,13 @@ class Test承認するまで公開しない(unittest.TestCase):
         self.assertNotIn('予約可', set(days.values()))
 
     def test_承認したら予約可の日が出る(self):
+        booking.verify_email(self.inst['鍵'])
         booking.set_state(self.inst['id'], '承認')
         days = [d for d in booking.open_days('SP-A') if d['状態'] == '予約可']
         self.assertTrue(days)
 
     def test_見送りに戻すと公開が止まる(self):
+        booking.verify_email(self.inst['鍵'])
         booking.set_state(self.inst['id'], '承認')
         booking.set_state(self.inst['id'], '見送り')
         days = {d['状態'] for d in booking.open_days('SP-A')}
@@ -113,6 +115,7 @@ class Test承認するまで公開しない(unittest.TestCase):
         self.assertFalse(booking.set_state('存在しないID', '承認'))
 
     def test_担当できない講座には出てこない(self):
+        booking.verify_email(self.inst['鍵'])
         booking.set_state(self.inst['id'], '承認')
         days = {d['状態'] for d in booking.open_days('SP-C')}
         self.assertNotIn('予約可', days)
@@ -123,6 +126,7 @@ class Test日数の下限(unittest.TestCase):
         _clear()
         i, _ = booking.register_instructor('山田', 'y@example.com', '', ['SP-A'],
                                           '', _days_all())
+        booking.verify_email(i['鍵'])
         booking.set_state(i['id'], '承認')
         self.inst = i
 
@@ -155,6 +159,7 @@ class Test講師の都合(unittest.TestCase):
         _clear()
         self.inst, _ = booking.register_instructor(
             '山田', 'y@example.com', '', ['SP-A'], '', _days_all())
+        booking.verify_email(self.inst['鍵'])
         booking.set_state(self.inst['id'], '承認')
 
     def _without(self, *isos):
@@ -218,6 +223,7 @@ class Test申込(unittest.TestCase):
         _clear()
         i, _ = booking.register_instructor('山田', 'y@example.com', '', ['SP-A'],
                                           '', _days_all())
+        booking.verify_email(i['鍵'])
         booking.set_state(i['id'], '承認')
         self.inst = i
 
@@ -304,6 +310,7 @@ class Test画面(unittest.TestCase):
         self.assertIn('いまお選びいただける日程がありません', r.get_data(as_text=True))
 
     def test_全コースの予約画面が開く(self):
+        booking.verify_email(self.inst['鍵'])
         booking.set_state(self.inst['id'], '承認')
         for c in booking.COURSES:
             with self.subTest(course=c['code']):
@@ -354,6 +361,7 @@ class Test申込のAPI(unittest.TestCase):
         self.c = app.test_client()
         i, _ = booking.register_instructor('山田', 'y@example.com', '', ['SP-A'],
                                           '', _days_all())
+        booking.verify_email(i['鍵'])
         booking.set_state(i['id'], '承認')
         antispam._RECENT.clear()
 
@@ -427,6 +435,7 @@ class Test予約への導線(unittest.TestCase):
     def _approve(self, courses=('SP-A',)):
         i, _ = booking.register_instructor(
             '山田', 'y@example.com', '', list(courses), '', _days_all())
+        booking.verify_email(i['鍵'])
         booking.set_state(i['id'], '承認')
         return i
 
@@ -535,6 +544,7 @@ class Test講義できる日時(unittest.TestCase):
     def _reg(self, days, courses=('SP-A',)):
         i, t = booking.register_instructor('山田', 'y@example.com', '',
                                            list(courses), '', days)
+        booking.verify_email(i['鍵'])
         booking.set_state(i['id'], '承認')
         return booking.find_instructor(t), t
 
@@ -662,6 +672,7 @@ class Test講義できる日時(unittest.TestCase):
     def test_旧式の曜日登録でもこれまでどおり予約できる(self):
         i, token = booking.register_instructor('山田', 'y@example.com', '',
                                                ['SP-A'], '')
+        booking.verify_email(i['鍵'])
         booking.set_state(i['id'], '承認')
         rows = booking.instructors()
         rows[0]['毎週の可能時間'] = _weekly_all_days()
@@ -738,6 +749,118 @@ class Test予定の画面(unittest.TestCase):
         self.assertIn('講義できる日を選ぶ', body)
         self.assertIn('19:00', body)          # 夜間コースの開催時間
         self.assertNotIn('毎週の可能時間', body)
+
+
+class Test登録からの流れ(unittest.TestCase):
+    """登録 → 仮登録メール → 確認リンク → カレンダー → 承認 → 公開。
+
+    ⛔ 2026-08-11 の実測では、この経路にメールが1通も無かった。
+       打ち間違いのアドレスでも登録が成立し、画面を閉じたら本人は
+       二度と日程を入れられず、運営も新規申請に気づけなかった。
+    """
+
+    def setUp(self):
+        _clear()
+        app.logger.disabled = True
+        self.c = app.test_client()
+
+    def _register(self, email='y@example.com'):
+        antispam._RECENT.clear()
+        r = self.c.post('/instructor/register', data={
+            'name': '山田', 'email': email, 'courses': ['SP-A'], 'note': '',
+            antispam.HONEYPOT_FIELD: '',
+            'ts': antispam.issue_token(now=time.time() - 6)})
+        return r, booking.instructors()[-1]
+
+    def test_登録した時点ではメール未確認(self):
+        _, rec = self._register()
+        self.assertIsNone(rec['メール確認済み'])
+
+    def test_確認リンクを踏むまで承認しても公開されない(self):
+        _, rec = self._register()
+        booking.update_availability(rec['鍵'], _days_all())
+        booking.set_state(rec['id'], '承認')
+        # ⛔ 届かないアドレスの講師を公開しない（当日に誰も来ない事故になる）
+        self.assertNotIn('予約可', {d['状態'] for d in booking.open_days('SP-A')})
+        self.assertEqual(booking.approved_instructors(), [])
+
+    def test_確認リンクを踏むと公開されカレンダーに送られる(self):
+        _, rec = self._register()
+        booking.update_availability(rec['鍵'], _days_all())
+        booking.set_state(rec['id'], '承認')
+        r = self.c.get('/instructor/verify/' + rec['鍵'])
+        self.assertEqual(r.status_code, 302)
+        self.assertIn('/instructor/schedule/' + rec['鍵'], r.headers['Location'])
+        self.assertIn('verified=1', r.headers['Location'])
+        self.assertTrue(booking.instructors()[-1]['メール確認済み'])
+        self.assertIn('予約可', {d['状態'] for d in booking.open_days('SP-A')})
+
+    def test_確認は何度踏んでも最初の日時を残す(self):
+        _, rec = self._register()
+        first = booking.verify_email(rec['鍵'])['メール確認済み']
+        self.assertEqual(booking.verify_email(rec['鍵'])['メール確認済み'], first)
+
+    def test_でたらめな鍵の確認リンクは404(self):
+        self._register()
+        self.assertEqual(self.c.get('/instructor/verify/でたらめ').status_code, 404)
+
+    def test_未確認の講師には予定画面で知らせる(self):
+        _, rec = self._register()
+        body = self.c.get('/instructor/schedule/' + rec['鍵']).get_data(as_text=True)
+        self.assertIn('メールアドレスの確認がまだ済んでいません', body)
+        booking.verify_email(rec['鍵'])
+        body = self.c.get('/instructor/schedule/' + rec['鍵']).get_data(as_text=True)
+        self.assertNotIn('メールアドレスの確認がまだ済んでいません', body)
+
+    def test_メールが送れなくても登録は成立し画面にURLを出す(self):
+        # ⛔ 送信できない環境（RESEND_API_KEY 未設定）でも登録を失わないこと。
+        #    ただし黙らない＝画面に「送れなかった」と出し、専用URLを見せる
+        r, rec = self._register()
+        body = r.get_data(as_text=True)
+        self.assertEqual(r.status_code, 200)
+        self.assertIn('確認メールをお送りできませんでした', body)
+        self.assertIn('/instructor/schedule/' + rec['鍵'], body)
+
+    def test_承認の結果は本人に伝える口がある(self):
+        _, rec = self._register()
+        r = self.c.post('/api/instructor/decide',
+                        json={'id': rec['id'], 'state': '承認'},
+                        headers={'X-Admin-Token': 'test-admin'})
+        j = r.get_json()
+        self.assertTrue(j['ok'])
+        # 送信手段が無いので False。⛔ 送れたかを黙らないこと
+        self.assertIs(j['通知'], False)
+        # ⛔ 承認したのに公開されない理由を、押した運営にその場で伝える
+        self.assertIn('メールの確認', j['警告'])
+
+    def test_確認済みなら承認時に警告を出さない(self):
+        _, rec = self._register()
+        booking.verify_email(rec['鍵'])
+        j = self.c.post('/api/instructor/decide',
+                        json={'id': rec['id'], 'state': '承認'},
+                        headers={'X-Admin-Token': 'test-admin'}).get_json()
+        self.assertNotIn('警告', j)
+
+    def test_再送は運営の合言葉が要る(self):
+        _, rec = self._register()
+        self.assertEqual(
+            self.c.post('/api/instructor/resend', json={'id': rec['id']}).status_code,
+            403)
+
+    def test_再送は送れなければ失敗として返す(self):
+        # ⛔ 送れていないのに「再送しました」と出さないこと
+        _, rec = self._register()
+        r = self.c.post('/api/instructor/resend', json={'id': rec['id']},
+                        headers={'X-Admin-Token': 'test-admin'})
+        self.assertEqual(r.status_code, 502)
+
+    def test_運営の承認画面にメール確認の状態が出る(self):
+        _, rec = self._register()
+        body = self.c.get('/admin/instructors',
+                          headers={'X-Admin-Token': 'test-admin'},
+                          query_string={'token': 'test-admin'}).get_data(as_text=True)
+        self.assertIn('メール未確認', body)
+        self.assertIn('確認メールを再送する', body)
 
 
 if __name__ == '__main__':

@@ -64,13 +64,31 @@
 {% if done %}
   <div class="ir-done">
     <h2>ご登録ありがとうございます</h2>
+    {% if token and mailed %}
+      <p style="line-height:1.9;color:#065f46;">
+        <strong>{{ rec['連絡先'] }} に確認メールをお送りしました。</strong><br>
+        メール内のリンクを押すと、アドレスの確認が完了し、
+        そのまま「講義できる日」を選ぶカレンダーが開きます。<br>
+        <span style="font-size:13px;">
+          数分たっても届かない場合は、迷惑メールフォルダをご確認ください。
+        </span>
+      </p>
+    {% elif token %}
+      {# ⛔ 送れなかったことを黙らないこと。画面のURLだけが受け渡し口になる #}
+      <p style="line-height:1.9;color:#92400e;background:#fffbeb;
+                border:1px solid #fde68a;border-radius:8px;padding:14px;">
+        <strong>ご登録は完了しましたが、確認メールをお送りできませんでした。</strong><br>
+        下のリンクを<strong>必ずお手元に控えて</strong>ください（あなた専用の画面です）。
+        お手数ですが info@jgaia.org までご一報いただけますと確実です。
+      </p>
+    {% endif %}
     <p style="line-height:1.9;color:#065f46;">
       内容を確認のうえ、運営より2営業日以内にご連絡いたします。<br>
       承認までは、登録された日程が受講者に公開されることはありません。
     </p>
     {% if token %}
       <p style="margin-top:18px;font-weight:700;color:#065f46;">
-        続けて、<strong>講義できる日をカレンダーからお選びください</strong>（日付を押すだけです）。<br>
+        いますぐ<strong>講義できる日をお選びいただけます</strong>（日付を押すだけです）。<br>
         <span style="font-weight:400;font-size:13px;">
           このリンクはあなた専用です。あとからいつでも変更できます。
           ブラウザのお気に入りに入れておいてください。
