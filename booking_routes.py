@@ -106,6 +106,7 @@ def register_booking_routes(app):
             compat = booking.materialize(inst, first, last)
         return render_template('instructor_schedule.html', inst=inst, token=token,
                                just_verified=bool(request.args.get('verified')),
+                               blockers=booking.publish_blockers(inst),
                                weekdays=booking.WEEKDAYS,
                                months=months, compat_days=compat,
                                lead_days=booking.LEAD_DAYS,
@@ -126,8 +127,11 @@ def register_booking_routes(app):
         inst = booking.update_availability(token, days)
         # ⛔ 送られた内容ではなく保存された内容を返すこと。予約が入っている日は
         #    サーバ側で据え置くので、画面がそれを写せないと表示が実態とズレる
+        # ⛔ 保存できたことと、公開されることは別。担当できる講座が無い予定を
+        #    「保存しました」だけで返すと、本人は公開されたつもりで待ち続ける
         return {'ok': True, '更新日時': inst.get('更新日時'),
-                'days': inst.get('講義できる日時') or {}}
+                'days': inst.get('講義できる日時') or {},
+                '公開されない理由': booking.publish_blockers(inst)}
 
     # ─────────────── 承認画面
     @app.route('/admin/instructors')
@@ -138,7 +142,8 @@ def register_booking_routes(app):
                     'message': '管理用の合言葉が未設定のため無効です。'}, 503
         if not ok:
             return {'error': 'forbidden'}, 403
-        rows = booking.instructors()
+        rows = [dict(r, 公開されない理由=booking.publish_blockers(r))
+                for r in booking.instructors()]
         return render_template('admin_instructors.html', rows=rows,
                                token=request.args.get('token', ''),
                                weekdays=booking.WEEKDAYS,
@@ -166,6 +171,8 @@ def register_booking_routes(app):
                 r,
                 予約件数=len(mine),
                 予約人数=sum(int(b.get('人数') or 1) for b in mine),
+                公開されない理由=booking.publish_blockers(r),
+                担当できる講座=booking.teachable_courses(r),
                 予定URL=url_for('instructor_schedule', token=r.get('鍵'),
                                 _external=True),
             ))

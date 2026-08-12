@@ -751,6 +751,90 @@ class Test予定の画面(unittest.TestCase):
         self.assertNotIn('毎週の可能時間', body)
 
 
+class Test公開されない理由(unittest.TestCase):
+    """承認したのに日程が出ない、を画面で説明できるようにする。
+
+    ⛔ 2026-08-12 実害：承認済みの講師が 8/26 に「10:00〜11:00」「13:00〜14:00」
+       だけを登録していた。コースは終日（10:00〜17:00）なので担当できず、
+       予約カレンダーには1日も出なかった。判定は正しいが、本人にも運営にも
+       その理由がどこにも出ていなかった。
+    """
+
+    def setUp(self):
+        _clear()
+
+    def _reg(self, days, courses=('SP-A',), approve=True):
+        i, t = booking.register_instructor('山田', 'y@example.com', '',
+                                           list(courses), '', days)
+        if approve:
+            booking.verify_email(t)
+            booking.set_state(i['id'], '承認')
+        return booking.find_instructor(t), t
+
+    def test_短い枠しか無ければ担当できる講座は0(self):
+        inst, _ = self._reg({_far_day(): [{'開始': '10:00', '終了': '11:00'},
+                                          {'開始': '13:00', '終了': '14:00'}]})
+        self.assertEqual(booking.teachable_courses(inst), [])
+        理由 = booking.publish_blockers(inst)
+        self.assertTrue(any('担当できる講座がありません' in b for b in 理由), 理由)
+        # 実際に公開もされない（判定と説明が食い違わないこと）
+        self.assertNotIn('予約可', {d['状態'] for d in booking.open_days('SP-A')})
+
+    def test_通しの枠があれば理由は出ない(self):
+        inst, _ = self._reg({_far_day(): [{'開始': '10:00', '終了': '17:00'}]})
+        self.assertEqual(booking.teachable_courses(inst), ['SP-A'])
+        self.assertEqual(booking.publish_blockers(inst), [])
+        self.assertIn('予約可', {d['状態'] for d in booking.open_days('SP-A')})
+
+    def test_一部の講座だけ担当できないときはそう言う(self):
+        # 昼だけ＝SP-A は担当できるが、夜間の SP-C は担当できない
+        inst, _ = self._reg({_far_day(): [{'開始': '10:00', '終了': '17:00'}]},
+                            ['SP-A', 'SP-C'])
+        self.assertEqual(booking.teachable_courses(inst), ['SP-A'])
+        理由 = booking.publish_blockers(inst)
+        self.assertTrue(any('一部の講座' in b and 'SP-C' in b for b in 理由), 理由)
+
+    def test_日が1日も無ければそう言う(self):
+        inst, _ = self._reg({})
+        self.assertIn('講義できる日が1日も登録されていません',
+                      booking.publish_blockers(inst))
+
+    def test_締切より手前の日しか無ければそう言う(self):
+        soon = (date.today() + timedelta(days=3)).isoformat()
+        inst, _ = self._reg({soon: [{'開始': '10:00', '終了': '17:00'}]})
+        self.assertTrue(any('日以内です' in b
+                            for b in booking.publish_blockers(inst)))
+
+    def test_未承認と未確認も理由として出す(self):
+        inst, t = self._reg({_far_day(): [{'開始': '10:00', '終了': '17:00'}]},
+                            approve=False)
+        理由 = booking.publish_blockers(inst)
+        self.assertTrue(any('承認されていません' in b for b in 理由), 理由)
+        self.assertTrue(any('確認が済んでいません' in b for b in 理由), 理由)
+
+    def test_保存の返事に公開されない理由が入る(self):
+        app.logger.disabled = True
+        c = app.test_client()
+        inst, token = self._reg({})
+        j = c.post('/api/instructor/schedule', json={
+            'token': token,
+            'days': {_far_day(): [{'開始': '10:00', '終了': '11:00'}]}}).get_json()
+        # ⛔ 「保存しました」だけを返さないこと（公開されたつもりで待ち続ける）
+        self.assertTrue(j['ok'])
+        self.assertTrue(any('担当できる講座がありません' in b
+                            for b in j['公開されない理由']), j)
+
+    def test_予定画面と承認画面に理由を出す(self):
+        app.logger.disabled = True
+        c = app.test_client()
+        inst, token = self._reg({_far_day(): [{'開始': '10:00', '終了': '11:00'}]})
+        body = c.get('/instructor/schedule/' + token).get_data(as_text=True)
+        self.assertIn('受講者に日程が公開されません', body)
+        admin = c.get('/admin/instructors', headers={'X-Admin-Token': 'test-admin'},
+                      query_string={'token': 'test-admin'}).get_data(as_text=True)
+        self.assertIn('受講者には公開されていません', admin)
+
+
 class Test登録からの流れ(unittest.TestCase):
     """登録 → 仮登録メール → 確認リンク → カレンダー → 承認 → 公開。
 

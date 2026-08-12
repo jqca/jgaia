@@ -73,6 +73,18 @@
           <span class="tag no">メール未確認 — 承認しても公開されません</span>
         {% endif %}
       </div>
+      {# ⛔ 承認したのに公開されない理由を、押した運営の画面に必ず出すこと
+         （2026-08-12 実害：1時間の枠しか無く、終日のコースを担当できなかった） #}
+      {% if r['公開されない理由'] %}
+        <div style="background:#fffbeb;border:1px solid #fde68a;color:#92400e;
+                    border-radius:8px;padding:11px 14px;margin:10px 0;font-size:13px;
+                    line-height:1.8;">
+          <strong>受講者には公開されていません</strong>
+          <ul style="margin:6px 0 0;padding-left:20px;">
+            {% for b in r['公開されない理由'] %}<li>{{ b }}</li>{% endfor %}
+          </ul>
+        </div>
+      {% endif %}
       <div class="kv">
         <div><span class="k">ご所属</span>{{ r['所属'] or '—' }}</div>
         <div><span class="k">連絡先</span>{{ r['連絡先'] }}</div>

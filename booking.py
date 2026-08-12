@@ -335,6 +335,63 @@ def materialize(inst, start, end):
     return out
 
 
+def teachable_courses(inst):
+    """その講師の登録内容で、実際に担当できる講座コード。
+
+    ⛔ 「登録した日数」で判断しないこと。コースは終日（例 10:00〜17:00）なので、
+       1時間の枠を何本並べても担当できない（2026-08-12 本番で実際に起きた）。
+    """
+    days = inst.get('講義できる日時')
+    if days is None:                     # 旧式（曜日の決まり）は展開して見る
+        start = today_jst()
+        days = materialize(inst, start, start + timedelta(days=90))
+    slots = [s for v in days.values() for s in normalize_slots(v)]
+    out = []
+    for c in (inst.get('対応コース') or []):
+        h = course_hours(c)
+        if not h or any(s['開始'] <= h[0] and s['終了'] >= h[1] for s in slots):
+            out.append(c)
+    return out
+
+
+def publish_blockers(inst):
+    """受講者に公開されない理由。空リスト＝公開されている。
+
+    ⛔ 公開されない状態を、画面のどこにも書かないまま放置しないこと。
+       承認したのに日程が出ない、という問い合わせの原因がこれ。
+    """
+    out = []
+    if inst.get('状態') != '承認':
+        out.append('まだ承認されていません（運営の承認待ちです）')
+    if not inst.get('メール確認済み'):
+        out.append('メールアドレスの確認が済んでいません')
+
+    days = inst.get('講義できる日時')
+    if days is None:
+        start = today_jst()
+        days = materialize(inst, start, start + timedelta(days=90))
+    days = {k: v for k, v in days.items() if v}
+    if not days:
+        out.append('講義できる日が1日も登録されていません')
+        return out
+
+    # 受付は LEAD_DAYS 日以上先だけ。手前しか無ければ実質公開されない
+    earliest = (today_jst() + timedelta(days=LEAD_DAYS)).isoformat()
+    if not [k for k in days if k >= earliest]:
+        out.append(f'登録された日がすべて{LEAD_DAYS}日以内です'
+                   f'（予約は{earliest}以降の日にしか入りません）')
+
+    can = teachable_courses(inst)
+    ng = [c for c in (inst.get('対応コース') or []) if c not in can]
+    if ng:
+        detail = '／'.join(
+            f"{c}（{(COURSE_BY_CODE.get(c) or {}).get('hours', '')}）" for c in ng)
+        head = ('登録した時間帯では、担当できる講座がありません'
+                if not can else '一部の講座は、登録した時間帯では担当できません')
+        out.append(f'{head}：{detail} を通しで担当できる枠が必要です')
+    return out
+
+
 def availability_end(inst):
     """登録されている予定の最終日（ISO）。無ければ None
 

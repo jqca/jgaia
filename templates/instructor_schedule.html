@@ -148,6 +148,16 @@ select.t { padding:9px 11px; border:1px solid #cbd5e1; border-radius:6px;
     </div>
   {% endif %}
 
+  {# ⛔ 「公開されていない」ことを本人に必ず出す。承認済みなのに日程が
+     受講者に出ない状態が、画面のどこにも書かれていなかった（2026-08-12 実害） #}
+  <div class="iv-note warn" id="blockBox"
+       {% if not blockers %}style="display:none;"{% endif %}>
+    <strong>いまの登録内容では、受講者に日程が公開されません。</strong>
+    <ul id="blockList" style="margin:8px 0 0;padding-left:20px;">
+      {% for b in blockers %}<li>{{ b }}</li>{% endfor %}
+    </ul>
+  </div>
+
   <div class="iv-card">
     <h2>1. 講義できる日を選ぶ</h2>
     <div class="hint">
@@ -476,8 +486,25 @@ select.t { padding:9px 11px; border:1px solid #cbd5e1; border-radius:6px;
       //    （予約が入っている日はサーバ側で据え置かれる）
       if (j.days) { days = j.days; }
       paint();
-      msg.className = 'msg ok';
-      msg.textContent = '保存しました（' + (j['更新日時'] || '') + '）';
+      // ⛔ 保存できたことと、公開されることは別。担当できる講座が無い予定を
+      //    「保存しました」だけで返すと、本人は公開されたつもりで待ち続ける
+      var reasons = j['公開されない理由'] || [];
+      var box = document.getElementById('blockBox');
+      var list = document.getElementById('blockList');
+      list.innerHTML = reasons.map(function (t) {
+        var li = document.createElement('li');
+        li.textContent = t;                       // ⛔ 生のHTMLにしない
+        return li.outerHTML;
+      }).join('');
+      box.style.display = reasons.length ? '' : 'none';
+      if (reasons.length) {
+        msg.className = 'msg err';
+        msg.textContent = '保存しましたが、まだ公開されません（上の理由をご確認ください）';
+        box.scrollIntoView({block: 'nearest'});
+      } else {
+        msg.className = 'msg ok';
+        msg.textContent = '保存しました（' + (j['更新日時'] || '') + '）';
+      }
     }).catch(function (e) {
       msg.className = 'msg err';
       msg.textContent = e.message + ' — info@jgaia.org までご連絡ください。';
