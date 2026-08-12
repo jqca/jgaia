@@ -285,6 +285,27 @@ class Test画面(unittest.TestCase):
         r = self.c.get('/instructor/register')
         self.assertEqual(r.status_code, 200)
 
+    def test_講座と開催時間を1か所に出す(self):
+        # ⛔ 同じ講座の情報を2つのカードに割らないこと（2026-08-12 社長ご指摘）
+        html = self.c.get('/instructor/register').get_data(as_text=True)
+        self.assertNotIn('担当できるコースの開催時間', html)
+        i = html.index('name="courses" value="SP-A"')
+        self.assertIn('10:00〜17:00', html[i:i + 400])
+
+    def test_見出しの日数が欠けない(self):
+        # ⛔ lead_days の渡し忘れで「開催の日以上前」になる（Jinjaは落ちない）
+        want = f'開催の{booking.LEAD_DAYS}日以上前'
+        self.assertIn(want, self.c.get('/instructor/register').get_data(as_text=True))
+        # 入力もれで戻ってきた画面（⛔スパム対策の欄を入れないと、ここは
+        # ボット扱いされて完了画面が返る＝エラー画面を通らない）
+        antispam._RECENT.clear()
+        r = self.c.post('/instructor/register', data={
+            'name': '', 'email': '', antispam.HONEYPOT_FIELD: '',
+            'ts': antispam.issue_token(now=time.time() - 6)})
+        body = r.get_data(as_text=True)
+        self.assertIn('お名前とメールアドレスは必須です', body)
+        self.assertIn(want, body)
+
     def test_登録画面に謝礼の希望額の入力欄を出さない(self):
         # ⛔ 2026-08-11 社長ご指示で削除した項目。戻すとここが落ちる
         html = self.c.get('/instructor/register').get_data(as_text=True)

@@ -42,6 +42,7 @@ def register_booking_routes(app):
         if request.method == 'GET':
             return render_template('instructor_register.html',
                                    courses=booking.COURSES,
+                                   lead_days=booking.LEAD_DAYS,
                                    weekdays=booking.WEEKDAYS)
 
         import antispam
@@ -54,9 +55,12 @@ def register_booking_routes(app):
         name = (request.form.get('name') or '').strip()
         email = (request.form.get('email') or '').strip()
         if not name or not email:
+            # ⛔ lead_days を渡し忘れないこと。見出しが「開催の日以上前」と
+            #    数字だけ欠けて出る（Jinjaは未定義を空文字にするので落ちない）
             return render_template('instructor_register.html',
                                    error='お名前とメールアドレスは必須です。',
                                    courses=booking.COURSES,
+                                   lead_days=booking.LEAD_DAYS,
                                    weekdays=booking.WEEKDAYS)
 
         # ⛔ ここで予定を聞かない。日付はこの後のカレンダー画面で選ぶ

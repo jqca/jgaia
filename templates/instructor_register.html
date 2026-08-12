@@ -24,23 +24,15 @@
 /* ⛔ 文字色を必ず指定すること。サイト共通のCSSが白文字を継承させるため、
    白背景のカード上で「講座名が1文字も見えない」状態になる（2026-08-09 本番で実測。
    送信ボタンが透明背景＋白文字で消えていたのと同じ型）。 */
-.cs label { display:flex; align-items:center; gap:9px; padding:11px 13px;
+.cs label { display:flex; align-items:flex-start; gap:9px; padding:12px 13px;
             border:1px solid #e2e8f0; border-radius:7px; font-size:14px;
             cursor:pointer; background:#fff; color:#0d1b3e; }
 .cs label span { color:#0d1b3e; }
 .cs label:hover { background:#f8fafc; }
-.cs input { width:20px; height:20px; }
-.wd-row { display:flex; align-items:center; gap:10px; padding:9px 0;
-          border-bottom:1px solid #f1f5f9; flex-wrap:wrap; }
-.wd-row:last-child { border-bottom:none; }
-.wd-name { width:88px; font-weight:700; color:#0d1b3e; font-size:15px;
-           display:flex; align-items:center; gap:8px; }
-.wd-row input[type="checkbox"] { width:21px; height:21px; }
-.wd-row select { padding:8px 10px; border:1px solid #cbd5e1; border-radius:6px;
-                 font-size:15px; color:#0f172a; background:#fff; }
-/* ⛔ 「〜」にも色を指定すること。指定を落とすと白文字で消え、
-   「10:00 　 17:00」と間が抜けて見える（2026-08-09 本番で実測） */
-.wd-row .to { color:#64748b; }
+.cs input { width:20px; height:20px; flex:none; margin-top:1px; }
+.cs .cn { display:block; font-weight:700; line-height:1.5; }
+/* 開催時間は講座名とセットで見せる。⛔ 別のカードに分けないこと */
+.cs .ch { display:block; margin-top:3px; font-size:12px; color:#64748b; }
 .ir-submit { width:100%; background:#0d1b3e; color:#fff; border:none; border-radius:8px;
              padding:16px; font-size:17px; font-weight:800; cursor:pointer;
              margin-top:20px; }
@@ -105,9 +97,9 @@
     <h1>講師のご登録</h1>
     <p>
       JGAIA／JQCA のバイブコーディング認定講座で、講師をお願いできる方の登録フォームです。<br>
-      <strong>ご本業をお持ちの方でも大丈夫です。</strong>講義できる曜日と時間をご登録いただき、
-      予約は<strong>開催の{{ 14 }}日以上前</strong>までしか入らない仕組みにしています。
-      都合の悪い日は、あとからカレンダーで外せます。
+      <strong>ご本業をお持ちの方でも大丈夫です。</strong>講義できる日はカレンダーから1日ずつ選べ、
+      予約は<strong>開催の{{ lead_days }}日以上前</strong>までしか入らない仕組みにしています。
+      予定はいつでも変更できます。
     </p>
   </div>
 
@@ -127,12 +119,20 @@
 
     <div class="ir-card">
       <h2>担当できる講座</h2>
-      <div class="hint">複数お選びいただけます。あとから増やすこともできます。</div>
+      {# ⛔ 講座名と開催時間を別のカードに分けないこと。同じ講座の情報が
+         2か所に割れて、選ぶときに開催時間が見えない（2026-08-12 社長ご指摘） #}
+      <div class="hint">
+        複数お選びいただけます。あとから増やすこともできます。<br>
+        講座には決まった開催時間があります。ご都合の合うものをお選びください。
+      </div>
       <div class="cs">
         {% for c in courses %}
           <label>
             <input type="checkbox" name="courses" value="{{ c['code'] }}">
-            <span>{{ c['code'] }} {{ c['name'] }}</span>
+            <span>
+              <span class="cn">{{ c['code'] }} {{ c['name'] }}</span>
+              <span class="ch">{{ c['hours'] }}</span>
+            </span>
           </label>
         {% endfor %}
       </div>
@@ -142,23 +142,9 @@
       <h2>講義できる日</h2>
       <div class="hint">
         <strong>ここでは伺いません。</strong>ご登録のあと、あなた専用のカレンダー画面をお出しします。
-        そこで<strong>日付を押すだけ</strong>で登録でき、1日に朝と夜のような複数の時間帯も入れられます。
+        そこで<strong>日付を押して、その日に担当する講座を選ぶ</strong>だけです。
         いつでも変更できます（すでに予約が入った日を除く）。
       </div>
-    </div>
-
-    <div class="ir-card">
-      <h2>担当できるコースの開催時間</h2>
-      <div class="hint">
-        コースには決まった開催時間があります。
-        <strong>その時間を含む枠を登録した日だけ</strong>、そのコースの予約が入ります
-        （例：夜間コースは 19:00〜21:30 を含む枠が必要です）。
-      </div>
-      <ul style="margin:0;padding-left:20px;color:#0d1b3e;font-size:14px;line-height:1.9;">
-        {% for c in courses %}
-          <li>{{ c['code'] }} {{ c['name'] }} … <strong>{{ c['hours'] }}</strong></li>
-        {% endfor %}
-      </ul>
     </div>
 
     <div class="ir-card">
