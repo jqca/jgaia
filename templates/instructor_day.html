@@ -58,7 +58,9 @@
 
   <div class="dy-head">
     <div class="step">
-      {% if step == 'select' %}ステップ 2 / 3 — 担当する講座を選ぶ
+      {# ⛔ 選べない日に「担当する講座を選ぶ」と出さないこと（案内が嘘になる） #}
+      {% if booked %}受講者の申込が入っている日
+      {% elif step == 'select' %}ステップ 2 / 3 — 担当する講座を選ぶ
       {% else %}ステップ 3 / 3 — 内容の確認{% endif %}
     </div>
     <h1>{{ day.year }}年{{ day.month }}月{{ day.day }}日（{{ weekday }}）</h1>
@@ -69,10 +71,19 @@
   {% if booked %}
     {# ⛔ 予約が入っている日は変更させない（受講者に開始時刻を案内済み） #}
     <div class="dy-card">
-      <h2>この日は変更できません</h2>
-      <div class="none">
-        すでに受講者の予約が入っています。日程の変更が必要なときは
-        info@jgaia.org までご連絡ください。
+      <h2>この日は受講者の申込が入っています</h2>
+      {# ⛔ 「予約が入っています」だけで終わらせない。何の講座で何名かを出す #}
+      {% if booked_rows %}
+        <ul class="sum">
+          {% for b in booked_rows %}
+            <li>{{ b['コース'] }} {{ b['コース名'] }}　<strong>{{ b['人数'] }}名</strong>
+              <span class="hr">日程：{{ b['日程'] | join('・') }}</span></li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+      <div class="none" style="margin-top:12px;">
+        開催日として受講者にご案内済みのため、この日の登録は変更できません。
+        日程の変更が必要なときは info@jgaia.org までご連絡ください。
       </div>
       <div class="dy-acts">
         <a href="{{ url_for('instructor_schedule', token=token) }}">カレンダーに戻る</a>

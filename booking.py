@@ -932,6 +932,33 @@ def bookings_for(course_code, day):
             and b.get('状態') != '取消']
 
 
+def booked_summary(instructor_id):
+    """予約が入っている日 → その日に担当する回の一覧（受講者の申込）。
+
+    {'2026-09-14': [{'コース':'SP-B','コース名':'…','開始日':'2026-09-14','人数':3}]}
+    ⛔ 「予約が入っている」とだけ画面に出さないこと。誰の何の予約かが
+       分からないと、講師は自分がその日に何をするのか確かめられない
+       （2026-08-13 社長ご質問）。
+    """
+    per, dates = {}, {}
+    for b in bookings():
+        if b.get('担当講師id') != instructor_id or b.get('状態') == '取消':
+            continue
+        key = (b.get('コース'), b.get('希望日'))
+        per[key] = per.get(key, 0) + int(b.get('人数') or 1)
+        dates[key] = (b.get('開催日')
+                      or course_dates(b.get('コース'), b.get('希望日')))
+    out = {}
+    for (code, start), people in sorted(per.items()):
+        row = {'コース': code,
+               'コース名': (COURSE_BY_CODE.get(code) or {}).get('name', ''),
+               '開始日': start, '人数': people,
+               '日程': dates[(code, start)]}
+        for iso in dates[(code, start)]:
+            out.setdefault(iso, []).append(row)
+    return out
+
+
 def booked_days_for_instructor(instructor_id):
     """その講師に既に予約が入っている日（3日間の講座なら3日ぶん）。
 

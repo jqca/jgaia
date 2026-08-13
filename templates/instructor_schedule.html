@@ -140,7 +140,9 @@
     <div class="legend">
       <span><i style="background:#10b981"></i>登録済み（担当する講座を表示）</span>
       <span><i style="background:#fff;border:1px solid #e2e8f0"></i>未登録</span>
-      <span><i style="background:#2563eb"></i>予約が入っている（変更不可）</span>
+      {# ⛔ 「予約」とだけ書かないこと。講師自身が押さえた予定とも読める
+         （2026-08-13 社長ご質問）。誰の予約なのかを必ず書く #}
+      <span><i style="background:#2563eb"></i>受講者の申込が入っている（変更不可）</span>
       <span><i style="background:repeating-linear-gradient(45deg,#f8fafc 0 4px,#eef2f7 4px 8px);border:1px solid #e2e8f0"></i>{{ lead_days }}日以内（対象外）</span>
     </div>
 
@@ -164,9 +166,14 @@
                     {% elif d < earliest %}lead{% endif %}
                     {% if d == saved %}saved{% endif %}"
                  href="{{ url_for('instructor_day', token=token, iso=d) }}"
-                 title="{% if d in booked_days %}予約が入っています{% elif d < earliest %}{{ lead_days }}日以内のため予約対象外です{% else %}押すと担当する講座を選べます{% endif %}">
+                 title="{% if d in booked_days %}受講者の申込が入っています：{% for b in booked_info.get(d, []) %}{{ b['コース'] }} {{ b['コース名'] }} {{ b['人数'] }}名（{{ b['日程'] | join('・') }}）{% endfor %}／開催日としてご案内済みのため変更できません{% elif d < earliest %}{{ lead_days }}日以内のため受付対象外です{% else %}押すと担当する講座を選べます{% endif %}">
                 <span class="n">{{ d[8:]|int }}</span>
-                {% if days.get(d) %}
+                {% if d in booked_days and booked_info.get(d) %}
+                  {# ⛔ 青いだけにしない。何の講座で何名かを出す #}
+                  <span class="t">
+                    {%- for b in booked_info[d] %}{{ b['コース'] }} {{ b['人数'] }}名
+                    {%- if not loop.last %}<br>{% endif %}{% endfor %}</span>
+                {% elif days.get(d) %}
                   <span class="t">{{ days[d] | join(' ') }}</span>
                 {% endif %}
               </a>

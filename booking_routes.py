@@ -120,6 +120,7 @@ def register_booking_routes(app):
                                lead_days=booking.LEAD_DAYS,
                                today=booking.today_jst().isoformat(),
                                booked_days=booking.booked_days_for_instructor(inst['id']),
+                               booked_info=booking.booked_summary(inst['id']),
                                earliest=(booking.today_jst()
                                          + timedelta(days=booking.LEAD_DAYS)).isoformat())
 
@@ -168,6 +169,7 @@ def register_booking_routes(app):
                 'instructor_day.html', inst=inst, token=token, iso=iso,
                 day=day, weekday=booking.WEEKDAYS[day.weekday()],
                 mine=mine, groups=groups, chosen=chosen, step=step, error=error,
+                booked_rows=booking.booked_summary(inst['id']).get(iso, []),
                 booked=booked, too_soon=day < earliest,
                 earliest=earliest.isoformat(), lead_days=booking.LEAD_DAYS,
                 others=booking.others_on(inst, day))

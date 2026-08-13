@@ -1296,9 +1296,35 @@ class Test1日ぶんの登録画面(unittest.TestCase):
     def test_予約が入っている日は変更できないと出す(self):
         day = _far_day()
         booking.set_day_courses(self.token, day, ['SP-A'])
-        booking.add_booking('SP-A', day, '鈴木', 's@example.com', '', 1, '')
+        booking.add_booking('SP-A', day, '鈴木', 's@example.com', '', 2, '')
         body = self.c.get(self._url(day)).get_data(as_text=True)
-        self.assertIn('この日は変更できません', body)
+        self.assertIn('この日は受講者の申込が入っています', body)
+        # ⛔ 「予約が入っています」だけで終わらせない＝何の講座で何名かを出す
+        self.assertIn('SP-A', body)
+        self.assertIn('2名', body)
+        # ⛔ 選べない日に「担当する講座を選ぶ」と出さない
+        self.assertNotIn('ステップ 2 / 3', body)
+
+    def test_カレンダーに申込の中身を出す(self):
+        # ⛔ 青いだけの日にしない。講師が自分の担当を確かめられるようにする
+        day = _far_day()
+        booking.set_day_courses(self.token, day, ['SP-A'])
+        booking.add_booking('SP-A', day, '鈴木', 's@example.com', '', 3, '')
+        body = self.c.get('/instructor/schedule/' + self.token).get_data(as_text=True)
+        self.assertIn('SP-A 3名', body)
+        self.assertIn('受講者の申込が入っている（変更不可）', body)
+        # ⛔ 誰の予約か分からない書き方に戻さない
+        self.assertNotIn('>予約が入っている（変更不可）', body)
+
+    def test_申込の集計は取消を数えない(self):
+        day = _far_day()
+        booking.set_day_courses(self.token, day, ['SP-A'])
+        rec, _ = booking.add_booking('SP-A', day, '鈴木', 's@example.com',
+                                     '', 2, '')
+        rows = booking.bookings()
+        rows[0]['状態'] = '取消'
+        booking._save('bookings.json', rows)
+        self.assertEqual(booking.booked_summary(self.inst['id']), {})
 
     def test_他の講師の登録を参考として出す(self):
         day = _far_day()
