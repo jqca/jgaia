@@ -76,17 +76,17 @@ COURSES = [
      'group': '汎用'},
 
     # ── 子ども向け /vibe-coding/kids
-    # ⛔ 開始・終了の時刻は掲載ページに無い（所要時間だけ）。書き足さないこと＝
-    #    時刻が読めない講座は「同じ日に他の講座と併せて担当できない」安全側に倒れる。
-    #    時刻が決まったら hours を '10:00〜13:00' の形にすれば併記できるようになる。
+    # 開催時刻は 2026-08-12 に決定（社長ご一任）。1日コースは他と同じ 10:00〜17:00、
+    # 子どもの半日だけ午前に置く（集中力が続く時間帯・昼食前に終わる）。
+    # ⛔ 掲載ページ（templates/vibe_coding_kids.html）の「時間」欄と必ず一致させること。
     {'code': 'GK1', 'name': 'キッズ体験（半日・親子）', 'price': 9800,
-     'hours': '3時間（半日）', 'min_people': 1, 'capacity': 10,
+     'hours': '10:00〜13:00', 'min_people': 1, 'capacity': 10,
      'group': '子ども'},
     {'code': 'GK2', 'name': 'ジュニア入門（1日・中学生）', 'price': 29800,
-     'hours': '6時間（1日）', 'min_people': 4, 'capacity': 15,
+     'hours': '10:00〜17:00', 'min_people': 4, 'capacity': 15,
      'group': '子ども'},
     {'code': 'GK3', 'name': '親子ペアコース（1日）', 'price': 49800,
-     'hours': '6時間（1日）', 'min_people': 1, 'capacity': 10,
+     'hours': '10:00〜17:00', 'min_people': 1, 'capacity': 10,
      'group': '子ども'},
 ]
 
@@ -96,14 +96,16 @@ COURSES = [
 for _slug, _label in (('GM', '製造業'), ('GH', '医療・ヘルスケア'),
                       ('GF', '金融'), ('GL', '物流'), ('GN', '建設')):
     COURSES += [
+        # 半日は午後に置く（午前の業務を片付けてから参加でき、遠方からでも間に合う）。
+        # 1日は他の講座と同じ 10:00〜17:00 に揃える（会場・講師の手配が同じ枠で回る）。
         {'code': f'{_slug}-A', 'name': f'{_label}AI入門（半日）', 'price': 49800,
-         'hours': '4時間（半日）', 'min_people': 4, 'capacity': 20,
+         'hours': '13:00〜17:00', 'min_people': 4, 'capacity': 20,
          'group': _label},
         {'code': f'{_slug}-B', 'name': f'{_label}AIマスター（3日間）',
-         'price': 128000, 'hours': '各7時間 × 3日間', 'days': 3,
+         'price': 128000, 'hours': '10:00〜17:00 × 3日間', 'days': 3,
          'min_people': 3, 'capacity': 15, 'group': _label},
         {'code': f'{_slug}-C', 'name': f'{_label}AIアーキテクト（5日間）',
-         'price': 228000, 'hours': '各7時間 × 5日間', 'days': 5,
+         'price': 228000, 'hours': '10:00〜17:00 × 5日間', 'days': 5,
          'min_people': 3, 'capacity': 10, 'group': _label},
     ]
 COURSE_BY_CODE = {c['code']: c for c in COURSES}

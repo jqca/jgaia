@@ -921,6 +921,38 @@ class Test掲載している講座が全部登録されている(unittest.TestCa
             with self.subTest(course=code):
                 self.assertEqual(booking.COURSE_BY_CODE[code]['price'], price)
 
+    def test_全講座に開催時刻がある(self):
+        # ⛔ 時刻が読めない講座は「同じ日に他と併せて担当できない」安全側に倒れ、
+        #    受講者にも開始時刻を案内できない。26講座すべてに時刻を持たせる
+        for c in booking.COURSES:
+            with self.subTest(course=c['code']):
+                self.assertIsNotNone(booking.course_hours(c['code']),
+                                     f"{c['code']} の hours から時刻が読めない")
+
+    def test_業種別の時刻が掲載と一致している(self):
+        # ⛔ 掲載ページと予約の時刻がズレたら、案内と実運用が食い違う
+        from vibe_coding_industry import INDUSTRIES
+        for ind in INDUSTRIES.values():
+            for c in ind['courses']:
+                m = re.search(r'(\d{1,2}:\d{2})\s*〜\s*(\d{1,2}:\d{2})',
+                              c['duration'])
+                with self.subTest(course=c['code']):
+                    self.assertIsNotNone(m, f"{c['code']} の掲載に時刻が無い")
+                    self.assertEqual(booking.course_hours(c['code']),
+                                     (m.group(1), m.group(2)))
+
+    def test_子ども向けの時刻が掲載と一致している(self):
+        import io
+        path = os.path.join(os.path.dirname(HERE), 'templates',
+                            'vibe_coding_kids.html')
+        html = io.open(path, encoding='utf-8').read()
+        found = re.findall(r'COURSE (GK\d)</div>.*?meta-value">\d時間<br>'
+                           r'(\d{1,2}:\d{2})〜(\d{1,2}:\d{2})', html, re.S)
+        self.assertEqual(len(found), 3, '掲載ページに時刻が無い')
+        for code, a, b in found:
+            with self.subTest(course=code):
+                self.assertEqual(booking.course_hours(code), (a, b))
+
     def test_業種別は5業種3段階そろっている(self):
         for pre in ('GM', 'GH', 'GF', 'GL', 'GN'):
             for lv in ('A', 'B', 'C'):
