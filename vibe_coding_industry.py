@@ -777,8 +777,13 @@ def _render_industry_page(ind):
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px;">
               {meta_items}</div>
             {subsidy_badge_html}
+            <!-- ⛔ ￥ を落とさないこと（社長ご指摘 2026-08-17「料金には￥マークを付けて。わかりずらい」）。
+                 booking.apply_prices() は価格を「49,800」という数字だけに整形して入れ直す
+                 （申込画面と金額が食い違わないための唯一の出どころ）。通貨記号は表示側で足す約束で、
+                 講座詳細・一人会社ページも ¥{{ c.price }} の形になっている。ここだけ抜けていた。
+                 ⛔ apply_prices の側に ￥ を足して直さないこと＝既に ¥ を書いている6箇所が ¥¥ になる。 -->
             <div style="font-size:2rem;font-weight:900;color:{p['accent']};margin-bottom:4px;">
-              {course["price"]}<span style="font-size:0.8rem;font-weight:400;color:#64748b;">
+              &yen;{course["price"]}<span style="font-size:0.8rem;font-weight:400;color:#64748b;">
               {course["price_unit"]}</span></div>
             <ul style="list-style:none;margin:0 0 20px;padding:0;flex:1;">{feat_items}</ul>
             <a href="#inquiry" style="display:block;text-align:center;padding:14px;border-radius:14px;
