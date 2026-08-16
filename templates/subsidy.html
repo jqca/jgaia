@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% block title %}助成金のご案内（法人向け）{% endblock %}
+{% block description %}東京しごと財団 DXリスキリング助成金を使うと、対象講座の受講料の4分の3（1人あたり上限75,000円）が助成されます。対象講座・実質負担額・申請の流れ・当社が発行する書類をご案内します。{% endblock %}
+
+{% block content %}
+<main class="content">
+    <div class="page-hero">
+        <h1>Subsidy</h1>
+        <div class="page-hero__sub">助成金のご案内（法人のお客様へ）</div>
+    </div>
+
+    <div class="page-section">
+        <div class="panel panel-rounded">
+            <h2 style="font-size:1.4rem;color:#041f4e;margin:0 0 1em;">
+                受講料の4分の3が助成されます</h2>
+            <p style="line-height:2;color:#1f2430;">
+                従業員の方を研修として派遣される法人のお客様は、
+                <strong>{{ s['name'] }}</strong>をご利用いただけます。
+                助成率は<strong>受講対象経費の4分の3</strong>（お一人1研修あたり上限
+                {{ '{:,}'.format(cap_person) }}円）、
+                <strong>1社あたり{{ '{:,}'.format(cap_company) }}円</strong>まで
+                （上限に達するまで複数回申請できます）。
+            </p>
+            {# ⛔ 「対象です」とだけ書かないこと。自腹での受講は対象外で、
+               そちらの方が申込としては多い。条件を必ず同じ場所に出す #}
+            <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;
+                        padding:16px;margin-top:1em;line-height:1.9;color:#1f2430;">
+                <strong>ご注意</strong>：この助成金は<strong>法人が従業員を研修として派遣し、
+                受講料の全額を法人が負担する場合</strong>が対象です。<br>
+                ・<strong>申請企業の代表者ご本人・個人事業主ご本人は対象外</strong>です
+                （役員は雇用保険に加入されている場合のみ従業員として扱われます）<br>
+                ・従業員の方ご自身がお支払いになった場合は対象外です<br>
+                ・常時勤務される事業所が都内であることが必要です
+            </div>
+        </div>
+
+        <div class="panel panel-rounded" style="margin-top:2em;">
+            <h2 style="font-size:1.4rem;color:#041f4e;margin:0 0 1em;">対象の講座と実質のご負担</h2>
+            <div style="overflow-x:auto;">
+            <table class="info-table">
+                <tr>
+                    <th>講座</th><th>研修時間</th><th>受講料(税込)</th>
+                    <th>助成額</th><th>実質のご負担</th>
+                </tr>
+                {% for r in eligible %}
+                <tr>
+                    <td>{{ r.code }}　{{ r.name }}</td>
+                    <td>{{ r.hours }}時間</td>
+                    <td>¥{{ '{:,}'.format(r.price) }}</td>
+                    <td>▲¥{{ '{:,}'.format(r.grant) }}</td>
+                    <td><strong>¥{{ '{:,}'.format(r.net) }}</strong></td>
+                </tr>
+                {% endfor %}
+            </table>
+            </div>
+            <p style="font-size:.9rem;color:#5b6472;line-height:1.9;margin-top:1em;">
+                消費税は助成対象外のため、税抜の受講料に助成率をかけて算出しています。<br>
+                {# ⛔ 対象外の講座を黙って一覧から消さないこと。「載っていない＝
+                   まだ検討していない」と読まれ、問い合わせが増える #}
+                下記の講座は<strong>総研修時間数が{{ s['max_hours'] }}時間以上</strong>のため、
+                この助成金の対象外です：
+                {% for r in not_eligible %}{{ r.code }}（{{ r.hours }}時間）{% if not loop.last %}／{% endif %}{% endfor %}
+            </p>
+        </div>
+
+        <div class="panel panel-rounded" style="margin-top:2em;">
+            <h2 style="font-size:1.4rem;color:#041f4e;margin:0 0 1em;">まとまった人数でご受講の場合（出張開催）</h2>
+            {# ⛔ 「1名あたり」で見積らないこと。市場の講師派遣は1回いくらで、
+               1名あたりだと少人数のとき極端に安く、大人数だと割高になる #}
+            <p style="line-height:2;color:#1f2430;">
+                貴社の会議室またはオンラインで、貴社の従業員の方だけを対象に実施します。
+                <strong>1日（6時間）¥{{ '{:,}'.format(corp['day_price']) }}</strong>
+                （{{ corp['included'] }}名まで／{{ corp['included'] }}名を超える場合は
+                1名につき¥{{ '{:,}'.format(corp['extra_person']) }}）。
+            </p>
+            <table class="info-table">
+                <tr><th>1日・{{ corp['included'] }}名</th><td>¥{{ '{:,}'.format(q1) }}</td></tr>
+                <tr><th>1日・20名</th><td>¥{{ '{:,}'.format(q2) }}</td></tr>
+                <tr><th>3日間・{{ corp['included'] }}名</th><td>¥{{ '{:,}'.format(q3) }}</td></tr>
+            </table>
+            <p style="line-height:2;color:#1f2430;margin-top:1em;">
+                {{ corp['note'] }}<br>
+                この形（<strong>オーダーメイド研修</strong>）では
+                <strong>会場費も助成の対象</strong>になります。
+                お見積りをご提示し、ご同意いただいてから確定します。
+                <a href="mailto:info@jgaia.org" style="color:#041f4e;font-weight:600;">info@jgaia.org</a>
+                までご連絡ください。
+            </p>
+        </div>
+
+        <div class="panel panel-rounded" style="margin-top:2em;">
+            <h2 style="font-size:1.4rem;color:#041f4e;margin:0 0 1em;">本講座で習得する知識・技能（DX推進の観点）</h2>
+            {# ⛔ ここを省かないこと。財団に出す「研修計画」に書く材料で、
+               これが無いと法人は自分で書き起こす羽目になる（申請の障害） #}
+            <p style="line-height:2;color:#1f2430;">
+                交付申請では「自社のDX推進のために必要な知識・技能の習得」であることを
+                研修計画にご記載いただきます。そのままお使いいただける記載例です。
+            </p>
+            <table class="info-table">
+                {% for r in eligible %}
+                <tr><th style="white-space:nowrap;">{{ r.code }}</th>
+                    <td>{{ r.dx }}</td></tr>
+                {% endfor %}
+            </table>
+        </div>
+
+        <div class="panel panel-rounded" style="margin-top:2em;">
+            <h2 style="font-size:1.4rem;color:#041f4e;margin:0 0 1em;">お申し込みから受給までの流れ</h2>
+            <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;
+                        padding:16px;margin-bottom:1.5em;line-height:1.9;color:#1f2430;">
+                {# ⛔ この期限を目立たせないと、申し込んでから間に合わないことが分かる #}
+                <strong>最重要</strong>：交付申請は<strong>研修開始日の1か月前まで</strong>です。
+                準備期間を含め、<strong>開催日の{{ s['lead_days'] }}日前まで</strong>にお申し込みください。
+                これを過ぎますと、ご受講はいただけますが助成金は受けられません。
+            </div>
+            <ol style="line-height:2.1;color:#1f2430;padding-left:1.2em;">
+                <li>開催日をお選びのうえ、<strong>請求書払い</strong>でお申し込みください
+                    （助成金は法人の口座からのお振込みが要件です。
+                    <strong>クレジットカード・従業員ご本人のお支払いは対象外</strong>になります）</li>
+                <li>当社より<strong>受講案内・お見積書</strong>をお送りします</li>
+                <li>貴社にて<strong>Jグランツ</strong>から交付申請（研修開始の1か月前まで）</li>
+                <li>交付決定 → ご受講（<strong>総研修時間数の8割以上</strong>のご出席が必要です）</li>
+                <li>当社が<strong>受講証明書</strong>を発行します</li>
+                <li>貴社にて実績報告 → 助成金のお受け取り</li>
+            </ol>
+        </div>
+
+        <div class="panel panel-rounded" style="margin-top:2em;">
+            <h2 style="font-size:1.4rem;color:#041f4e;margin:0 0 1em;">当社が発行する書類</h2>
+            <ul style="line-height:2.1;color:#1f2430;padding-left:1.2em;">
+                <li><strong>受講証明書</strong>（参考様式2）— 総研修時間数の8割以上の受講を証明します</li>
+                <li><strong>お見積書・請求書・領収書</strong>— 受講者1人1研修単位の金額を明記します</li>
+                <li><strong>受講案内</strong>— 一般に公開された受講案内として、各講座のページがそのまま使えます</li>
+            </ul>
+            <p style="line-height:2;color:#1f2430;margin-top:1em;">
+                ご不明な点は <a href="mailto:info@jgaia.org"
+                style="color:#041f4e;font-weight:600;">info@jgaia.org</a> までご連絡ください。
+                制度の詳細は<a href="{{ s['url'] }}" target="_blank" rel="noopener"
+                style="color:#041f4e;font-weight:600;">東京しごと財団のページ</a>をご確認ください。
+            </p>
+            <p style="font-size:.85rem;color:#5b6472;line-height:1.8;margin-top:1em;">
+                ※ 助成の可否は財団の審査により決定されます。当社は受給を保証するものではありません。<br>
+                ※ 国または地方公共団体の他の助成金との併用はできません。<br>
+                ※ 貴社の代表者・役員の方が関与される教育機関からの受講は対象外とされています。
+            </p>
+        </div>
+    </div>
+</main>
+{% endblock %}

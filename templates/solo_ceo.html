@@ -551,8 +551,15 @@ main { padding: 0 !important; margin-top: 0 !important; min-height: 0 !important
         一人でも回せる経営システムの作り方を学ぶ。
     </p>
     <div class="hero-actions">
+        {# 予約できる日が全コース合計で1日でもあるときは、申込を先頭に出す。
+           ⛔ 日程が無いときに予約へ誘導しないこと（行き止まりになる） #}
+        {% if open_total %}
+        <a href="#courses" class="sc-btn-primary">開催日を見て申し込む →</a>
+        <a href="#inquiry" class="sc-btn-outline">まず無料で相談する</a>
+        {% else %}
         <a href="#inquiry" class="sc-btn-primary">無料で相談する →</a>
         <a href="#courses" class="sc-btn-outline">コース一覧を見る</a>
+        {% endif %}
     </div>
 </section>
 
@@ -643,11 +650,19 @@ main { padding: 0 !important; margin-top: 0 !important; min-height: 0 !important
                         <span class="meta-tag">{{ c.duration }}</span>
                         <span class="meta-tag">{{ c.format }}</span>
                         <span class="meta-tag">定員{{ c.capacity }}</span>
-                        <span class="meta-tag">開催日 {{ c.next_date if c.next_date else '調整中' }}</span>
+                        {# 開催日はカレンダー（講師の登録）が唯一の出どころ。
+                           ⛔ 手打ちの日付を混ぜないこと（講師が変えても古い日付が残る） #}
+                        <span class="meta-tag">開催日 {{ slots[c.id]['表示'] }}</span>
                     </div>
                     <div class="card-price">¥{{ c.price }}<small>（税込）</small></div>
                 </div>
+                {% if slots[c.id]['件数'] %}
+                <a href="{{ url_for('book_course', code=c.code) }}" class="card-link"
+                   style="background:#10b981;color:#fff;">開催日を見て申し込む →</a>
                 <a href="/solo-ceo/course-{{ c.id }}" class="card-link">詳細を見る →</a>
+                {% else %}
+                <a href="/solo-ceo/course-{{ c.id }}" class="card-link">詳細を見る →</a>
+                {% endif %}
             </div>
             {% endfor %}
         </div>
@@ -768,9 +783,9 @@ main { padding: 0 !important; margin-top: 0 !important; min-height: 0 !important
             <label for="fi-course">関心のあるコース</label>
             <select id="fi-course" name="course">
                 <option value="">選択してください（任意）</option>
-                <option value="SP-A: AI経営 入門1日">SP-A: AI経営 入門1日（¥49,800）</option>
-                <option value="SP-B: AI経営 実践3日間">SP-B: AI経営 実践3日間マスター（¥128,000）</option>
-                <option value="SP-C: AI経営 夜間5回">SP-C: AI経営 夜間マスター全5回（¥68,000）</option>
+                <option value="SP-A: AI経営 入門1日">SP-A: AI経営 入門1日（{{ '{:,}'.format(prices['SP-A']) }}）</option>
+                <option value="SP-B: AI経営 実践3日間">SP-B: AI経営 実践3日間マスター（{{ '{:,}'.format(prices['SP-B']) }}）</option>
+                <option value="SP-C: AI経営 夜間5回">SP-C: AI経営 夜間マスター全5回（{{ '{:,}'.format(prices['SP-C']) }}）</option>
                 <option value="法人研修">法人向けカスタマイズ研修</option>
                 <option value="まだ決めていない">まだ決めていない</option>
             </select>

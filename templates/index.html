@@ -7,6 +7,51 @@
     <meta name="keywords" content="生成AI, 生成AI活用, 生成AI技術, 生成AI研究, 生成AI応用, 生成AI開発, 生成AI教育, 生成AIトレーニング, 生成AIツール, 生成AIプラットフォーム, 生成AIソリューション, 生成AI産業応用, 日本生成AI協会">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/mntn-dev/t.js/t.min.js"></script>
+
+    {# 構造化データ（AI検索・検索エンジン向け）。
+       トップページには構造化データが1つも無く、団体名・設立・所在地・提供講座を
+       機械が読み取れなかった。値は /company-info と各講座ページの記載のみを使う。 #}
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": ["Organization", "EducationalOrganization"],
+          "@id": "https://www.jgaia.org/#organization",
+          "name": "一般社団法人日本生成AI協会",
+          "alternateName": ["JGAIA", "Japan Generative AI Association"],
+          "url": "https://www.jgaia.org/",
+          "logo": "https://www.jgaia.org/static/img/ogp.png",
+          "foundingDate": "2024-06",
+          "description": "生成AIの資格検定・認定講座・人材育成を行う一般社団法人。生成AIジェネラリスト検定と生成AIエンジニア認定を運営し、プログラミング未経験者向けのバイブコーディング講座、一人会社AI経営講座を提供する。",
+          "address": {
+            "@type": "PostalAddress",
+            "streetAddress": "銀座1-22-11 銀座大竹ビジデンス2F",
+            "addressLocality": "中央区",
+            "addressRegion": "東京都",
+            "postalCode": "104-0061",
+            "addressCountry": "JP"
+          },
+          "areaServed": "JP",
+          "knowsAbout": ["生成AI", "AIアプリ開発", "バイブコーディング", "AI人材育成", "資格検定"],
+          "contactPoint": {
+            "@type": "ContactPoint",
+            "contactType": "customer service",
+            "url": "https://www.jgaia.org/contact",
+            "availableLanguage": ["ja"]
+          }
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://www.jgaia.org/#website",
+          "url": "https://www.jgaia.org/",
+          "name": "一般社団法人日本生成AI協会（JGAIA）",
+          "inLanguage": "ja",
+          "publisher": { "@id": "https://www.jgaia.org/#organization" }
+        }
+      ]
+    }
+    </script>
 {% endblock %}
 
 {% block extra_css %}
@@ -41,6 +86,7 @@
             margin: 0.8em 1em 0.8em 0;
             font-size: 1.3rem;
             min-width: 20em;
+            box-sizing: border-box;
         }
 
         /* ── Features ── */
@@ -255,6 +301,50 @@
         @media screen and (min-width: 700px) and (max-width: 1200px) {
             .catchphrase-area { height: calc(100vw / 1.1); }
         }
+        @media screen and (max-width: 600px) {
+            .catchphrase-area__links {
+                grid-template-columns: 1fr !important;
+                gap: 0 !important;
+            }
+            .catchphrase-area__links__row {
+                flex-direction: column;
+            }
+            .catchphrase-area__links a.link-button {
+                min-width: 0 !important;
+                width: 100%;
+                font-size: 1rem !important;
+            }
+        }
+
+        /* ── 冒頭の結論（.site-lede） ──
+           ヒーローのキャッチフレーズはJS描画のため機械が読めない。
+           人にもAIにも同じ内容が読める静的テキストをここに置く。 */
+        /* この位置（ヒーローの下）は背景が白のため、文字色は濃紺にする。
+           :root の color:#fff を継承すると白背景に白文字で消える。 */
+        .site-lede {
+            max-width: 62em;
+            margin: 0 auto 4em;
+            padding: 0 1.5em;
+            color: #041f4e;
+        }
+        .site-lede__title {
+            font-size: clamp(1.25rem, 2.2vw, 1.9rem);
+            font-weight: bold;
+            line-height: 1.5;
+            margin: 0 0 0.6em;
+        }
+        .site-lede__text {
+            font-size: clamp(0.95rem, 1.15vw, 1.15rem);
+            line-height: 1.9;
+        }
+        .site-lede__text a {
+            color: #041f4e;
+            text-decoration: underline;
+            font-weight: bold;
+        }
+        @media screen and (max-width: 600px) {
+            .site-lede { margin-bottom: 2.5em; }
+        }
 {% endblock %}
 
 {% block content %}
@@ -277,6 +367,22 @@
             </div>
         </div>
     </div>
+
+    <!-- 冒頭の結論（AI検索・クローラ対策）
+         上のキャッチフレーズはJS（t.js）で1文字ずつ描画するため、
+         クローラやAIには「s*0せいs*0…」という断片しか見えない＝
+         このページの先頭に「何の団体か」が機械可読な形で1つも無い状態だった。
+         そこで静的テキストで結論を置く。数値は各ページの掲載値と一致させること。 -->
+    <section class="site-lede">
+        <h1 class="site-lede__title">一般社団法人日本生成AI協会（JGAIA）</h1>
+        <p class="site-lede__text">
+            JGAIAは、<strong>生成AIの資格検定と認定講座を運営する一般社団法人</strong>です（2024年6月設立／東京都中央区銀座／代表理事 高野秀隆）。
+            生成AIジェネラリスト検定・生成AIエンジニア認定を実施し、あわせて、プログラミング未経験から業務アプリを自分で作れるようになる
+            {# ⛔ 金額を直書きしないこと。値は booking.subsidy_for() が唯一の出どころ #}
+            <a href="/vibe-coding">バイブコーディング講座</a>（1日6時間 ¥49,800・法人研修で助成金を使う場合は実質 ¥{{ '{:,}'.format(subsidy_net_typical) }}）と、
+            一人で会社を運営する経営者向けの<a href="/solo-ceo">一人会社AI経営講座</a>を提供しています。
+        </p>
+    </section>
 
     <!-- Features -->
     <div class="area panel">

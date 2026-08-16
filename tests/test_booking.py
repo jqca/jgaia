@@ -8,6 +8,7 @@
   ③ 予約が入った日を講師があとから閉じられてしまう
   ④ 選べる日が0件のページでスクリプトが落ちる／テンプレートが500になる
 """
+import io
 import os
 import re
 import sys
@@ -33,6 +34,18 @@ from app import app  # noqa: E402
 from solo_ceo import booking_summary as solo_ceo_summary  # noqa: E402
 
 
+def _visible(html):
+    """画面に見える部分だけを返す（script とコメントを落とす）。
+
+    ⛔ 「この書き方をしていないこと」を生のHTMLで検索しないこと。⛔付きの
+       注意書きや、JSのセレクタ（input[name="pay"]）に当たって落ちる。
+       禁止した言葉ほど、禁止を書いたコメントに含まれている。
+    """
+    html = re.sub(r'<script\b.*?</script>', '', html, flags=re.S | re.I)
+    html = re.sub(r'<!--.*?-->', '', html, flags=re.S)
+    return re.sub(r'\{#.*?#\}', '', html, flags=re.S)
+
+
 def _clear():
     for f in ('instructors.json', 'bookings.json'):
         p = os.path.join(_TMP, f)
@@ -51,13 +64,34 @@ def _days_all(courses=('SP-A',), span=120):
             for i in range(span)}
 
 
+def _next_session_day(after):
+    """その日より後の、いちばん近い開催日。"""
+    d = date.fromisoformat(after) + timedelta(days=1)
+    for _ in range(20):
+        if booking.is_session_day(d):
+            return d.isoformat()
+        d += timedelta(days=1)
+    raise AssertionError('開催日が見つかりません')
+
+
 def _weekly_all_days():
     """旧形式（曜日の決まり）。移行の読み取り互換を確かめるためだけに残す。"""
     return [{'曜日': i, '開始': '10:00', '終了': '17:00'} for i in range(7)]
 
 
 def _far_day(offset=30):
-    return (date.today() + timedelta(days=offset)).isoformat()
+    """offset日後 以降の、いちばん近い『開催日』。
+
+    ⛔ ただの offset 日後を返さないこと（2026-08-15）。開催日は運営が決めた
+       曜日（毎週水＋第2・第4土）だけで、それ以外は講師も登録できない。
+       固定の日数を返すと、テストが「その年その月の曜日」に依存して落ちる。
+    """
+    d = date.today() + timedelta(days=offset)
+    for _ in range(14):
+        if booking.is_session_day(d):
+            return d.isoformat()
+        d += timedelta(days=1)
+    raise AssertionError('開催日が見つかりません')
 
 
 def _far_weekday(weekday, offset=20):
@@ -69,6 +103,20 @@ def _far_weekday(weekday, offset=20):
     while d.weekday() != weekday:
         d += timedelta(days=1)
     return d.isoformat()
+
+
+def _far_session_weekday(weekday, offset=20):
+    """offset 日より先で、その曜日かつ『開催日』である最初の日。
+
+    ⛔ ただの曜日で取らないこと（2026-08-15）。土曜は第2・第4だけが開催日で、
+       第1・第3土曜を渡すと set_day_courses が正しく断る。
+    """
+    d = date.today() + timedelta(days=offset)
+    for _ in range(70):
+        if d.weekday() == weekday and booking.is_session_day(d):
+            return d.isoformat()
+        d += timedelta(days=1)
+    raise AssertionError('開催日が見つかりません')
 
 
 class Test講師の登録(unittest.TestCase):
@@ -98,6 +146,119 @@ class Test講師の登録(unittest.TestCase):
         with self.assertRaises(ValueError):
             booking.register_instructor('山田', 'y@example.com', '', [], '',
                                         _days_all())
+
+
+class Test同じメールアドレスは1人1行(unittest.TestCase):
+    """⛔ 2026-08-14 社長ご指摘。重複チェックが1行も無く、本番の台帳は
+       12件すべてが同一アドレスだった＝1人が12人として並んでいた。
+    """
+
+    def setUp(self):
+        _clear()
+        self.a, self.ta = booking.register_instructor(
+            '山田 太郎', 'y@example.com', '旧所属', ['SP-A'], 'めも')
+
+    def test_同じアドレスで登録し直しても行が増えない(self):
+        booking.register_instructor('山田 太郎', 'y@example.com', '新所属',
+                                    ['SP-A', 'SP-B'], '')
+        self.assertEqual(len(booking.instructors()), 1)
+
+    def test_大文字小文字が違っても同じ人として扱う(self):
+        # 同じ受信箱に届くので、別人として登録されると二重に公開される
+        booking.register_instructor('山田 太郎', 'Y@Example.com', '', ['SP-A'], '')
+        self.assertEqual(len(booking.instructors()), 1)
+
+    def test_登録し直しても本人用の鍵は変わらない(self):
+        # 変わると、以前に受け取ったメールのリンクが全部死ぬ
+        b, tb = booking.register_instructor('山田 太郎', 'y@example.com', '',
+                                            ['SP-A'], '')
+        self.assertEqual(tb, self.ta)
+        self.assertEqual(b['id'], self.a['id'])
+
+    def test_登録し直すと内容が置き換わる(self):
+        b, _ = booking.register_instructor('山田 花子', 'y@example.com', '新所属',
+                                           ['SP-B'], 'あたらしいめも')
+        self.assertEqual(b['氏名'], '山田 花子')
+        self.assertEqual(b['所属'], '新所属')
+        self.assertEqual(b['対応コース'], ['SP-B'])
+        self.assertEqual(b['備考'], 'あたらしいめも')
+
+    def test_メール確認済みは消さない(self):
+        # 本人が受け取った証拠。消すと承認しても公開されない状態に戻る
+        booking.verify_email(self.ta)
+        b, _ = booking.register_instructor('山田 太郎', 'y@example.com', '',
+                                           ['SP-A'], '')
+        self.assertTrue(b['メール確認済み'])
+
+    def test_登録済みの日程は消さない(self):
+        booking.set_day_courses(self.ta, _far_day(), ['SP-A'])
+        before = booking.registered_days(booking.find_instructor(self.ta))
+        booking.register_instructor('山田 太郎', 'y@example.com', '', ['SP-A'], '')
+        after = booking.registered_days(booking.find_instructor(self.ta))
+        self.assertEqual(before, after)
+        self.assertTrue(after)
+
+    def test_講座を増やしても既存の承認は生きたまま(self):
+        # ⛔ 審査を受けずに担当講座を増やせる状態にしないこと。ただし
+        #    ⛔ 既に承認されている講座まで巻き添えで非公開にしないこと。
+        #    承認は**講座ごと**に持つ（2026-08-15 社長ご指摘で修正）。
+        #    旧実装は状態ごと『申請中』へ戻し、その人の日程が全部消えていた。
+        booking.set_state(self.a['id'], '承認')
+        b, _ = booking.register_instructor('山田 太郎', 'y@example.com', '',
+                                           ['SP-A', 'SP-B'], '')
+        self.assertEqual(b['状態'], '承認')
+        self.assertEqual(booking.approved_courses(b), ['SP-A'])
+        self.assertEqual(booking.pending_courses(b), ['SP-B'])
+
+    def test_承認済みでも講座が増えなければ承認のまま(self):
+        # 誤字を直しただけで差し戻すと、公開が止まってしまう
+        booking.set_state(self.a['id'], '承認')
+        b, _ = booking.register_instructor('山田 太郎', 'y@example.com', '新所属',
+                                           ['SP-A'], '')
+        self.assertEqual(b['状態'], '承認')
+
+    def test_見送りの人が登録し直したら再申請として受ける(self):
+        booking.set_state(self.a['id'], '見送り')
+        b, _ = booking.register_instructor('山田 太郎', 'y@example.com', '',
+                                           ['SP-A'], '')
+        self.assertEqual(b['状態'], '申請中')
+
+    def test_違うアドレスなら別の行になる(self):
+        booking.register_instructor('鈴木', 's@example.com', '', ['SP-A'], '')
+        self.assertEqual(len(booking.instructors()), 2)
+
+    def test_find_by_emailは未登録ならNone(self):
+        self.assertIsNone(booking.find_by_email('nobody@example.com'))
+        self.assertIsNone(booking.find_by_email(''))
+
+    def test_寄せる道具は残す行を間違えない(self):
+        # ⛔ 選び方を間違えると、予約の入った行や確認済みの行を消してしまう
+        from tools import merge_duplicate_instructors as m
+        old = {'id': 'A', 'メール確認済み': None, '対応コース': ['SP-A'],
+               '登録日時': '2026-01-01 00:00'}
+        new = {'id': 'B', 'メール確認済み': '2026-02-02 00:00',
+               '対応コース': ['SP-A'], '登録日時': '2026-02-02 00:00'}
+        # メール確認済みの方を残す
+        self.assertGreater(m._rank(new, set()), m._rank(old, set()))
+        # ⛔ 予約が入っている行は、確認済みより優先して残す
+        self.assertGreater(m._rank(old, {'A'}), m._rank(new, set()))
+
+    def test_画面から登録し直しても行が増えず更新と分かる(self):
+        # ⛔ 更新であることを画面に出すこと。出さないと「2件登録された」と
+        #    誤解され、逆に前回の講座が置き換わったことにも気づけない
+        c = app.test_client()
+        antispam._RECENT.clear()
+        r = c.post('/instructor/register', data={
+            'name': '山田 太郎', 'email': 'y@example.com', 'org': '新所属',
+            'courses': ['SP-A', 'SP-B'], 'note': '',
+            'fee_agree': booking.FEE_TERMS_VERSION,
+            antispam.HONEYPOT_FIELD: '',
+            'ts': antispam.issue_token(now=time.time() - 6)})
+        self.assertEqual(r.status_code, 200)          # テンプレートが500にならない
+        self.assertEqual(len(booking.instructors()), 1)
+        body = r.get_data(as_text=True)
+        self.assertIn('更新しました', body)
+        self.assertIn('新しく追加せず', body)
 
 
 class Test承認するまで公開しない(unittest.TestCase):
@@ -144,8 +305,15 @@ class Test日数の下限(unittest.TestCase):
         self.inst = i
 
     def test_直近は準備期間として受け付けない(self):
-        soon = (date.today() + timedelta(days=booking.LEAD_DAYS - 1)).isoformat()
-        info = {d['日付']: d for d in booking.open_days('SP-A')}.get(soon)
+        # ⛔ 非開催日で試さないこと。状態は『非開催日』になり準備期間ではない
+        d = date.today() + timedelta(days=1)
+        soon = None
+        while d < date.today() + timedelta(days=booking.LEAD_DAYS):
+            if booking.is_session_day(d):
+                soon = d.isoformat()
+            d += timedelta(days=1)
+        self.assertIsNotNone(soon, '14日以内に開催日が無い')
+        info = {x['日付']: x for x in booking.open_days('SP-A')}.get(soon)
         self.assertIsNotNone(info, '当月のカレンダーに日が無い')
         self.assertEqual(info['状態'], '準備期間')
 
@@ -243,16 +411,17 @@ class Test申込(unittest.TestCase):
         booking.set_state(i['id'], '承認')
         self.inst = i
 
-    def test_最少催行に届かない申込は確定にしない(self):
+    def test_1名の申込でも開催が確定する(self):
+        # ⛔ 人数で確定を判定しないこと（最少催行は撤廃）。講師料は定額なので
+        #    1名でも黒字で、断ると確実に入る利益と受講者の両方を失う
         r, _ = booking.add_booking('SP-A', _far_day(), '鈴木', 's@example.com', '', 1, '')
-        self.assertFalse(r['_開催確定'])
-        self.assertEqual(r['_最少催行'], booking.COURSE_BY_CODE['SP-A']['min_people'])
+        self.assertTrue(r['_開催確定'])
+        self.assertNotIn('_最少催行', r)
 
-    def test_人数が集まれば確定になる(self):
-        d = _far_day()
-        need = booking.COURSE_BY_CODE['SP-A']['min_people']
-        r, _ = booking.add_booking('SP-A', d, 'A', 'a@example.com', '', need, '')
-        self.assertTrue(r['_開催確定'], r)
+    def test_最少催行という項目がどのコースにも無い(self):
+        # ⛔ ここが落ちたら「復活させた」ということ。冒頭の説明を読むこと
+        for c in booking.COURSES:
+            self.assertNotIn('min_people', c, c['code'])
 
     def test_合計人数は同じ日の申込を足す(self):
         d = _far_day()
@@ -331,6 +500,7 @@ class Test画面(unittest.TestCase):
             'name': '佐藤 次郎', 'email': 'j@example.com', 'org': '',
             'courses': ['SP-A'], 'wd5': '1', 'from5': '10:00', 'to5': '17:00',
             'note': 'よろしくお願いします',
+            'fee_agree': booking.FEE_TERMS_VERSION,
             antispam.HONEYPOT_FIELD: '',
             'ts': antispam.issue_token(now=time.time() - 6)})
         self.assertEqual(r.status_code, 200)
@@ -440,12 +610,15 @@ class Test申込のAPI(unittest.TestCase):
 
 
 class Test台帳の整合(unittest.TestCase):
-    def test_全コースに最少催行と定員と金額がある(self):
+    def test_全コースに定員と金額と講師料がある(self):
         for c in booking.COURSES:
             with self.subTest(course=c['code']):
                 self.assertGreater(c['price'], 0)
-                self.assertGreaterEqual(c['capacity'], c['min_people'])
-                self.assertGreater(c['min_people'], 0)
+                self.assertGreater(c['capacity'], 0)
+                # ⛔ 最少催行は設けない（2026-08-14 社長ご判断）
+                self.assertNotIn('min_people', c)
+                # 講師料が出せない講座を作らない（発注が都度交渉に戻る）
+                self.assertGreater(booking.instructor_fee(c['code']), 0)
 
     def test_コードが重複していない(self):
         codes = [c['code'] for c in booking.COURSES]
@@ -605,7 +778,14 @@ class Test担当できる日(unittest.TestCase):
         booking.set_day_courses(token, day, ['SP-A'])
         st = self._states('SP-A')
         self.assertEqual(st[day], '予約可')
-        self.assertEqual(st[_far_day(31)], '予約締切')   # 選んでいない日
+        # ⛔ _far_day(31) を使わないこと。開催日まで前倒しするので day と
+        #    同じ日になり、「選んでいない日」の検査にならない
+        other = _far_day(int(day[8:10]) and 38)
+        while other == day:
+            other = (date.fromisoformat(other) + timedelta(days=1)).isoformat()
+            while not booking.is_session_day(other):
+                other = (date.fromisoformat(other) + timedelta(days=1)).isoformat()
+        self.assertEqual(st[other], '予約締切')          # 選んでいない日
 
     def test_選んでいない講座は同じ日でも公開されない(self):
         # ⛔ 「時間が同じだから」で別の講座まで公開しないこと。
@@ -626,14 +806,42 @@ class Test担当できる日(unittest.TestCase):
         self.assertEqual(booking.day_courses(saved, date.fromisoformat(day)),
                          ['SP-A', 'SP-C'])
 
-    def test_開催時間が重なる講座は同じ日に受けられない(self):
-        # ⛔ 1人が同時刻に2つの講座を担当することはできない（バッティング）
-        self.assertTrue(booking.overlapping_courses(['SP-A', 'GA']))
-        self.assertFalse(booking.overlapping_courses(['SP-A', 'SP-C']))
-        inst, token = self._reg(courses=('SP-A', 'GA'))
-        saved, err = booking.set_day_courses(token, _far_day(), ['SP-A', 'GA'])
-        self.assertIsNone(saved)
-        self.assertIn('重なる', err)
+    def test_同じ時間帯の講座も候補として同じ日に登録できる(self):
+        # ⛔ 開催時間が重なることを理由に断らないこと。ここは「その日に受け
+        #    られる講座」の登録で、その日に全部開催するという意味ではない。
+        #    全26講座中18講座が 10:00〜17:00 なので、断ると1日1講座しか
+        #    選べなくなる（2026-08-14 社長ご指摘。SP-A・SP-B・GA・GB・GD・GE）
+        codes = ['SP-A', 'SP-B', 'GA', 'GB', 'GD', 'GE']
+        self.assertEqual({booking.course_hours(c) for c in codes},
+                         {('10:00', '17:00')})
+        day = _far_day()
+        inst, token = self._reg(courses=tuple(codes))
+        # SP-B は3日間なので、続く日も登録しておく（開始日として成立させる）
+        for iso in booking.course_dates('SP-B', day)[1:]:
+            booking.set_day_courses(token, iso, ['SP-B'])
+        saved, err = booking.set_day_courses(token, day, codes)
+        self.assertIsNone(err)
+        self.assertEqual(booking.day_courses(saved, date.fromisoformat(day)),
+                         sorted(codes))
+        # 6つとも受講者の予約画面に出る
+        for c in codes:
+            self.assertEqual(self._states(c)[day], '予約可', c)
+
+    def test_同じ時間帯は申込が入った時点で1つに決まる(self):
+        # ⛔ 登録の段階で断る代わりに、ここが確実に効いていること。
+        #    1人が同時刻に2つ担当する（バッティング）のを止める唯一の関所
+        day = _far_day()
+        inst, token = self._reg(courses=('SP-A', 'GA', 'SP-C'))
+        booking.set_day_courses(token, day, ['SP-A', 'GA'])
+        booking.add_booking('SP-A', day, '鈴木', 's@example.com', '', 1, '')
+        self.assertEqual(self._states('GA')[day], '予約締切')
+        with self.assertRaises(ValueError):
+            booking.add_booking('GA', day, '佐藤', 'x@example.com', '', 1, '')
+
+    def test_同じ時間帯の組み合わせは注記のために取り出せる(self):
+        # ⛔ 断る材料ではなく、確認画面の注記に使うだけ
+        self.assertTrue(booking.same_time_courses(['SP-A', 'GA']))
+        self.assertFalse(booking.same_time_courses(['SP-A', 'SP-C']))
 
     def test_日によって担当する講座を変えられる(self):
         # 同じ曜日の別の週。⛔ SP-C は毎週水曜×5回なので5週ぶん登録する
@@ -901,10 +1109,11 @@ class Test掲載している講座が全部登録されている(unittest.TestCa
         for ind in INDUSTRIES.values():
             for c in ind['courses']:
                 out[c['code']] = int(re.sub(r'[^\d]', '', c['price']))
-        # 子ども向けは掲載HTMLが出どころ（Python側に表を持っていない）
-        path = os.path.join(os.path.dirname(HERE), 'templates',
-                            'vibe_coding_kids.html')
-        html = io.open(path, encoding='utf-8').read()
+        # 子ども向けは掲載ページを実際に描画して読む。
+        # ⛔ テンプレートのソースを正規表現で読まないこと（2026-08-15）。
+        #    価格を台帳から入れる形にした時点で、ソースには金額が
+        #    書かれていないので「掲載0件」に化け、検査が素通りになる。
+        html = app.test_client().get('/vibe-coding/kids').get_data(as_text=True)
         for m in re.finditer(r'COURSE (GK\d)</div>.*?course-price">&yen;'
                              r'([\d,]+)', html, re.S):
             out[m.group(1)] = int(m.group(2).replace(',', ''))
@@ -973,20 +1182,20 @@ class Test掲載している講座が全部登録されている(unittest.TestCa
         self.assertEqual(len(booking.grouped_courses()),
                          len({c.get('group') for c in booking.COURSES}))
 
-    def test_定員と最少催行の関係が壊れていない(self):
+    def test_定員と金額が壊れていない(self):
         for c in booking.COURSES:
             with self.subTest(course=c['code']):
                 self.assertGreater(c['price'], 0)
-                self.assertGreater(c['min_people'], 0)
-                self.assertGreaterEqual(c['capacity'], c['min_people'])
+                self.assertGreater(c['capacity'], 0)
 
 
 class Test連続する日数(unittest.TestCase):
-    """SP-B は3日間つづけて開催する（2026-08-12 実装）。
+    """SP-B は毎週土曜×3回で開催する（2026-08-15 社長ご判断で連日から変更）。
 
-    ⛔ それまで日数は hours の文章「10:00〜17:00 × 3日間」の中にしか無く、
-       1日ぶんの予定しか無い講師に割り当たり、2日目から講師がいなくなる
-       状態だった。曜日の制約と同じ型の穴。
+    ⛔ 連日開催に戻さないこと。開催日は運営が決めた曜日（毎週水＋第2/第4土）
+       だけで、連続する日が1組も無いため、連日の講座は構造的に成立しない。
+    ⛔ 日数を hours の文章の中だけに書かないこと。1日ぶんの予定しか無い
+       講師に割り当たり、2回目から講師がいなくなる（曜日の制約と同じ型の穴）。
     """
 
     def setUp(self):
@@ -1019,7 +1228,7 @@ class Test連続する日数(unittest.TestCase):
         # ⛔ 「全5回」を連続5日にしないこと（毎週水曜が水木金土日になる）
         self.assertEqual(booking.course_interval('SP-C'), 7)
         self.assertEqual(booking.course_interval('GC'), 7)
-        self.assertEqual(booking.course_interval('SP-B'), 1)
+        self.assertEqual(booking.course_interval('SP-B'), 7)
         wed = _far_weekday(2)
         got = booking.course_dates('SP-C', wed)
         self.assertEqual(len(got), 5)
@@ -1028,13 +1237,14 @@ class Test連続する日数(unittest.TestCase):
             got[1], (date.fromisoformat(wed) + timedelta(days=7)).isoformat())
 
     def test_開催する日を並べられる(self):
-        self.assertEqual(booking.course_dates('SP-B', '2026-09-07'),
-                         ['2026-09-07', '2026-09-08', '2026-09-09'])
+        # ⛔ 連日にしないこと。SP-B は毎週土曜×3回（2026-08-15 社長ご判断）
+        self.assertEqual(booking.course_dates('SP-B', '2026-09-09'),
+                         ['2026-09-09', '2026-09-16', '2026-09-23'])
         self.assertEqual(booking.course_dates('SP-A', '2026-09-07'),
                          ['2026-09-07'])
 
     def test_初日だけの登録では開始日にならない(self):
-        d0 = _far_day()
+        d0 = _far_weekday(2)
         self._reg(d0)
         # ⛔ 3日間の講座に1日ぶんの予定で割り当てないこと
         self.assertEqual(self._state('SP-B', d0), '予約締切')
@@ -1042,7 +1252,7 @@ class Test連続する日数(unittest.TestCase):
             booking.add_booking('SP-B', d0, '鈴木', 's@example.com', '', 1, '')
 
     def test_3日つづけて登録すると開始日になる(self):
-        d0 = _far_day()
+        d0 = _far_weekday(2)
         days = booking.course_dates('SP-B', d0)
         self._reg(*days)
         self.assertEqual(self._state('SP-B', d0), '予約可')
@@ -1050,14 +1260,14 @@ class Test連続する日数(unittest.TestCase):
         self.assertEqual(self._state('SP-B', days[1]), '予約締切')
 
     def test_申込には実際の3日間が残る(self):
-        d0 = _far_day()
+        d0 = _far_weekday(2)
         self._reg(*booking.course_dates('SP-B', d0))
         rec, inst = booking.add_booking('SP-B', d0, '鈴木', 's@example.com',
                                         '', 1, '')
         self.assertEqual(rec['開催日'], booking.course_dates('SP-B', d0))
 
     def test_予約が入ったら3日とも動かせない(self):
-        d0 = _far_day()
+        d0 = _far_weekday(2)
         days = booking.course_dates('SP-B', d0)
         self._reg(*days)
         booking.add_booking('SP-B', d0, '鈴木', 's@example.com', '', 1, '')
@@ -1071,7 +1281,7 @@ class Test連続する日数(unittest.TestCase):
 
     def test_開催中の日に別の講座を割り当てない(self):
         # ⛔ 3日間の2日目に、時間の重なる別の講座を入れないこと
-        d0 = _far_day()
+        d0 = _far_weekday(2)
         days = booking.course_dates('SP-B', d0)
         self._reg(*days)
         booking.add_booking('SP-B', d0, '鈴木', 's@example.com', '', 1, '')
@@ -1083,7 +1293,7 @@ class Test連続する日数(unittest.TestCase):
 
     def test_同じ回の2人目は受けられる(self):
         # 既存のルール（最少催行に人を集める）を壊さないこと
-        d0 = _far_day()
+        d0 = _far_weekday(2)
         self._reg(*booking.course_dates('SP-B', d0))
         booking.add_booking('SP-B', d0, 'A', 'a@example.com', '', 1, '')
         rec, _ = booking.add_booking('SP-B', d0, 'B', 'b@example.com', '', 1, '')
@@ -1091,7 +1301,7 @@ class Test連続する日数(unittest.TestCase):
 
     def test_日程が重なる別の回は受けない(self):
         # 8/26開始の回が入っている講師に、8/27開始の回を割り当てない
-        d0 = _far_day()
+        d0 = _far_weekday(2)
         days = booking.course_dates('SP-B', d0)
         self._reg(*days, booking.course_dates('SP-B', days[1])[-1])
         booking.add_booking('SP-B', d0, 'A', 'a@example.com', '', 1, '')
@@ -1099,17 +1309,17 @@ class Test連続する日数(unittest.TestCase):
 
     def test_飛び飛びに3日選んでも公開されない旨を出す(self):
         # ⛔ 「3日登録した」で安心させないこと。続いていなければ開始日は0日
-        d0 = date.fromisoformat(_far_day())
+        d0 = date.fromisoformat(_far_weekday(2))
         self._reg(*[(d0 + timedelta(days=k * 2)).isoformat() for k in range(3)])
         inst = booking.find_instructor(self.token)
         self.assertEqual(booking.startable_days(inst, 'SP-B'), [])
         理由 = booking.publish_blockers(inst)
-        self.assertTrue(any('3日間つづけて開催します' in b for b in 理由), 理由)
+        self.assertTrue(any('全3回・毎週水曜に開催します' in b for b in 理由), 理由)
         body = self.c.get('/instructor/schedule/' + self.token).get_data(as_text=True)
         self.assertIn('予約が入る日がありません', body)
 
     def test_続けて選べば予約が入る日として数える(self):
-        d0 = _far_day()
+        d0 = _far_weekday(2)
         self._reg(*booking.course_dates('SP-B', d0))
         inst = booking.find_instructor(self.token)
         self.assertEqual(booking.startable_days(inst, 'SP-B'), [d0])
@@ -1117,27 +1327,28 @@ class Test連続する日数(unittest.TestCase):
         body = self.c.get('/instructor/schedule/' + self.token).get_data(as_text=True)
         self.assertIn('予約が入る日 1日', body)
 
-    def test_予約画面に3日間であることを出す(self):
+    def test_予約画面に全3回であることを出す(self):
+        # ⛔ 「3日間つづけて」に戻さないこと（2026-08-15 連日開催を廃止）
         body = self.c.get('/book/SP-B').get_data(as_text=True)
-        self.assertIn('3日間つづけて開催します', body)
-        self.assertIn('初日', body)
-        self.assertNotIn('3日間つづけて開催します',
+        self.assertIn('全3回・毎週水曜に開催します', body)
+        self.assertIn('初回の日', body)
+        self.assertNotIn('つづけて開催します',
                          self.c.get('/book/SP-A').get_data(as_text=True))
 
     def test_毎週の講座につづけてと書かない(self):
         # ⛔ 全5回（毎週水曜）を「5日間つづけて」と書くと水木金土日に読める
         body = self.c.get('/book/SP-C').get_data(as_text=True)
-        self.assertIn('全5回・1週間おきに開催します', body)
+        self.assertIn('全5回・毎週水曜に開催します', body)
         self.assertNotIn('5日間つづけて', body)
         self.assertIn('初回の日', body)
 
     def test_講師の画面に続きの日の登録を促す(self):
-        d0 = _far_day()
+        d0 = _far_weekday(2)
         url = f'/instructor/schedule/{self.token}/day/{d0}'
         body = self.c.get(url).get_data(as_text=True)
-        self.assertIn('3日間つづけて開催します', body)
+        self.assertIn('全3回・毎週水曜に開催します', body)
         self.assertIn('にも同じ講座を登録してください', body)
-        # 3日そろえば「開始日にできます」に変わる
+        # 3回そろえば「開始日にできます」に変わる
         self._reg(*booking.course_dates('SP-B', d0))
         body = self.c.get(url).get_data(as_text=True)
         self.assertIn('この日を開始日にできます', body)
@@ -1284,14 +1495,23 @@ class Test1日ぶんの登録画面(unittest.TestCase):
             booking.registered_days(booking.find_instructor(self.token)),
             {day: ['SP-A']})
 
-    def test_重なる講座を選ぶと確認へ進めない(self):
-        i2, t2 = booking.register_instructor('鈴木', 's@example.com', '',
-                                             ['SP-A', 'GA'], '')
+    def test_同じ時間帯を選んでも確認へ進める(self):
+        # ⛔ エラーで止めないこと（2026-08-14 社長ご指摘）。代わりに確認画面で
+        #    「開催されるのはどれか1つだけ」と伝える
+        i2, t2 = booking.register_instructor(
+            '鈴木', 's@example.com', '', ['SP-A', 'GA', 'GB', 'GD', 'GE'], '')
         r = self.c.post(f'/instructor/schedule/{t2}/day/{_far_day()}',
-                        data={'courses': ['SP-A', 'GA']})
+                        data={'courses': ['SP-A', 'GA', 'GB', 'GD', 'GE']})
         body = r.get_data(as_text=True)
-        self.assertIn('重なる', body)
-        self.assertIn('ステップ 2 / 3', body)
+        self.assertIn('ステップ 3 / 3', body)
+        self.assertNotIn('お受けいただけません', body)
+        self.assertIn('どれか1つだけ', body)
+
+    def test_選ぶ画面に重ならない組み合わせのみとは書かない(self):
+        # ⛔ 26講座中18講座が同じ 10:00〜17:00 なので、この案内は嘘になる
+        body = self.c.get(self._url(_far_day())).get_data(as_text=True)
+        self.assertNotIn('重ならない組み合わせ', body)
+        self.assertIn('いくつでも選べます', body)
 
     def test_予約が入っている日は変更できないと出す(self):
         day = _far_day()
@@ -1375,6 +1595,7 @@ class Test登録からの流れ(unittest.TestCase):
         antispam._RECENT.clear()
         r = self.c.post('/instructor/register', data={
             'name': '山田', 'email': email, 'courses': ['SP-A'], 'note': '',
+            'fee_agree': booking.FEE_TERMS_VERSION,
             antispam.HONEYPOT_FIELD: '',
             'ts': antispam.issue_token(now=time.time() - 6)})
         return r, booking.instructors()[-1]
@@ -1483,6 +1704,1129 @@ class Test登録からの流れ(unittest.TestCase):
                           query_string={'token': 'test-admin'}).get_data(as_text=True)
         self.assertIn('メール未確認', body)
         self.assertIn('確認メールを再送する', body)
+
+
+class Test最少催行を復活させない(unittest.TestCase):
+    """2026-08-14 社長ご判断。固定している事故の型:
+
+      ・人数が足りないことを理由に開催を中止する（＝確実に入る利益を捨て、
+        申し込んだ受講者と看板を同時に失う）
+      ・1人目の申込者に「開催されないかもしれません」と伝える文面が復活する
+        （定義上100%の申込者に届き、いちばん申込を止める）
+    """
+
+    def setUp(self):
+        _clear()
+
+    def test_講師料は定額で人数に比例しない(self):
+        # ⛔ 40%を人数分にしないこと。10名でも1名でも同じ額
+        # ⛔ 金額を写さないこと。単価の40%であることを確かめる
+        for code in ('SP-A', 'SP-B', 'SP-C', 'GA-P', 'GK2'):
+            price = booking.COURSE_BY_CODE[code]['price']
+            self.assertEqual(booking.instructor_fee(code),
+                             int(round(price * booking.FEE_RATE)), code)
+
+    def test_損益分岐は1名未満なので必ず黒字(self):
+        # 講師料が定額 ⇒ 1名の受講料でまかなえること（全コース）
+        for c in booking.COURSES:
+            with self.subTest(course=c['code']):
+                self.assertLess(booking.instructor_fee(c['code']), c['price'])
+
+    def test_申込画面に中止をにおわせる文言を出さない(self):
+        booking.register_instructor('山田', 'y@example.com', '', ['SP-A'], '',
+                                    _days_all())
+        booking.set_state(booking.instructors()[0]['id'], '承認')
+        booking.verify_email(booking.instructors()[0]['鍵'])
+        html = _visible(app.test_client().get('/book/SP-A').get_data(as_text=True))
+        for ng in ('最少催行', '次回へお振替', '人数が集まらない', '人数が集まり次第'):
+            self.assertNotIn(ng, html, ng)
+        self.assertIn('お一人から', html)
+
+    def test_取り消した申込を定員に数えない(self):
+        # ⛔ 2026-08-14 に見つけた既存の不具合。取消が残席を食っていた
+        d = _far_day()
+        booking.register_instructor('山田', 'y@example.com', '', ['SP-A'], '',
+                                    _days_all())
+        booking.set_state(booking.instructors()[0]['id'], '承認')
+        booking.verify_email(booking.instructors()[0]['鍵'])
+        cap = booking.COURSE_BY_CODE['SP-A']['capacity']
+        rec, _ = booking.add_booking('SP-A', d, 'A', 'a@example.com', '', cap, '')
+        with self.assertRaises(ValueError):
+            booking.add_booking('SP-A', d, 'B', 'b@example.com', '', 1, '')
+        booking.cancel_booking(rec['id'], '試験')
+        rec2, _ = booking.add_booking('SP-A', d, 'B', 'b@example.com', '', 1, '')
+        self.assertEqual(rec2['_合計人数'], 1)
+
+
+class Test講師料の明示と同意(unittest.TestCase):
+    """⛔ 「謝礼はご相談のうえ」に戻さないこと（＝1件ごとの条件交渉＝人手）。"""
+
+    def setUp(self):
+        _clear()
+        app.logger.disabled = True
+        self.c = app.test_client()
+
+    def _post(self, **over):
+        antispam._RECENT.clear()
+        data = {'name': '佐藤', 'email': 's@example.com', 'courses': ['SP-A'],
+                'note': '', 'fee_agree': booking.FEE_TERMS_VERSION,
+                antispam.HONEYPOT_FIELD: '',
+                'ts': antispam.issue_token(now=time.time() - 6)}
+        data.update(over)
+        return self.c.post('/instructor/register', data=data)
+
+    def test_登録画面に講座ごとの金額が出る(self):
+        html = self.c.get('/instructor/register').get_data(as_text=True)
+        self.assertIn('19,920', html)         # SP-A
+        self.assertIn('51,200', html)         # SP-B
+        self.assertIn('1開催あたり', html)
+        # ⛔ 都度交渉に戻す文言を残さないこと
+        self.assertNotIn('謝礼はご相談のうえ', html)
+
+    def test_金額を渡し忘れると気づけること(self):
+        # Jinja は未定義を空文字にするので「講師料 ¥」とだけ出る。
+        # ⛔ 実際の画面でそうなっていないことを確かめる
+        html = self.c.get('/instructor/register').get_data(as_text=True)
+        self.assertNotIn('講師料 <strong>¥</strong>', html)
+
+    def test_同意しないと登録できない(self):
+        # ⛔ ブラウザの required だけに任せないこと（画面を通らない経路がある）
+        r = self._post(fee_agree='')
+        self.assertEqual(r.status_code, 200)
+        self.assertIn('ご同意が必要です', r.get_data(as_text=True))
+        self.assertEqual(booking.instructors(), [])
+
+    def test_古い版への同意では登録できない(self):
+        r = self._post(fee_agree='2020-01-01')
+        self.assertIn('ご同意が必要です', r.get_data(as_text=True))
+        self.assertEqual(booking.instructors(), [])
+
+    def test_同意は版と日時で台帳に残る(self):
+        self._post()
+        rec = booking.instructors()[0]
+        self.assertEqual(booking.fee_agreed_version(rec),
+                         booking.FEE_TERMS_VERSION)
+        self.assertEqual(len(rec['講師料同意']), 1)
+
+    def test_同じ版の同意を積み上げない(self):
+        self._post()
+        self._post(org='別')                 # 同じ人が登録し直す
+        rec = booking.instructors()[0]
+        self.assertEqual(len(rec['講師料同意']), 1)
+
+
+class Testカード決済(unittest.TestCase):
+    """⛔ 払っていない人を「申込受付」にしないこと。
+    ⛔ 鍵が無い環境で壊れないこと（未設定なら請求書払いだけで動く）。
+    """
+
+    def setUp(self):
+        _clear()
+        app.logger.disabled = True
+        self.c = app.test_client()
+        os.environ.pop('STRIPE_SECRET_KEY', None)
+        os.environ.pop('STRIPE_WEBHOOK_SECRET', None)
+        booking.register_instructor('山田', 'y@example.com', '', ['SP-A'], '',
+                                    _days_all())
+        booking.set_state(booking.instructors()[0]['id'], '承認')
+        booking.verify_email(booking.instructors()[0]['鍵'])
+
+    def tearDown(self):
+        os.environ.pop('STRIPE_SECRET_KEY', None)
+        os.environ.pop('STRIPE_WEBHOOK_SECRET', None)
+
+    def test_鍵が無ければ請求書払いだけで動く(self):
+        import payments
+        self.assertFalse(payments.enabled())
+        html = _visible(self.c.get('/book/SP-A').get_data(as_text=True))
+        self.assertNotIn('name="pay"', html)        # 選ばせない
+        self.assertIn('請求書', html)
+
+    def test_鍵が無いときにカードを指定されても請求書で受ける(self):
+        # ⛔ 未設定の環境で「決済へ」を返さないこと（行き先が無い）
+        antispam._RECENT.clear()
+        r = self.c.post('/api/book', json={
+            'course': 'SP-A', 'day': _far_day(), 'name': '鈴木',
+            'email': 's@example.com', 'people': 1, 'pay': 'card',
+            antispam.HONEYPOT_FIELD: '',
+            'ts': antispam.issue_token(now=time.time() - 6)})
+        j = r.get_json()
+        self.assertTrue(j.get('ok'), j)
+        self.assertNotIn('決済へ', j)
+        self.assertEqual(booking.bookings()[0]['状態'], '申込受付')
+
+    def test_決済待ちは申込受付にしない(self):
+        rec, _ = booking.add_booking('SP-A', _far_day(), '鈴木',
+                                     's@example.com', '', 1, '', pending=True)
+        self.assertEqual(rec['状態'], booking.PENDING)
+
+    def test_決済が終わって初めて成立する(self):
+        rec, _ = booking.add_booking('SP-A', _far_day(), '鈴木',
+                                     's@example.com', '', 1, '', pending=True)
+        booking.attach_checkout(rec['id'], 'cs_test_1')
+        got, inst = booking.mark_paid('cs_test_1', 'pi_1')
+        self.assertIsNotNone(got)
+        self.assertEqual(got['状態'], '申込受付')
+        self.assertEqual(got['支払方法'], 'card')
+        self.assertIsNotNone(inst)
+
+    def test_同じ通知が二度来ても一度しか成立させない(self):
+        # ⛔ Stripe は再送する。冪等でないと確認メールが何通も届く
+        rec, _ = booking.add_booking('SP-A', _far_day(), '鈴木',
+                                     's@example.com', '', 1, '', pending=True)
+        booking.attach_checkout(rec['id'], 'cs_test_2')
+        self.assertIsNotNone(booking.mark_paid('cs_test_2')[0])
+        self.assertIsNone(booking.mark_paid('cs_test_2')[0])
+
+    def test_決済されなければ席を解放する(self):
+        d = _far_day()
+        rec, _ = booking.add_booking('SP-A', d, '鈴木', 's@example.com', '',
+                                     1, '', pending=True)
+        booking.attach_checkout(rec['id'], 'cs_test_3')
+        self.assertEqual(len(booking.bookings_for('SP-A', d)), 1)
+        booking.mark_unpaid('cs_test_3')
+        self.assertEqual(booking.bookings_for('SP-A', d), [])
+
+    def test_放置された決済待ちは時間で席を返す(self):
+        # ⛔ Stripe の期限切れ通知が届かなくても、席を永久に押さえない
+        d = _far_day()
+        rec, _ = booking.add_booking('SP-A', d, '鈴木', 's@example.com', '',
+                                     1, '', pending=True)
+        self.assertTrue(booking.is_live(rec))
+        old = booking.now_jst() - timedelta(
+            minutes=booking.payments_session_ttl_min() + 5)
+        rows = booking.bookings()
+        rows[0]['申込日時'] = old.strftime('%Y-%m-%d %H:%M')
+        booking._save('bookings.json', rows)
+        self.assertFalse(booking.is_live(booking.bookings()[0]))
+        self.assertEqual(booking.bookings_for('SP-A', d), [])
+
+    def test_署名の無い通知は受け付けない(self):
+        os.environ['STRIPE_WEBHOOK_SECRET'] = 'whsec_test'
+        r = self.c.post('/api/stripe/webhook',
+                        data=b'{"type":"checkout.session.completed"}',
+                        content_type='application/json')
+        self.assertEqual(r.status_code, 400)
+
+    def test_偽の署名は受け付けない(self):
+        import payments
+        os.environ['STRIPE_WEBHOOK_SECRET'] = 'whsec_test'
+        body = b'{"type":"checkout.session.completed"}'
+        sig = f't={int(time.time())},v1=' + 'f' * 64
+        self.assertIsNone(payments.verify_webhook(body, sig)[0])
+
+    def test_正しい署名なら受け取れる(self):
+        import hashlib
+        import hmac as _h
+        import json as _j
+        import payments
+        os.environ['STRIPE_WEBHOOK_SECRET'] = 'whsec_test'
+        body = _j.dumps({'type': 'ping'}).encode('utf-8')
+        ts = str(int(time.time()))
+        v1 = _h.new(b'whsec_test', ts.encode() + b'.' + body,
+                    hashlib.sha256).hexdigest()
+        ev, err = payments.verify_webhook(body, f't={ts},v1={v1}')
+        self.assertIsNone(err)
+        self.assertEqual(ev['type'], 'ping')
+
+    def test_古い署名は受け付けない(self):
+        import hashlib
+        import hmac as _h
+        import payments
+        os.environ['STRIPE_WEBHOOK_SECRET'] = 'whsec_test'
+        body = b'{}'
+        ts = str(int(time.time()) - payments.TOLERANCE_SEC - 60)
+        v1 = _h.new(b'whsec_test', ts.encode() + b'.' + body,
+                    hashlib.sha256).hexdigest()
+        self.assertIsNotNone(payments.verify_webhook(body, f't={ts},v1={v1}')[1])
+
+    def test_受信設定が無ければ通知を信じない(self):
+        import payments
+        self.assertIsNotNone(payments.verify_webhook(b'{}', 't=1,v1=x')[1])
+
+    def test_円は100倍しない(self):
+        # ⛔ 0桁通貨。×100すると請求が100倍になる
+        import inspect
+        import payments
+        src = inspect.getsource(payments.create_checkout)
+        self.assertIn("'unit_amount': price", src)
+        self.assertNotIn('* 100', src)
+
+
+class Test特商法の表記(unittest.TestCase):
+    """⛔ 講座の売主は ZebraQuantum（教材もシステムも同社が開発・提供し、
+    協会の看板で販売する商流）。⛔協会名を販売業者として書かないこと。
+    """
+
+    def setUp(self):
+        self.c = app.test_client()
+        self.html = self.c.get('/tokutei').get_data(as_text=True)
+
+    def test_講座の販売業者はZebraQuantum(self):
+        self.assertIn('株式会社ZebraQuantum', self.html)
+        self.assertIn(booking.SELLER['officer'], self.html)
+
+    def test_講座にデジタルコンテンツの返金文言を使わない(self):
+        # ⛔ 講座は開催日のある役務。動画教材の文言を流用しない
+        self.assertNotIn('デジタルコンテンツのため', self.html)
+
+    def test_キャンセル規定は1か所から出す(self):
+        self.assertIn('13〜7日前', self.html)
+        self.assertIn(booking.CANCEL_POLICY.split('／')[0].strip(), self.html)
+
+    def test_1名から開催すると明記する(self):
+        self.assertIn('お一人の場合でも開催', self.html)
+
+    def test_申込画面から特商法へ行ける(self):
+        booking.register_instructor('山田', 'z@example.com', '', ['SP-A'], '',
+                                    _days_all())
+        booking.set_state(booking.instructors()[-1]['id'], '承認')
+        booking.verify_email(booking.instructors()[-1]['鍵'])
+        html = self.c.get('/book/SP-A').get_data(as_text=True)
+        self.assertIn('/tokutei', html)
+        self.assertIn('株式会社ZebraQuantum', html)
+
+    def test_特定継続的役務提供の線を越えていない(self):
+        # ⛔ 越えたら概要書面・契約書面・クーリングオフの対応が要る。
+        #    回数や間隔を変えたときに、ここで気づけるようにしてある
+        self.assertEqual(booking.continuing_service_alerts(), {})
+
+    def test_線を越えたら検知できる(self):
+        # 判定そのものが効いていることを確かめる（効かない検査を置かない）
+        booking.COURSE_BY_CODE['__TEST__'] = {
+            'code': '__TEST__', 'name': '試', 'price': 68000,
+            'days': 12, 'interval_days': 7}
+        try:
+            self.assertIsNotNone(booking.continuing_service_risk('__TEST__'))
+        finally:
+            booking.COURSE_BY_CODE.pop('__TEST__', None)
+
+
+class Test助成金の判定(unittest.TestCase):
+    """東京しごと財団 DXリスキリング助成金（令和8年度）。
+
+    固定している事故の型:
+      ・講座名から買い手を決めつけ、対象になる講座を対象外と案内する
+        （2026-08-15 社長ご指摘。SP-A を「代表者向けだから対象外」と誤判定した）
+      ・条件を書かずに「助成金対象」とだけ出す（自腹の受講は対象外なのに、
+        申し込んでから受けられないと分かる＝いちばん信用を失う）
+      ・金額を各ページに手打ちし、制度が変わった日に片方だけ古くなる
+    """
+
+    def setUp(self):
+        _clear()
+        self.c = app.test_client()
+
+    def test_対象を決めるのは講座名ではなく研修時間(self):
+        # ⛔ SP-A は「一人会社」の講座だが、法人が従業員を送れば対象になる
+        self.assertTrue(booking.subsidy_for('SP-A')['eligible'])
+        # SP-B・SP-C が外れる理由は立場ではなく時間であること
+        for code in ('SP-B', 'SP-C'):
+            s = booking.subsidy_for(code)
+            self.assertFalse(s['eligible'])
+            self.assertIn('時間', s['reason'])
+            self.assertNotIn('代表', s['reason'])
+
+    def test_時間の境目で切り替わる(self):
+        # 3時間以上10時間未満（GK1は3時間ちょうど＝時間の要件は満たす）
+        self.assertEqual(booking.TRAINING_HOURS['GK1'], 3)
+        self.assertEqual(booking.TRAINING_HOURS['GM-A'], 4)
+        self.assertEqual(booking.TRAINING_HOURS['SP-A'], 6)
+
+    def test_子どもは時間ではなく立場で対象外(self):
+        # ⛔ 3時間ちょうどで時間の要件は満たすが、受講者が従業員でない
+        s = booking.subsidy_for('GK1')
+        self.assertFalse(s['eligible'])
+        self.assertIn('従業員', s['reason'])
+
+    def test_消費税を助成対象に含めない(self):
+        # 税込49,800 → 税抜45,272 → その3/4 = 33,954
+        s = booking.subsidy_for('SP-A')
+        self.assertEqual(s['base'], 45272)
+        self.assertEqual(s['grant'], 33954)
+        self.assertEqual(s['net'], 49800 - 33954)
+
+    def test_1人あたりの上限を超えない(self):
+        for code in booking.subsidy_courses():
+            self.assertLessEqual(booking.subsidy_for(code)['grant'],
+                                 booking.SUBSIDY['cap_per_person'], code)
+
+    def test_対象講座は11件(self):
+        # SP-A ＋ GA/GA-P/GB/GD/GE ＋ 業種別A×5
+        self.assertEqual(sorted(booking.subsidy_courses()),
+                         sorted(['SP-A', 'GA', 'GA-P', 'GB', 'GD', 'GE',
+                                 'GM-A', 'GH-A', 'GF-A', 'GL-A', 'GN-A']))
+
+    def test_研修時間は全講座に登録されている(self):
+        # ⛔ 未登録があると、その講座だけ判定できず黙って対象外になる
+        for c in booking.COURSES:
+            self.assertIn(c['code'], booking.TRAINING_HOURS, c['code'])
+
+    def test_条件を書かずに助成金対象と出さない(self):
+        tag = booking.subsidy_tag('SP-A')
+        self.assertIn('法人研修なら', tag)
+        self.assertIn('15,846', tag)
+        self.assertEqual(booking.subsidy_tag('SP-B'), '')
+
+    def test_掲載ページの金額は計算値と一致する(self):
+        # ⛔ 旧「実質 ¥24,800〜」（事業外スキルアップの値）が残っていたら落とす
+        import solo_ceo
+        import vibe_coding_courses as vc
+        import vibe_coding_industry as vi
+        seen = list(solo_ceo.COURSES.values()) + list(vc.COURSES.values())
+        for ind in vi.INDUSTRIES.values():
+            seen += ind.get('courses') or []
+        for c in seen:
+            with self.subTest(course=c['code']):
+                self.assertEqual(c['subsidy_text'],
+                                 booking.subsidy_tag(c['code']))
+                self.assertNotIn('24,800', c['subsidy_text'])
+
+    def test_テンプレートに助成額を直書きしない(self):
+        # ⛔ 2026-08-15 実害。module 側だけを見る検査は、テンプレートに散った
+        #    旧「実質¥24,800〜」を1件も捕まえられなかった（落ちようがない検査）。
+        #    画面のファイルを実際に読むこと
+        tpl = os.path.join(os.path.dirname(HERE), 'templates')
+        bad = []
+        for name in os.listdir(tpl):
+            if not name.endswith('.html'):
+                continue
+            body = io.open(os.path.join(tpl, name), encoding='utf-8').read()
+            body = re.sub(r'\{#.*?#\}', '', body, flags=re.S)   # 注意書きは除く
+            for m in re.findall(r'¥([0-9]{1,3},[0-9]{3})', body):
+                # 受講料そのものは直書きでよい。助成後の金額だけを禁じる
+                if m.replace(',', '') not in {
+                        str(c['price']) for c in booking.COURSES}:
+                    bad.append(f'{name}: ¥{m}')
+        self.assertEqual(bad, [], '助成後の金額が直書きされています: %s' % bad)
+
+    def test_旧助成金の金額が残っていない(self):
+        # 事業外スキルアップ助成金（上限25,000円）の値。制度を切り替えたので
+        # どこかに残っていたら、その画面だけ古い金額を出し続ける
+        root = os.path.dirname(HERE)
+        bad = []
+        for d in (root, os.path.join(root, 'templates')):
+            for name in os.listdir(d):
+                if not name.endswith(('.html', '.py')):
+                    continue
+                p = os.path.join(d, name)
+                body = io.open(p, encoding='utf-8').read()
+                body = re.sub(r'\{#.*?#\}', '', body, flags=re.S)
+                body = re.sub(r'^\s*#.*$', '', body, flags=re.M)
+                if '24,800' in body or '24,900' in body:
+                    bad.append(name)
+        self.assertEqual(bad, [], '旧助成金の金額が残っています: %s' % bad)
+
+    def test_対象講座には習得する知識技能がある(self):
+        # ⛔ 無いと法人が研修計画を自分で書き起こすことになる（申請の障害）
+        for code in booking.subsidy_courses():
+            self.assertGreater(len(booking.dx_skills(code)), 30, code)
+
+    def test_案内ページが出る(self):
+        t = _visible(self.c.get('/subsidy').get_data(as_text=True))
+        self.assertIn('4分の3', t)
+        self.assertIn('代表者ご本人・個人事業主ご本人は対象外', t)
+        self.assertIn('受講証明書', t)
+        # 対象外の講座も理由つきで出す（黙って消さない）
+        self.assertIn('SP-B', t)
+
+    def test_申込画面に条件と期限が出る(self):
+        booking.register_instructor('山田', 'y@example.com', '', ['SP-A'], '',
+                                    _days_all())
+        booking.set_state(booking.instructors()[0]['id'], '承認')
+        booking.verify_email(booking.instructors()[0]['鍵'])
+        t = _visible(self.c.get('/book/SP-A').get_data(as_text=True))
+        self.assertIn('15,846', t)
+        self.assertIn('代表者ご本人・個人事業主ご本人は対象外', t)
+        self.assertIn('請求書払い', t)
+        # ⛔ 期限は「何日前」ではなく実際の日付で出す
+        want = (booking.today_jst() + timedelta(
+            days=booking.SUBSIDY['lead_days'])).isoformat()
+        self.assertIn(want, t)
+
+    def test_対象外の講座に助成金の案内を出さない(self):
+        booking.register_instructor('鈴木', 's@example.com', '', ['SP-C'], '',
+                                    _days_all(('SP-C',)))
+        booking.set_state(booking.instructors()[-1]['id'], '承認')
+        booking.verify_email(booking.instructors()[-1]['鍵'])
+        t = _visible(self.c.get('/book/SP-C').get_data(as_text=True))
+        self.assertNotIn('4分の3', t)
+
+
+class Test背景と同じ色の文字を置かない(unittest.TestCase):
+    """2026-08-15 ブラウザで実測して発見。濃紺の帯（.iv-head など）に
+    同じ濃紺の文字を置いており、リンクが1文字も見えていなかった。
+
+    ⛔ 「白背景のカードは文字色を必ず指定する」の裏返し。色は目で見ないと
+       気づけないので、機械で照合する。
+    ⛔ HTMLを読むだけの検査にしないこと。色の指定はCSSと style 属性の
+       両方にあるので、同じファイル内で突き合わせる。
+    """
+
+    # 濃い背景を持つ帯（この中の文字は明るい色でなければ読めない）
+    DARK = {'#0d1b3e', '#041f4e', '#312e81', '#1e3a5f', '#0f766e'}
+
+    def test_濃い帯の中に同じ色の文字を置かない(self):
+        tpl = os.path.join(os.path.dirname(HERE), 'templates')
+        bad = []
+        for name in sorted(os.listdir(tpl)):
+            if not name.endswith('.html'):
+                continue
+            body = io.open(os.path.join(tpl, name), encoding='utf-8').read()
+            body = re.sub(r'\{#.*?#\}', '', body, flags=re.S)
+            # 「濃い背景」を宣言している要素の class 名を集める
+            dark_cls = set()
+            for m in re.finditer(r'\.([\w-]+)\s*\{[^}]*background\s*:\s*(#[0-9a-fA-F]{6})',
+                                 body):
+                if m.group(2).lower() in self.DARK:
+                    dark_cls.add(m.group(1))
+            for cls in dark_cls:
+                # その class の子孫に、同じ色の文字色を指定していないか
+                for m in re.finditer(r'\.' + re.escape(cls) +
+                                     r'[^{]*\{[^}]*(?<![-\w])color\s*:\s*(#[0-9a-fA-F]{6})', body):
+                    if m.group(1).lower() in self.DARK:
+                        bad.append(f'{name}: .{cls} の中に {m.group(1)}')
+            # style 属性での直書きも見る（同じ帯の中に置かれがち）
+            for m in re.finditer(r'class="(' + '|'.join(map(re.escape, dark_cls or {'\0'})) +
+                                 r')"[^>]*>(.{0,900}?)</div>', body, re.S):
+                for c in re.findall(r'style="[^"]*(?<![-\w])color:\s*(#[0-9a-fA-F]{6})',
+                                    m.group(2)):
+                    if c.lower() in self.DARK:
+                        bad.append(f'{name}: .{m.group(1)} の中の style に {c}')
+        self.assertEqual(bad, [], '背景と同じ色の文字があります: %s' % bad)
+
+
+class Test講師への割り当て(unittest.TestCase):
+    """2026-08-15 社長ご判断で「担当回数が少ない順」に変更。
+
+    ⛔ 「登録が早い順」に戻さないこと。最初に登録した1人に仕事が集中し、
+       2人目以降は一度も声がかからない。マッチング事業で講師を失う
+       いちばんの理由になる（変更前の実測：1講座に3件入ると全部同じ人）。
+    ⛔ ただし「同じ日・同じ講座の2人目は同じ講師」は崩さないこと。
+       崩すと同じ回が二重開催になる。
+    """
+
+    def setUp(self):
+        _clear()
+        app.logger.disabled = True
+        self.codes = ['GA', 'GB', 'GD', 'GE', 'SP-A']
+        self.days = booking.session_days(3)[4:12]
+        self.toks = []
+        for i in range(5):
+            rec, tok = booking.register_instructor(
+                f'講師{i + 1}', f'i{i}@example.com', '', self.codes, '',
+                fee_agreed=booking.FEE_TERMS_VERSION)
+            booking.verify_email(tok)
+            booking.set_state(rec['id'], '承認')
+            for d in self.days:
+                booking.set_day_courses(tok, d, self.codes)
+            self.toks.append(tok)
+            time.sleep(0.02)          # 登録日時に差を付ける（同順位の検査用）
+
+    def _names(self, code, n):
+        out = []
+        for k in range(n):
+            _, inst = booking.add_booking(code, self.days[k], f'X{k}',
+                                          f'x{k}@example.com', '', 1, '')
+            out.append(inst['氏名'])
+        return out
+
+    def test_同じ講座でも別の日なら別の講師に回る(self):
+        got = self._names('GB', 5)
+        self.assertEqual(len(set(got)), 5, f'5名に回っていない: {got}')
+
+    def test_一巡したら二巡目に入る(self):
+        got = self._names('GB', 8)
+        c = {}
+        for n in got:
+            c[n] = c.get(n, 0) + 1
+        self.assertEqual(sorted(c.values()), [1, 1, 2, 2, 2], got)
+        self.assertLessEqual(max(c.values()) - min(c.values()), 1,
+                             f'差が2回以上ついている: {c}')
+
+    def test_同じ回の2人目は同じ講師のまま(self):
+        got = self._names('GB', 1)
+        _, inst = booking.add_booking('GB', self.days[0], '2人目',
+                                      'y@example.com', '', 1, '')
+        self.assertEqual(inst['氏名'], got[0])
+
+    def test_同じ回に何名来ても担当回数は1回(self):
+        # ⛔ 申込の件数で数えないこと。講師の仕事は1回で、講師料も定額
+        for k in range(3):
+            booking.add_booking('GB', self.days[0], f'Z{k}',
+                                f'z{k}@example.com', '', 1, '')
+        inst = booking.find_instructor(self.toks[0])
+        self.assertEqual(booking.assignment_counts().get(inst['id']), 1)
+
+    def test_取り消した回は担当回数に数えない(self):
+        rec, inst = booking.add_booking('GB', self.days[0], 'A',
+                                        'a@example.com', '', 1, '')
+        self.assertEqual(booking.assignment_counts().get(inst['id']), 1)
+        booking.cancel_booking(rec['id'], '試験')
+        self.assertIsNone(booking.assignment_counts().get(inst['id']))
+
+    def test_同数なら登録が早い順で決まる(self):
+        # ⛔ 並びが決定的でないと、同じ状況で毎回違う人に当たる
+        first = self._names('GB', 1)[0]
+        _clear()
+        self.setUp()
+        self.assertEqual(self._names('GB', 1)[0], first)
+
+    def test_古い担当は数えない(self):
+        # ⛔ 全期間で数えると、あとから入った講師が永久に有利になる
+        self.assertGreater(booking.ASSIGN_WINDOW_DAYS, 0)
+        rec, inst = booking.add_booking('GB', self.days[0], 'A',
+                                        'a@example.com', '', 1, '')
+        rows = booking.bookings()
+        old = (booking.today_jst()
+               - timedelta(days=booking.ASSIGN_WINDOW_DAYS + 10)).isoformat()
+        rows[0]['希望日'] = old
+        booking._save('bookings.json', rows)
+        self.assertIsNone(booking.assignment_counts().get(inst['id']))
+
+
+class Test開催日を運営が決める(unittest.TestCase):
+    """2026-08-15 社長ご判断。講師は運営が決めた開催日からしか選べない。
+
+    ⛔ 講師に自由に日を選ばせないこと。5名が別々の日を選ぶと申込が散り、
+       1回あたりの人数が減る。講師料は1開催あたりの定額なので、開催回数が
+       増えたぶんだけ利益がそのまま消える。
+    固定している事故の型:
+      ・開催日でない日に登録できてしまう（画面を通らない経路がある）
+      ・複数回の講座が、毎週ではない曜日に置かれて途中で途切れる
+      ・連日開催の講座が残り、開催日が連続しないため永久に成立しない
+    """
+
+    def setUp(self):
+        _clear()
+        app.logger.disabled = True
+        self.c = app.test_client()
+        rec, self.token = booking.register_instructor(
+            '山田', 'y@example.com', '', ['SP-A'], '',
+            fee_agreed=booking.FEE_TERMS_VERSION)
+        booking.verify_email(self.token)
+        booking.set_state(rec['id'], '承認')
+
+    def test_開催日でない日は登録できない(self):
+        d = date.today() + timedelta(days=30)
+        while booking.is_session_day(d):
+            d += timedelta(days=1)
+        got, err = booking.set_day_courses(self.token, d.isoformat(), ['SP-A'])
+        self.assertIsNone(got)
+        self.assertIn('開催日ではありません', err)
+
+    def test_開催日なら登録できる(self):
+        got, err = booking.set_day_courses(self.token, _far_day(), ['SP-A'])
+        self.assertIsNone(err)
+        self.assertIsNotNone(got)
+
+    def test_取り消しは開催日でなくてもできる(self):
+        # ⛔ 規則を変えた後、過去に登録された日を消せなくしないこと
+        d = date.today() + timedelta(days=30)
+        while booking.is_session_day(d):
+            d += timedelta(days=1)
+        got, err = booking.set_day_courses(self.token, d.isoformat(), [])
+        self.assertIsNone(err)
+
+    def test_開催日でない日は受講者にも公開しない(self):
+        d = date.today() + timedelta(days=30)
+        while booking.is_session_day(d):
+            d += timedelta(days=1)
+        st = {x['日付']: x['状態'] for x in booking.open_days('SP-A')}
+        # ⛔ 「予約締切」と出さないこと（締切は講師の都合で閉じた日の意味）
+        self.assertEqual(st[d.isoformat()], '非開催日')
+
+    def test_複数回の講座は毎週ある曜日に置く(self):
+        # ⛔ 土曜（第2・第4だけ）に複数回の講座を置かないこと。第3週で途切れ、
+        #    その講座は永久に成立しない（2026-08-15 実装中に実際に踏んだ）
+        self.assertEqual(booking.multi_session_courses_ok(), [])
+
+    def test_連日開催の講座を作らない(self):
+        # ⛔ 開催日は連続しないので、連日の講座は構造的に成立しない
+        bad = [c['code'] for c in booking.COURSES
+               if booking.course_days(c['code']) > 1
+               and booking.course_interval(c['code']) == 1]
+        self.assertEqual(bad, [])
+
+    def test_全講座が実際に成立する(self):
+        # ⛔ 規則を変えたら、全27講座に「開始日にできる日」があることを確かめる。
+        #    1つでも0日なら、その講座は永久に売れない
+        codes = [c['code'] for c in booking.COURSES]
+        rec, tok = booking.register_instructor(
+            '全部', 'all@example.com', '', codes, '',
+            fee_agreed=booking.FEE_TERMS_VERSION)
+        booking.verify_email(tok)
+        booking.set_state(rec['id'], '承認')
+        for iso in booking.session_days(3):
+            booking.set_day_courses(tok, iso, codes)
+        inst = booking.find_instructor(tok)
+        dead = [c for c in codes if not booking.startable_days(inst, c)]
+        self.assertEqual(dead, [], f'開始日が0日の講座: {dead}')
+
+    def test_開催日の決まりを画面に出す(self):
+        t = _visible(self.c.get(
+            f'/instructor/schedule/{self.token}').get_data(as_text=True))
+        self.assertIn(booking.session_day_note(), t)
+
+
+class Test担当講座の変更(unittest.TestCase):
+    """2026-08-15 社長ご指摘（講師をすぐ5名集められる）を受けての実装。
+
+    固定している事故の型:
+      ・担当講座を1つ足しただけで、その人の日程が全部 予約カレンダーから消える
+        （旧実装は状態ごと『申請中』へ戻していた）
+      ・逆に、審査を通さずに担当を増やせてしまう
+      ・受講者の申込が入っている講座を、本人が担当から外せてしまう
+    """
+
+    def setUp(self):
+        _clear()
+        app.logger.disabled = True
+        self.c = app.test_client()
+        rec, self.token = booking.register_instructor(
+            '山田', 'y@example.com', '', ['GA', 'GB'], '',
+            _days_all(('GA', 'GB')), fee_agreed=booking.FEE_TERMS_VERSION)
+        booking.verify_email(self.token)
+        booking.set_state(rec['id'], '承認')
+
+    def _open(self, code):
+        return sum(1 for d in booking.open_days(code) if d['状態'] == '予約可')
+
+    def test_承認時に担当講座が承認済みになる(self):
+        inst = booking.find_instructor(self.token)
+        self.assertEqual(sorted(booking.approved_courses(inst)), ['GA', 'GB'])
+        self.assertEqual(booking.pending_courses(inst), [])
+
+    def test_講座を足しても既存の公開が止まらない(self):
+        # ⛔ ここが今回の本題。旧実装ではGA・GBまで非公開になっていた
+        before = self._open('GA')
+        self.assertGreater(before, 0)
+        got, err = booking.set_instructor_courses(self.token, ['GA', 'GB', 'GD'])
+        self.assertIsNone(err)
+        self.assertEqual(self._open('GA'), before)      # 止まっていない
+        self.assertEqual(got['状態'], '承認')            # 申請中に戻さない
+
+    def test_足した講座は審査を通すまで公開しない(self):
+        booking.set_instructor_courses(self.token, ['GA', 'GB', 'GD'])
+        self.assertEqual(self._open('GD'), 0)
+        inst = booking.find_instructor(self.token)
+        self.assertEqual(booking.pending_courses(inst), ['GD'])
+
+    def test_運営が承認すると公開される(self):
+        booking.set_instructor_courses(self.token, ['GA', 'GB', 'GD'])
+        inst = booking.find_instructor(self.token)
+        # 日程を入れ直す（担当に加わったので）
+        booking.set_day_courses(self.token, _far_day(), ['GA', 'GB', 'GD'])
+        booking.approve_courses(inst['id'])
+        self.assertGreater(self._open('GD'), 0)
+
+    def test_外した講座は公開されなくなる(self):
+        booking.set_instructor_courses(self.token, ['GA'])
+        self.assertEqual(self._open('GB'), 0)
+        self.assertGreater(self._open('GA'), 0)
+
+    def test_申込が入っている講座は外せない(self):
+        day = _far_day()
+        booking.add_booking('GA', day, '鈴木', 's@example.com', '', 1, '')
+        got, err = booking.set_instructor_courses(self.token, ['GB'])
+        self.assertIsNone(got)
+        self.assertIn('GA', err)
+        self.assertIn('外すことはできません', err)
+
+    def test_登録し直しでも承認済みは残る(self):
+        # ⛔ 講座を足す再登録で、既存の承認まで落とさないこと
+        booking.register_instructor('山田', 'y@example.com', '',
+                                    ['GA', 'GB', 'GD'], '',
+                                    fee_agreed=booking.FEE_TERMS_VERSION)
+        inst = booking.find_instructor(self.token)
+        self.assertEqual(inst['状態'], '承認')
+        self.assertEqual(sorted(booking.approved_courses(inst)), ['GA', 'GB'])
+        self.assertEqual(booking.pending_courses(inst), ['GD'])
+
+    def test_画面から変更できる(self):
+        url = f'/instructor/schedule/{self.token}/courses'
+        self.assertEqual(self.c.get(url).status_code, 200)
+        r = self.c.post(url, data={'courses': ['GA', 'GD']})
+        self.assertEqual(r.status_code, 200)
+        self.assertIn('変更を保存しました', r.get_data(as_text=True))
+        self.assertEqual(sorted(booking.find_instructor(self.token)['対応コース']),
+                         ['GA', 'GD'])
+
+    def test_予定画面から辿れる(self):
+        t = self.c.get(f'/instructor/schedule/{self.token}').get_data(as_text=True)
+        self.assertIn(f'/instructor/schedule/{self.token}/courses', t)
+
+    def test_講師5名が同じ日に別々の講座を担当できる(self):
+        # ⛔ 開催日を絞る運用の前提。ここが壊れると1日1講座しか売れない
+        _clear()
+        day = _far_day(40)
+        codes = ['GA', 'GB', 'GD', 'GE', 'SP-A']
+        for i in range(5):
+            rec, tok = booking.register_instructor(
+                f'講師{i}', f'i{i}@example.com', '', codes, '',
+                fee_agreed=booking.FEE_TERMS_VERSION)
+            booking.verify_email(tok)
+            booking.set_state(rec['id'], '承認')
+            booking.set_day_courses(tok, day, codes)
+        who = set()
+        for c in codes:
+            rec, inst = booking.add_booking(c, day, 'x', f'{c}@example.com',
+                                            '', 1, '')
+            who.add(inst['id'])
+        self.assertEqual(len(who), 5, '5講座が別々の講師に割り当たること')
+
+    def test_同じ講座の2人目は同じ講師に寄る(self):
+        # ⛔ 別の講師に割り当てると同じ日・同じ講座が二重開催になる
+        day = _far_day()
+        _, a = booking.add_booking('GA', day, 'A', 'a@example.com', '', 1, '')
+        _, b2 = booking.add_booking('GA', day, 'B', 'b@example.com', '', 1, '')
+        self.assertEqual(a['id'], b2['id'])
+
+
+class Test赤字にしない(unittest.TestCase):
+    """2026-08-15 社長ご指示「赤字にならないような工夫をすること大前提」。
+
+    受講料は講義そのものの対価。会場を使う諸経費（会場費・機材費・講師の
+    交通費／宿泊費）は**別途お見積り**にして、自社の固定費をゼロに保つ。
+
+    固定している事故の型:
+      ・会場費を受講料に含め、1名開催で赤字になる
+      ・子ども向けを「親子で会場に来る」前提にして、いちばん単価の低い
+        講座（GK1 ¥9,800）が会場費で即赤字になる
+      ・追加費用を特商法に書かないまま請求する（表示義務違反）
+    """
+
+    def setUp(self):
+        _clear()
+        self.c = app.test_client()
+
+    def test_全講座が1名で黒字(self):
+        for c in booking.COURSES:
+            with self.subTest(course=c['code']):
+                self.assertGreater(booking.profit_at(c['code'], 1), 0)
+
+    def test_人数が増えても原価は増えない(self):
+        # 講師料は定額。2人目以降は受講料がまるごと利益に近づく
+        a = booking.profit_at('SP-A', 1)
+        b = booking.profit_at('SP-A', 2)
+        self.assertGreater(b - a, booking.COURSE_BY_CODE['SP-A']['price'] * 0.9)
+
+    def test_子ども向けも会場を前提にしない(self):
+        # ⛔ 「親子で会場に来る」前提に戻さないこと（2026-08-15 社長ご指示）
+        for code in ('GK1', 'GK2', 'GK3'):
+            self.assertIn('オンライン', booking.delivery_label(code), code)
+        self.assertGreater(booking.profit_at('GK1', 1), 0)
+
+    def test_掲載ページの開催方法が1か所から出ている(self):
+        import solo_ceo
+        import vibe_coding_courses as vc
+        import vibe_coding_industry as vi
+        seen = list(solo_ceo.COURSES.values()) + list(vc.COURSES.values())
+        for ind in vi.INDUSTRIES.values():
+            seen += ind.get('courses') or []
+        for c in seen:
+            with self.subTest(course=c['code']):
+                self.assertEqual(c['format'], booking.delivery_label(c['code']))
+                # ⛔ 「会場＋オンライン同時開催」を既定に戻さない
+                self.assertNotEqual(c['format'], '会場＋オンライン同時開催')
+
+    def test_掲載ページの価格が台帳と一致する(self):
+        # ⛔ 価格を掲載ページに手打ちしないこと。値上げのたびに片方だけ
+        #    古くなり、安い方を見て申し込んだお客様に高い額を請求することになる
+        import solo_ceo
+        import vibe_coding_courses as vc
+        import vibe_coding_industry as vi
+        seen = list(solo_ceo.COURSES.values()) + list(vc.COURSES.values())
+        for ind in vi.INDUSTRIES.values():
+            seen += ind.get('courses') or []
+        for c in seen:
+            with self.subTest(course=c['code']):
+                live = booking.COURSE_BY_CODE.get(c['code'])
+                self.assertIsNotNone(live, c['code'])
+                self.assertEqual(c['price_num'], live['price'])
+                self.assertEqual(c['price'], '{:,}'.format(live['price']))
+
+    def test_子どもページの価格も台帳から出す(self):
+        t = _visible(self.c.get('/vibe-coding/kids').get_data(as_text=True))
+        for code in ('GK1', 'GK2', 'GK3'):
+            self.assertIn('{:,}'.format(booking.COURSE_BY_CODE[code]['price']),
+                          t, code)
+        # 値下げ前の価格が残っていたら落とす
+        self.assertNotIn('29,800', t)
+        self.assertNotIn('49,800', t)
+
+    def test_画面の助成額が講座ごとに正しい(self):
+        # ⛔ 代表値（GAの金額）を全講座に使い回さないこと（2026-08-15 実害）。
+        #    GB を値上げした後も、LPの助成金の表だけ GB 行が ¥49,800／
+        #    実質¥15,846 のまま残っていた（社長のご確認で発覚）。
+        t = _visible(self.c.get('/vibe-coding').get_data(as_text=True))
+        for code in ('GA', 'GB', 'GD', 'GE'):
+            s = booking.subsidy_for(code)
+            with self.subTest(course=code):
+                self.assertIn('¥{:,}'.format(s['net']), t)
+                self.assertIn('¥{:,}'.format(s['grant']), t)
+        # GB の行が GA の金額になっていないこと
+        i = t.find('GB: バイブコーディング実践')
+        self.assertGreater(i, 0)
+        row = t[i:i + 90]
+        self.assertIn('{:,}'.format(booking.COURSE_BY_CODE['GB']['price']), row)
+        self.assertNotIn('49,800', row)
+
+    def test_法人向けは助成の上限を使い切る(self):
+        # ⛔ 上限は「対象経費10万円まで3/4」。GA-P はそこにぴったり合わせてある
+        s = booking.subsidy_for('GA-P')
+        self.assertTrue(s['eligible'])
+        self.assertGreaterEqual(s['grant'], booking.SUBSIDY['cap_per_person'] - 1)
+        self.assertLessEqual(s['net'], 35100)
+
+    def test_個人向けの入口を廃止しない(self):
+        # ⛔ GA（¥49,800）を消さないこと。助成金を使えない方（代表者ご本人）は
+        #    こちらしか選べない
+        self.assertEqual(booking.COURSE_BY_CODE['GA']['price'], 49800)
+        self.assertIn('GA', booking.subsidy_courses())
+
+    def test_法人出張は1回いくらで人数に比例しない(self):
+        # ⛔ 「1名あたり」に戻さないこと。1名で来られると市場の1/6になる
+        one, _ = booking.corporate_quote(1, 1)
+        ten, _ = booking.corporate_quote(1, 10)
+        self.assertEqual(one, ten)                    # 10名までは同額
+        self.assertEqual(booking.corporate_quote(3, 10)[0], ten * 3)
+        self.assertGreater(booking.corporate_quote(1, 20)[0], ten)
+
+    def test_法人出張の案内が画面に出る(self):
+        t = _visible(self.c.get('/subsidy').get_data(as_text=True))
+        self.assertIn('{:,}'.format(booking.CORPORATE['day_price']), t)
+        self.assertIn('オーダーメイド研修', t)
+        self.assertIn('会場費も助成の対象', t)
+
+    def test_特商法に追加料金を書く(self):
+        # ⛔ 「なし」に戻さないこと（会場開催では諸経費を請求する）
+        t = _visible(self.c.get('/tokutei').get_data(as_text=True))
+        self.assertIn('別途お見積り', t)
+        self.assertIn('役務の提供場所', t)
+        self.assertIn('オンライン開催：なし', t)
+
+    def test_予約できる日が0件でもお取引の条件を出す(self):
+        # ⛔ 諸経費・販売事業者・キャンセル規定を申込フォームの中に置かない
+        #    こと。日程が無いとフォームごと消え、特定商取引法にかかわる
+        #    表示まで画面から無くなる（2026-08-15 実害・全27講座で発生）。
+        _clear()                          # 講師なし＝予約できる日は0件
+        for code in ('GA', 'GA-P', 'GK1', 'GM-C'):
+            with self.subTest(course=code):
+                t = _visible(self.c.get('/book/' + code).get_data(as_text=True))
+                self.assertIn('いまお選びいただける日程がありません', t)
+                self.assertIn('別途お見積り', t)          # 諸経費
+                self.assertIn(booking.SELLER['name'], t)  # 販売事業者
+                self.assertIn('お一人からでも開催します', t)
+                self.assertIn('13〜7日前', t)             # キャンセル規定
+
+    def test_予約できる日が0件でも助成金の案内を出す(self):
+        _clear()
+        t = _visible(self.c.get('/book/GA-P').get_data(as_text=True))
+        s = booking.subsidy_for('GA-P')
+        self.assertIn('{:,}'.format(s['net']), t)
+        # 対象外の講座には出さない（日程の有無に関わらず）
+        t2 = _visible(self.c.get('/book/GC').get_data(as_text=True))
+        self.assertNotIn('4分の3', t2)
+
+    def test_申込画面に開催方法と諸経費を出す(self):
+        booking.register_instructor('山田', 'y@example.com', '', ['GK1'], '',
+                                    _days_all(('GK1',)))
+        booking.set_state(booking.instructors()[0]['id'], '承認')
+        booking.verify_email(booking.instructors()[0]['鍵'])
+        t = _visible(self.c.get('/book/GK1').get_data(as_text=True))
+        self.assertIn('オンライン', t)
+        self.assertIn('別途お見積り', t)
+
+
+class Test受講証明書(unittest.TestCase):
+    """⛔ 当社が発行できないと、法人は助成金を受け取れない（実績報告で必須）。"""
+
+    def setUp(self):
+        _clear()
+        app.logger.disabled = True
+        self.c = app.test_client()
+        booking.register_instructor('山田', 'y@example.com', '', ['SP-A'], '',
+                                    _days_all())
+        booking.set_state(booking.instructors()[0]['id'], '承認')
+        booking.verify_email(booking.instructors()[0]['鍵'])
+
+    def _book(self, **kw):
+        rec, _ = booking.add_booking('SP-A', _far_day(), '鈴木',
+                                     's@example.com', '株式会社テスト', 1, '',
+                                     **kw)
+        return rec
+
+    def test_必要な項目が揃う(self):
+        d = booking.certificate_data(self._book()['id'])
+        self.assertEqual(d['研修名'], 'SP-A AI経営 入門1日')
+        self.assertEqual(d['企業名'], '株式会社テスト')
+        self.assertEqual(d['総研修時間数'], 6)
+        self.assertEqual(d['必要出席時間数'], 4.8)     # 8割
+        self.assertEqual(d['教育機関'], booking.SELLER['name'])
+
+    def test_出席時間はこちらで埋めない(self):
+        # ⛔ 推測で埋めると虚偽の証明になる
+        self.assertIsNone(booking.certificate_data(self._book()['id'])['出席時間数'])
+
+    def test_カード払いは助成対象外だと分かる(self):
+        rec = self._book(pending=True)
+        booking.attach_checkout(rec['id'], 'cs_c1')
+        booking.mark_paid('cs_c1')
+        d = booking.certificate_data(rec['id'])
+        self.assertIn('振込払いが要件', d['注意'])
+
+    def test_合言葉がなければ出さない(self):
+        rec = self._book()
+        self.assertEqual(self.c.get(f'/admin/booking/{rec["id"]}/certificate')
+                         .status_code, 403)
+        r = self.c.get(f'/admin/booking/{rec["id"]}/certificate',
+                       headers={'X-Admin-Token': 'test-admin'})
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.get_json()['総研修時間数'], 6)
+
+    def test_無い申込は404(self):
+        self.assertEqual(self.c.get('/admin/booking/xxxx/certificate',
+                                    headers={'X-Admin-Token': 'test-admin'}
+                                    ).status_code, 404)
+
+    def test_申請に間に合うかを判定できる(self):
+        # ⛔ _far_day は開催日まで前倒しするので、ここでは使わないこと
+        #    （期限そのものの判定なので、開催日かどうかは関係ない）
+        n = booking.SUBSIDY['lead_days']
+        raw = lambda k: (date.today() + timedelta(days=k)).isoformat()
+        self.assertTrue(booking.subsidy_deadline_ok(raw(n + 1)))
+        self.assertFalse(booking.subsidy_deadline_ok(raw(n - 1)))
+
+
+class Test協会サイトのヘッダーを明るく塗り替えない(unittest.TestCase):
+    """2026-08-16 社長ご指摘「ヘッダーデザインなどが生成AI協会トップページの
+    デザインと違う」。
+
+    course_detail.html と thank_you.html だけが base.html のヘッダー・
+    フッターを「白テーマ化」（白い固定バー／紺のロゴ・メニュー／明るい
+    フッター）で上書きしており、講座の6ページ（course-ga/gap/gb/gc/gd/ge）
+    と送信完了ページだけ、同じサイトを出たように見えていた。
+
+    ⛔ 検査するのは「濃さ」であって上書きの有無ではない。kids・industry の
+       ように背景を別の濃色（#09090b）に替えるのは、ロゴもメニューも白の
+       ままなので協会サイトの顔として成立している。壊れるのは
+       「文字が濃くなる／下地が明るくなる」ときだけ。
+    ⛔ ページ固有の色は本文の中で完結させること（.course-body / .lp-body）。
+    """
+
+    # ⛔ BEM の要素（.nav-menu-list__item）は .nav-menu-list では拾えない
+    #    （境界の (?![\w-]) に _ が引っかかる）。実際に書かれる形で並べること。
+    CHROME = ('.header-nav', '.nav-menu-list', '.nav-menu-list__item',
+              '.nav-profile', '.nav-logo', '.logo-text', '.logo-sub',
+              '.hamburger', '.footer', '.footer__inner', '.footer__copyright')
+
+    @staticmethod
+    def _lum(css):
+        """CSS の色から相対輝度を返す。読めない色は None（判定しない）。"""
+        m = re.match(r'#([0-9a-fA-F]{6})$', css)
+        if m:
+            rgb = [int(m.group(1)[i:i + 2], 16) for i in (0, 2, 4)]
+        else:
+            m = re.match(r'rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)', css)
+            if not m:
+                return None
+            rgb = [int(m.group(i)) for i in (1, 2, 3)]
+        f = lambda v: (v / 255) / 12.92 if v / 255 <= 0.03928 \
+            else (((v / 255) + 0.055) / 1.055) ** 2.4
+        r, g, b = map(f, rgb)
+        return 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+    def _rules(self, body):
+        """ヘッダー・フッターに当たる規則を (選択子, 中身) で返す"""
+        body = re.sub(r'\{#.*?#\}', '', body, flags=re.S)
+        body = re.sub(r'/\*.*?\*/', '', body, flags=re.S)
+        for m in re.finditer(r'([^{}]+)\{([^{}]*)\}', body):
+            sel = m.group(1).strip()
+            if any(re.search(re.escape(c) + r'(?![\w-])', sel) for c in self.CHROME):
+                yield sel, m.group(2)
+
+    def test_ヘッダーの文字を濃い色にしない(self):
+        tpl = os.path.join(os.path.dirname(HERE), 'templates')
+        bad = []
+        for name in sorted(os.listdir(tpl)):
+            if not name.endswith('.html') or name == 'base.html':
+                continue
+            body = io.open(os.path.join(tpl, name), encoding='utf-8').read()
+            for sel, decl in self._rules(body):
+                for v in re.findall(r'(?<![-\w])color\s*:\s*([^;!}]+)', decl):
+                    L = self._lum(v.strip())
+                    if L is not None and L < 0.18:
+                        bad.append('%s: %s → color %s' % (name, sel, v.strip()))
+        self.assertEqual(
+            bad, [],
+            'ヘッダー・フッターの文字を濃い色にしています（下地は協会サイトの'
+            '濃紺なので読めません／その1ページだけ別サイトに見えます）: %s' % bad)
+
+    def test_ヘッダーの下地を明るくしない(self):
+        tpl = os.path.join(os.path.dirname(HERE), 'templates')
+        bad = []
+        for name in sorted(os.listdir(tpl)):
+            if not name.endswith('.html') or name == 'base.html':
+                continue
+            body = io.open(os.path.join(tpl, name), encoding='utf-8').read()
+            for sel, decl in self._rules(body):
+                for v in re.findall(r'(?<![-\w])background(?:-color)?\s*:\s*([^;!}]+)',
+                                    decl):
+                    L = self._lum(v.strip())
+                    if L is not None and L > 0.35:
+                        bad.append('%s: %s → background %s' % (name, sel, v.strip()))
+        self.assertEqual(
+            bad, [],
+            'ヘッダー・フッターの下地を明るくしています（協会サイトの'
+            '他ページと違う顔になります）: %s' % bad)
+
+    def test_ヘッダーを固定しない(self):
+        """協会サイトのヘッダーはページと一緒に流れる。1ページだけ画面上端に
+        貼り付くと、スクロール中ずっと別サイトのように見える。"""
+        tpl = os.path.join(os.path.dirname(HERE), 'templates')
+        bad = []
+        for name in sorted(os.listdir(tpl)):
+            if not name.endswith('.html') or name == 'base.html':
+                continue
+            body = io.open(os.path.join(tpl, name), encoding='utf-8').read()
+            for sel, decl in self._rules(body):
+                if '.header-nav' in sel and re.search(r'position\s*:\s*fixed', decl):
+                    bad.append('%s: %s' % (name, sel))
+        self.assertEqual(bad, [], 'ヘッダーを固定しているページがあります: %s' % bad)
+
+
+class Testコース色を宣言として書く(unittest.TestCase):
+    """2026-08-16 発見。COURSES の 'gradient' は「linear-gradient(...)」という
+    *値* なのに、course_detail.html は `{{ c.gradient }};` と裸で書いていた。
+
+    プロパティ名の無い宣言はブラウザがその1行だけ黙って捨てるので、
+    ヒーロー・コースのバッジ・講師アイコン・「送信する」ボタンの色が
+    4か所とも消え、申込ボタンは灰色＝押せないように見えていた。
+
+    ⛔ エラーも出ず、テンプレートの見た目も自然なので、目で見るまで
+       気づけない型。機械で固定する。
+    """
+
+    def test_値をそのまま宣言の位置に置かない(self):
+        tpl = os.path.join(os.path.dirname(HERE), 'templates')
+        bad = []
+        for name in sorted(os.listdir(tpl)):
+            if not name.endswith('.html'):
+                continue
+            body = io.open(os.path.join(tpl, name), encoding='utf-8').read()
+            body = re.sub(r'\{#.*?#\}', '', body, flags=re.S)
+            body = re.sub(r'/\*.*?\*/', '', body, flags=re.S)
+            for n, line in enumerate(body.split('\n'), 1):
+                s = line.strip()
+                if not s.startswith('{{'):
+                    continue
+                # 直前にプロパティ名（`background:` 等）が無いまま値だけ置いた行
+                if re.match(r'^\{\{[^}]*\}\}\s*;\s*$', s):
+                    bad.append('%s:%d %s' % (name, n, s))
+        self.assertEqual(
+            bad, [],
+            'プロパティ名の無いCSS宣言があります（ブラウザが黙って捨てます）: %s' % bad)
 
 
 if __name__ == '__main__':

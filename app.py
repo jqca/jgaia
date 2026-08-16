@@ -22,6 +22,7 @@ from vibe_coding_courses import register_vibe_coding_course_routes
 from vibe_coding_kids import register_vibe_coding_kids_routes
 from vibe_coding_industry import register_vibe_coding_industry_routes
 from solo_ceo import register_solo_ceo_routes
+from booking_routes import register_booking_routes
 
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 FROM_EMAIL = "info@jgaia.org"
@@ -29,9 +30,17 @@ NOTIFY_EMAIL = "takano.hidetaka@gmail.com"
 
 app = Flask(__name__, static_folder="static", static_url_path="/static")
 
+# Railway のプロキシ配下で動くので、外向きURL（url_for(_external=True)）の
+# スキームを X-Forwarded-Proto から判定させる。
+# ⛔ これを外すと講師にお送りするURLが http:// になる（2026-08-09 実測）。
+#    リダイレクトはされるが、コピーして配るURLとしては使えない。
+from werkzeug.middleware.proxy_fix import ProxyFix  # noqa: E402
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
+
 register_vibe_coding_routes(app)
 register_vibe_coding_course_routes(app)
 register_vibe_coding_kids_routes(app)
+register_booking_routes(app)
 register_vibe_coding_industry_routes(app)
 register_solo_ceo_routes(app)
 
@@ -152,9 +161,70 @@ def gpu_guide():
     return render_template("gpu_guide.html")
 
 
+@app.context_processor
+def _subsidy_globals():
+    """助成金の金額を、どのテンプレートからも1か所から引けるようにする。
+
+    ⛔ 各テンプレートに金額を直書きしないこと（2026-08-15 実害）。廃止した
+       事業外スキルアップ助成金の実質負担額が4ファイルに散っており、制度を
+       切り替えてもそこだけ古いまま残っていた。テストは module 側しか
+       見ておらず、テンプレートの直書きを1件も捕まえられなかった。
+    """
+    import booking
+    s = booking.subsidy_for("GA")          # 個人向けの代表値
+    # ⛔ 助成額を「代表値」で全講座に使い回さないこと（2026-08-15 実害）。
+    #    GB を値上げした後も表の GB 行が GA の金額（¥49,800／実質¥15,846）の
+    #    ままになっていた。講座ごとの値を引けるようにする。
+    return {"prices": {c["code"]: c["price"] for c in booking.COURSES},
+            "subsidy_of": {c["code"]: booking.subsidy_for(c["code"])
+                           for c in booking.COURSES},
+            "subsidy_net_typical": s["net"],
+            "subsidy_grant_typical": s["grant"],
+            "subsidy_cap_person": booking.SUBSIDY["cap_per_person"],
+            "subsidy_cap_company": booking.SUBSIDY["cap_per_company"]}
+
+
+@app.route("/subsidy")
+def subsidy():
+    """法人のお客様向け 助成金のご案内。
+
+    ⛔ 金額・要件をこのページに直書きしないこと。判定と金額は
+       booking.subsidy_for() の1か所から作る（制度が変わった日に、
+       直し忘れた画面が古い金額を出し続ける＝法人はその額で申請して落ちる）。
+    """
+    import booking
+    rows = []
+    for c in booking.COURSES:
+        s = booking.subsidy_for(c["code"])
+        rows.append(dict(code=c["code"], name=c["name"], price=c["price"],
+                         hours=s["hours"], grant=s["grant"], net=s["net"],
+                         eligible=s["eligible"], reason=s["reason"],
+                         dx=booking.dx_skills(c["code"])))
+    corp = booking.CORPORATE
+    return render_template(
+        "subsidy.html", s=booking.subsidy_for("SP-A"), corp=corp,
+        q1=booking.corporate_quote(1, corp["included"])[0],
+        q2=booking.corporate_quote(1, 20)[0],
+        q3=booking.corporate_quote(3, corp["included"])[0],
+        cap_person=booking.SUBSIDY["cap_per_person"],
+        cap_company=booking.SUBSIDY["cap_per_company"],
+        eligible=[r for r in rows if r["eligible"]],
+        # ⛔ 「時間で外れたもの」だけを出す。子ども向けは受講者の立場の
+        #    問題なので、時間の説明文に混ぜると誤解される
+        not_eligible=[r for r in rows if not r["eligible"]
+                      and r["code"] not in booking._SUBSIDY_NEVER])
+
+
 @app.route("/tokutei")
 def tokutei():
-    return render_template("tokutei.html")
+    # ⛔ 売主と返金の条件をテンプレートに直書きしないこと。講座の売主は
+    #    ZebraQuantum で、条件は booking.py が唯一の出どころ（画面・メール・
+    #    法定表示が別々の答えを出すのを防ぐ）
+    import booking
+    return render_template("tokutei.html", seller=booking.SELLER,
+                           cancel_policy=booking.CANCEL_POLICY,
+                           extra_cost_note=booking.EXTRA_COST_NOTE,
+                           delivery_note=booking.DELIVERY_NOTE)
 
 
 @app.route("/sitemap.xml")

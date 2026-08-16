@@ -3,68 +3,19 @@
 {% block title %}送信完了 | JGAIA バイブコーディング講座{% endblock %}
 
 {% block extra_css %}
-/* ── base.html のダークテーマ上書き（白テーマ化） ── */
-.particles-background { display:none !important; }
-body { background:#ffffff !important; }
-.header-nav {
-  background:rgba(255,255,255,0.95) !important;
-  backdrop-filter:blur(24px);
-  border-bottom:1px solid #e2e8f0;
-  position:fixed !important;
-  top:0 !important;
-  z-index:100;
-}
-.header-nav nav .nav-logo .logo-text { color:#1a1a2e !important; }
-.header-nav nav .nav-logo .logo-sub { color:#4a5568 !important; }
-.nav-menu-list__item a { color:#1a1a2e !important; }
-.nav-menu-list__item a:hover { opacity:0.7; }
-.nav-menu-list__item a span { color:#64748b !important; }
-.nav-profile .nav-register {
-  color:#fff !important;
-  background:#6366f1 !important;
-  border-color:#6366f1 !important;
-}
-.nav-profile .nav-login {
-  color:#1a1a2e !important;
-  background:transparent !important;
-  border-color:#d1d9e6 !important;
-}
-.hamburger { color:#1a1a2e !important; }
-main { padding:0 !important; margin-top:0 !important; }
-.footer { background:#f8fafc; }
-.footer__inner { border-top:1px solid #e2e8f0; }
-.footer .logo-text { color:#1a1a2e !important; }
-.footer .logo-sub { color:#64748b !important; }
-.footer__copyright { color:#64748b !important; }
-.footer__copyright p { color:#64748b !important; }
-.footer .link-button { color:#4a5568 !important; border-color:#d1d9e6 !important; }
-.footer .link-button:hover { color:#1a1a2e !important; }
-.footer .legal-link { color:#64748b !important; }
-.nav-menu-list .dropdown-menu {
-  background:rgba(255,255,255,0.97) !important;
-  border-color:#e2e8f0 !important;
-  box-shadow:0 8px 24px rgba(0,0,0,0.1) !important;
-}
-.nav-menu-list .dropdown-menu::after {
-  background:rgba(255,255,255,0.97) !important;
-  border-color:#e2e8f0 !important;
-}
-.nav-menu-list .dropdown-menu a {
-  color:#1a1a2e !important;
-}
-.nav-menu-list .dropdown-menu a:hover {
-  background:rgba(99,102,241,0.1) !important;
-  color:#6366f1 !important;
-}
-
+/* ⛔ ヘッダー・フッターを上書きしないこと（2026-08-16 社長ご指摘）。
+   2026-08-16 まで、ここと course_detail.html だけが「白テーマ化」で
+   協会サイトの紺のヘッダー・フッターを白く塗り替えており、同じサイトを
+   出たように見えていた。白いのはカード（.ty-card）だけでよい。 */
 .ty-wrapper {
   display:flex;align-items:center;justify-content:center;
-  min-height:calc(100vh - 200px);padding:120px 24px 64px;
+  min-height:calc(100vh - 200px);padding:40px 24px 64px;
 }
 .ty-card {
   max-width:520px;width:100%;text-align:center;
-  background:#f8fafc;border:1px solid #d1d9e6;
+  background:#ffffff;border:1px solid #d1d9e6;
   padding:64px 48px;border-radius:8px;
+  box-shadow:0 20px 50px rgba(0,0,0,0.25);
 }
 .ty-icon {
   width:64px;height:64px;margin:0 auto 24px;

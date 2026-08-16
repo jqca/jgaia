@@ -14,10 +14,19 @@
 ⛔ 承認していない講師の枠を公開しないこと。有料講座なので、
    審査前の人が表に出ると取り返しがつかない。
 
-決定事項（2026-08-09 社長承認）:
-    最少催行人数  SP-A 4名 / SP-B 3名 / SP-C 5名（その他は4名）
-    支払い        請求書（銀行振込）。決済は導入しない
+決定事項（2026-08-09 社長承認／2026-08-14 改定）:
+    最少催行人数  ⛔ 設けない（下記）
+    講師料        単価の40%を1開催あたりの定額（人数に依存しない）
+    支払い        カード決済（Stripe）を既定。法人向けに請求書払いを併存
     キャンセル    14日前まで無料 / 13〜7日前 50% / 6日前以降 100%
+
+⛔ 最少催行人数を復活させないこと（2026-08-14 社長ご判断）。講師料は
+   「単価の40%」を1開催あたり払う**定額**で、人数が増えても増えない。
+   よって2人目以降は受講料がまるごと利益になり、損益分岐は全コース
+   0.42名相当（40% ÷ 96.4%）＝**1名で必ず黒字**。人数を理由に中止すると、
+   確実に入る利益を捨てたうえ、申し込んだ受講者と看板を失う。
+   実測: SP-A に3名で中止すると ¥124,101 を捨てる。
+   席が埋まらない問題は「公開する日を絞る」（供給側）で解くこと。
 """
 import json
 import os
@@ -48,31 +57,45 @@ LEAD_DAYS = 14
 COURSES = [
     # ── 一人会社AI経営講座 /solo-ceo
     {'code': 'SP-A', 'name': 'AI経営 入門1日', 'price': 49800,
-     'hours': '10:00〜17:00', 'min_people': 4, 'capacity': 20,
+     'hours': '10:00〜17:00', 'capacity': 20,
      'group': '一人会社AI経営'},
-    {'code': 'SP-B', 'name': 'AI経営 実践3日間マスター', 'price': 128000,
-     'hours': '10:00〜17:00 × 3日間', 'days': 3,
-     'min_people': 3, 'capacity': 15, 'group': '一人会社AI経営'},
-    {'code': 'SP-C', 'name': 'AI経営 夜間マスター 全5回', 'price': 68000,
+    {'code': 'SP-B', 'name': 'AI経営 実践マスター 全3回', 'price': 128000,
+     'hours': '毎週水曜 10:00〜17:00', 'weekdays': [2],
+     'days': 3, 'interval_days': 7,
+     'capacity': 15, 'group': '一人会社AI経営'},
+    {'code': 'SP-C', 'name': 'AI経営 夜間マスター 全5回', 'price': 128000,
      'hours': '毎週水曜 19:00〜21:30', 'weekdays': [2],
      'days': 5, 'interval_days': 7,          # 毎週水曜に5回
-     'min_people': 5, 'capacity': 30, 'group': '一人会社AI経営'},
+     'capacity': 30, 'group': '一人会社AI経営'},
     # ── バイブコーディング認定講座（汎用）/vibe-coding
     {'code': 'GA', 'name': '生成AI入門1日', 'price': 49800,
-     'hours': '10:00〜17:00', 'min_people': 4, 'capacity': 20,
+     'hours': '10:00〜17:00', 'capacity': 20,
      'group': '汎用'},
-    {'code': 'GB', 'name': 'バイブコーディング実践1日', 'price': 49800,
-     'hours': '10:00〜17:00', 'min_people': 4, 'capacity': 15,
+    {'code': 'GB', 'name': 'バイブコーディング実践1日', 'price': 98000,
+     'hours': '10:00〜17:00', 'capacity': 15,
      'group': '汎用'},
-    {'code': 'GC', 'name': 'AI業務自動化マスター 全5回', 'price': 68000,
+    {'code': 'GC', 'name': 'AI業務自動化マスター 全5回', 'price': 128000,
      'hours': '毎週水曜 19:00〜21:30', 'weekdays': [2],
      'days': 5, 'interval_days': 7,
-     'min_people': 5, 'capacity': 30, 'group': '汎用'},
+     'capacity': 30, 'group': '汎用'},
     {'code': 'GD', 'name': 'AIセキュリティ・ガバナンス', 'price': 49800,
-     'hours': '10:00〜17:00', 'min_people': 4, 'capacity': 15,
+     'hours': '10:00〜17:00', 'capacity': 15,
      'group': '汎用'},
     {'code': 'GE', 'name': 'AIクリエイティブデザイン', 'price': 49800,
-     'hours': '10:00〜17:00', 'min_people': 4, 'capacity': 15,
+     'hours': '10:00〜17:00', 'capacity': 15,
+     'group': '汎用'},
+    # ⛔ この価格（税込11万＝税抜10万）は、助成金の対象経費の上限にぴったり
+    #    合わせたもの。DXリスキリング助成金は「対象経費10万円まで3/4」で
+    #    上限¥75,000。¥49,800（税抜45,272）では枠の45%しか使えていない。
+    #    11万にすると助成は上限の¥75,000、法人の実質負担は¥35,000で、
+    #    公開講座の市場相場（インソース 37,700〜41,000円）とほぼ同じまま
+    #    当社の売上は2.2倍になる（2026-08-15 市場調査・社長ご承認）。
+    # ⛔ 金額を動かすときは助成の上限を必ず再計算すること。11万を超えても
+    #    助成は増えず、超えた分はまるごと法人の持ち出しになる。
+    # ⛔ GA（¥49,800）を廃止しないこと。個人・小規模の入口で、助成金を
+    #    使えない方（代表者ご本人など）はこちらしか選べない。
+    {'code': 'GA-P', 'name': '生成AI入門1日（法人向け・少人数）', 'price': 110000,
+     'hours': '10:00〜17:00', 'capacity': 12,
      'group': '汎用'},
 
     # ── 子ども向け /vibe-coding/kids
@@ -80,13 +103,13 @@ COURSES = [
     # 子どもの半日だけ午前に置く（集中力が続く時間帯・昼食前に終わる）。
     # ⛔ 掲載ページ（templates/vibe_coding_kids.html）の「時間」欄と必ず一致させること。
     {'code': 'GK1', 'name': 'キッズ体験（半日・親子）', 'price': 9800,
-     'hours': '10:00〜13:00', 'min_people': 1, 'capacity': 10,
+     'hours': '10:00〜13:00', 'capacity': 10,
      'group': '子ども'},
-    {'code': 'GK2', 'name': 'ジュニア入門（1日・中学生）', 'price': 29800,
-     'hours': '10:00〜17:00', 'min_people': 4, 'capacity': 15,
+    {'code': 'GK2', 'name': 'ジュニア入門（1日・中学生）', 'price': 12000,
+     'hours': '10:00〜17:00', 'capacity': 15,
      'group': '子ども'},
-    {'code': 'GK3', 'name': '親子ペアコース（1日）', 'price': 49800,
-     'hours': '10:00〜17:00', 'min_people': 1, 'capacity': 10,
+    {'code': 'GK3', 'name': '親子ペアコース（1日）', 'price': 20000,
+     'hours': '10:00〜17:00', 'capacity': 10,
      'group': '子ども'},
 ]
 
@@ -99,14 +122,16 @@ for _slug, _label in (('GM', '製造業'), ('GH', '医療・ヘルスケア'),
         # 半日は午後に置く（午前の業務を片付けてから参加でき、遠方からでも間に合う）。
         # 1日は他の講座と同じ 10:00〜17:00 に揃える（会場・講師の手配が同じ枠で回る）。
         {'code': f'{_slug}-A', 'name': f'{_label}AI入門（半日）', 'price': 49800,
-         'hours': '13:00〜17:00', 'min_people': 4, 'capacity': 20,
+         'hours': '13:00〜17:00', 'capacity': 20,
          'group': _label},
-        {'code': f'{_slug}-B', 'name': f'{_label}AIマスター（3日間）',
-         'price': 128000, 'hours': '10:00〜17:00 × 3日間', 'days': 3,
-         'min_people': 3, 'capacity': 15, 'group': _label},
-        {'code': f'{_slug}-C', 'name': f'{_label}AIアーキテクト（5日間）',
-         'price': 228000, 'hours': '10:00〜17:00 × 5日間', 'days': 5,
-         'min_people': 3, 'capacity': 10, 'group': _label},
+        {'code': f'{_slug}-B', 'name': f'{_label}AIマスター（全3回）',
+         'price': 128000, 'hours': '毎週水曜 10:00〜17:00',
+         'weekdays': [2], 'days': 3, 'interval_days': 7,
+         'capacity': 15, 'group': _label},
+        {'code': f'{_slug}-C', 'name': f'{_label}AIアーキテクト（全5回）',
+         'price': 228000, 'hours': '毎週水曜 10:00〜17:00',
+         'weekdays': [2], 'days': 5, 'interval_days': 7,
+         'capacity': 10, 'group': _label},
     ]
 COURSE_BY_CODE = {c['code']: c for c in COURSES}
 
@@ -129,9 +154,403 @@ def grouped_courses(codes=None):
 
 WEEKDAYS = ['月', '火', '水', '木', '金', '土', '日']
 
+# ── 開催日（2026-08-15 社長ご判断）
+# 受講者が予約できる日を運営が先に決め、講師はその中からしか選べない。
+# ⛔ 講師に自由に日を選ばせないこと。5名が別々の日を選ぶと申込が散り、
+#    1回あたりの人数が減る。講師料は1開催あたりの定額なので、開催回数が
+#    増えるほど利益がそのまま減る（GA 1回 ¥19,920／業種別C 1回 ¥91,200）。
+# ⛔ 水曜を間引かないこと。SP-C と GC は「毎週水曜×5回」なので、水曜が
+#    毎週 開催日でないとこの2講座は永久に成立しない（実装で確認済み）。
+# 土曜は会社員の方が来られる日として第2・第4に置く。
+SESSION_WEEKLY = [2]                 # 毎週（水）
+SESSION_NTH = {5: [2, 4]}            # 第2・第4（土）
+# 臨時の開催日／休止日。⛔ 規則を書き換えず、ここに足して調整すること
+SESSION_EXTRA = []                   # 例: ['2026-09-21']
+SESSION_SKIP = []                    # 例: ['2026-12-31']
+
+
+def is_session_day(d):
+    """その日を開催日にしているか（True の日だけ講師が選べる／公開される）。"""
+    if isinstance(d, str):
+        try:
+            d = date.fromisoformat(d)
+        except ValueError:
+            return False
+    iso = d.isoformat()
+    if iso in SESSION_SKIP:
+        return False
+    if iso in SESSION_EXTRA:
+        return True
+    if d.weekday() in SESSION_WEEKLY:
+        return True
+    nth = (d.day - 1) // 7 + 1
+    if nth in SESSION_NTH.get(d.weekday(), []):
+        return True
+    return False
+
+
+def session_day_for(codes, d):
+    """その日に、これらの講座のどれかを登録してよいか。
+
+    ⛔ 連日開催（3日つづけて等）の講座を作らないこと（2026-08-15 社長ご判断）。
+       開催日は毎週水＋第2/第4土で連続する日が1組も無いため、連日の講座は
+       構造的に成立しない。複数回の講座はすべて『毎週◯曜×N回』にしてある。
+    """
+    return is_session_day(d)
+
+
+def session_days(months=3):
+    """これから先の開催日の一覧（画面の案内用）。"""
+    out, d = [], today_jst()
+    limit = d + timedelta(days=31 * months)
+    while d <= limit:
+        if is_session_day(d):
+            out.append(d.isoformat())
+        d += timedelta(days=1)
+    return out
+
+
+def multi_session_courses_ok():
+    """複数回の講座が、毎週ある開催日の曜日に置かれているかを確かめる。
+
+    ⛔ 「毎週◯曜×N回」の講座を、毎週ではない曜日（土＝第2・第4のみ）に
+       置かないこと。途中の回が開催日から外れ、その講座は永久に成立しない
+       （2026-08-15 実装中に検知。SP-B を土曜にして第3土曜で切れた）。
+    """
+    bad = []
+    for c in COURSES:
+        if course_days(c['code']) <= 1:
+            continue
+        wd = c.get('weekdays')
+        if not wd or any(w not in SESSION_WEEKLY for w in wd):
+            bad.append(c['code'])
+    return bad
+
+
+def session_day_note():
+    """開催日の決まりを日本語で1文にする。⛔画面に文言を手打ちしないこと。"""
+    w = '・'.join(WEEKDAYS[i] for i in SESSION_WEEKLY)
+    parts = ['毎週{}曜'.format(w)] if SESSION_WEEKLY else []
+    for wd, nths in SESSION_NTH.items():
+        parts.append('第{}{}曜'.format('・'.join(str(n) for n in nths),
+                                       WEEKDAYS[wd]))
+    return '開催日は{}です。'.format('と'.join(parts))
+
 CANCEL_POLICY = ('開催14日前まで：無料 ／ 13〜7日前：受講料の50% ／ '
                  '6日前〜当日：受講料の100%')
-PAY_NOTE = 'お支払いは請求書（銀行振込）です。お申し込み後に請求書をお送りします。'
+
+# ── 開催方法と諸経費（2026-08-15 社長ご判断）
+# 受講料は「講義そのもの」の対価。**会場を使う場合の諸経費は別途お見積り**にする。
+# ⛔ 会場費・講師の交通費／宿泊費・配信の機材費を受講料に含めないこと。含めると
+#    自社の固定費になり、1名開催で赤字になる（社長の大前提＝赤字にしないこと）。
+# ⛔ 子ども向けを「親子で会場に来る」前提にしないこと（2026-08-15 社長ご指示）。
+#    子どもだけオンラインで参加できる。会場を必須にすると、いちばん単価の低い
+#    GK1（¥9,800）が会場費で即赤字になる。
+# 既定は全講座オンライン。会場開催は諸経費を別途見積として受ける。
+ONLINE_DEFAULT = True
+EXTRA_COST_NOTE = ('会場を使用して開催する場合の諸経費（会場費・機材費・'
+                   '講師の交通費および宿泊費）は、受講料に含まれません。'
+                   '別途お見積りいたします。')
+DELIVERY_NOTE = ('オンライン開催（同時双方向）が既定です。'
+                 '会場開催・会場＋オンライン同時開催もお受けします（諸経費は別途お見積り）。')
+
+
+# ── 法人出張開催（2026-08-15 市場調査・社長ご承認）
+# ⛔ 「1名あたり」で値付けしないこと。市場の講師派遣は**1回いくら**
+#    （DX研修 1日30〜60万／生成AI研修 1日80〜150万）。1名あたりだと、
+#    1名で来られたとき市場の1/6にしかならず、逆に大人数だと割高になる。
+# ⛔ 諸経費（会場費・機材費・講師の交通費／宿泊費）はこの金額に含めない。
+#    含めると自社の固定費になり、遠方ほど赤字に近づく。
+# ⛔ カード決済の導線に載せないこと。金額が見積で確定するため、
+#    Stripe（確定額を先に決める仕組み）では扱えない。
+CORPORATE = {
+    'day_price': 350000,        # 1日（6時間）あたり・10名まで
+    'included': 10,             # この人数まで追加料金なし
+    'extra_person': 25000,      # 11名以降・1名あたり
+    'min_days': 1,
+    'note': ('貴社の会議室またはオンラインで実施します。'
+             '会場費・機材費・講師の交通費および宿泊費は別途お見積りです。'),
+}
+
+
+def corporate_quote(days=1, people=10):
+    """法人出張開催の概算。戻り値: (金額, 内訳の説明)
+
+    ⛔ 諸経費は含めない（別途見積）。ここで概算に混ぜると、見積の前に
+       確定額があるかのように読まれる。
+    """
+    days = max(CORPORATE['min_days'], int(days))
+    people = max(1, int(people))
+    extra = max(0, people - CORPORATE['included']) * CORPORATE['extra_person']
+    total = CORPORATE['day_price'] * days + extra
+    detail = '{}日 × ¥{:,}'.format(days, CORPORATE['day_price'])
+    if extra:
+        detail += '（{}名超過分 {}名 × ¥{:,}）'.format(
+            CORPORATE['included'], people - CORPORATE['included'],
+            CORPORATE['extra_person'])
+    return total, detail
+
+
+def delivery_label(course_code=None):
+    """掲載ページに出す開催方法。⛔各ページに文言を手打ちしないこと。"""
+    return 'オンライン開催（会場開催も可・諸経費別途）'
+
+
+def apply_delivery(courses, code_key='code'):
+    """掲載ページの講座dictに開催方法を入れる（表示を1か所から作る）。"""
+    for c in courses:
+        c['format'] = delivery_label(c.get(code_key))
+        c['extra_cost_note'] = EXTRA_COST_NOTE
+    return courses
+
+
+def apply_prices(courses, code_key='code'):
+    """掲載ページの講座dictの価格を COURSES から入れ直す。
+
+    ⛔ 価格を掲載ページ側に手打ちしないこと。値上げ・値下げのたびに
+       片方だけ古くなり、**申込画面と紹介ページで金額が食い違う**
+       （助成金の実質負担額で実際にそれが起きた。2026-08-15）。
+    ⛔ 予約と決済が使うのは COURSES の price。掲載が古いと、安い方を
+       見て申し込んだお客様に高い金額を請求することになる。
+    """
+    for c in courses:
+        live = COURSE_BY_CODE.get(c.get(code_key) or '')
+        if not live:
+            continue
+        c['price_num'] = live['price']
+        c['price'] = '{:,}'.format(live['price'])
+    return courses
+
+
+def profit_at(course_code, people=1, card=True):
+    """その講座を people 名で開催したときの粗利（円）。
+
+    ⛔ 会場費を引かないこと。諸経費は受講者・法人の負担で、当社は立て替えない。
+    ⛔ 講師料に人数を掛けないこと（1開催あたりの定額）。
+    """
+    c = COURSE_BY_CODE.get(course_code)
+    if not c:
+        return None
+    gross = c['price'] * max(1, int(people))
+    fee = instructor_fee(course_code) or 0
+    stripe = int(gross * 0.036) if card else 0
+    return gross - fee - stripe
+
+
+# ── 総研修時間数（助成金の判定に使う。単位＝時間・昼休憩を含まない）
+# ⛔ 開催時間（hours）から引き算で作らないこと。10:00〜17:00 は7時間だが
+#    実際の研修時間は6時間（昼休憩1時間）で、休憩の有無は講座ごとに違う。
+#    ここは掲載ページの「duration」の数字を写したもので、tests が突き合わせる。
+# ⛔ 掲載ページの時間を変えたら、必ずここも直すこと。助成金の対象／対象外が
+#    3時間以上10時間未満で切り替わるので、ズレると法人の申請が通らない。
+TRAINING_HOURS = {
+    'SP-A': 6, 'SP-B': 18, 'SP-C': 12.5,
+    'GA': 6, 'GA-P': 6, 'GB': 6, 'GC': 12.5, 'GD': 6, 'GE': 6,
+    'GK1': 3, 'GK2': 6, 'GK3': 6,
+}
+for _s in ('GM', 'GH', 'GF', 'GL', 'GN'):
+    TRAINING_HOURS[f'{_s}-A'] = 4
+    TRAINING_HOURS[f'{_s}-B'] = 18
+    TRAINING_HOURS[f'{_s}-C'] = 30
+
+
+# ── 東京しごと財団「DXリスキリング助成金」（令和8年度）
+# 出典: https://www.koyokankyo.shigotozaidan.or.jp/jigyo/skillup/skill-R8dx-risk.html
+# ⛔ 数字を画面に直書きしないこと。制度が変わった日に、直し忘れた画面が
+#    古い金額を出し続ける（法人はその金額で申請して落ちる）。
+SUBSIDY = {
+    'name': '東京しごと財団 DXリスキリング助成金（令和8年度）',
+    'rate': 0.75,                 # 助成対象経費の3/4
+    'cap_per_person': 75000,      # 1人1研修あたりの上限
+    'cap_per_company': 1000000,   # 1企業あたりの上限
+    'min_hours': 3,               # 総研修時間数 3時間以上
+    'max_hours': 10,              # 10時間未満
+    'lead_days': 45,              # 研修開始の1か月前までに申請。余裕を見て45日
+    'url': ('https://www.koyokankyo.shigotozaidan.or.jp/jigyo/skillup/'
+            'skill-R8dx-risk.html'),
+    'tax_rate': 0.10,             # 消費税は助成対象外なので税抜に直して計算する
+}
+
+# ⛔ 子ども向けは受講者が従業員でないので、時間に関係なく対象外
+_SUBSIDY_NEVER = ('GK1', 'GK2', 'GK3')
+
+
+def subsidy_for(course_code):
+    """その講座が助成金の対象か。戻り値の dict は画面とメールが共通で使う。
+
+    ⛔ 「代表者本人は対象外」を「この講座は対象外」と読み替えないこと
+       （2026-08-15 社長ご指摘）。対象を決めるのは講座名ではなく
+       **受講者の立場・誰が払うか・研修時間**の3つ。同じ講座でも、
+       法人が従業員を研修として送れば対象になる。
+    ⛔ 逆に「対象です」とだけ書かないこと。個人が自腹で受ける場合は
+       対象外で、そちらの方が申込としては多い見込み。条件を必ず併記する。
+    """
+    c = COURSE_BY_CODE.get(course_code)
+    if not c:
+        return None
+    hours = TRAINING_HOURS.get(course_code)
+    out = {'name': SUBSIDY['name'], 'url': SUBSIDY['url'],
+           'hours': hours, 'eligible': False, 'reason': '',
+           'grant': 0, 'net': c['price'] if c else 0,
+           'lead_days': SUBSIDY['lead_days']}
+    if course_code in _SUBSIDY_NEVER:
+        out['reason'] = '受講者が企業の従業員ではないため対象外です'
+        return out
+    if hours is None:
+        out['reason'] = '総研修時間数が未登録のため判定できません'
+        return out
+    if not (SUBSIDY['min_hours'] <= hours < SUBSIDY['max_hours']):
+        out['reason'] = ('総研修時間数が{}時間で、助成の要件（{}時間以上{}時間未満）'
+                         'から外れます'.format(hours, SUBSIDY['min_hours'],
+                                              SUBSIDY['max_hours']))
+        return out
+    # 消費税は助成対象外。税込価格から税抜に直してから助成率をかける。
+    # ⛔ 端数は切り上げないこと。案内した助成額が実際より多いと、法人は
+    #    その差額を自腹で被る（少なく見せる側に倒すのが安全）。
+    base = int(c['price'] / (1 + SUBSIDY['tax_rate']))
+    grant = min(int(base * SUBSIDY['rate']), SUBSIDY['cap_per_person'])
+    out.update(eligible=True, grant=grant, net=c['price'] - grant,
+               base=base,
+               reason=('法人が従業員を研修として派遣し、受講料の全額を'
+                       '法人が負担する場合に対象となります'))
+    return out
+
+
+def subsidy_courses():
+    """助成の対象になり得る講座コードの一覧。"""
+    return [c['code'] for c in COURSES
+            if (subsidy_for(c['code']) or {}).get('eligible')]
+
+
+# ── 交付申請の「研修計画」にそのまま書ける、習得する知識・技能
+# ⛔ 作文しないこと。各講座の掲載ページの curriculum / outcomes から起こす
+#    （実際に教えないことを申請書に書かせると、実績報告で食い違う）。
+# ⛔ 講座名だけでDX研修と判断されるとは限らない。「一人会社AI経営」のような
+#    名称は、所管が中身を測れるようにこちらが言葉を用意する
+#    （2026-08-15 社長ご指摘：障害は中身ではなく名称）。
+DX_SKILLS = {
+    'SP-A': ('生成AIを用いた社内業務の自動化（スケジュール管理・経費処理・'
+             '請求書発行）、営業・マーケティング業務の自動化、'
+             '業務用AIツールの比較・選定基準、AI利用に伴う情報セキュリティと'
+             '法務リスクの管理。自社のDX導入計画の設計演習を含む。'),
+    'GA': ('主要な生成AIツール（ChatGPT／Claude／Gemini）の特性理解と業務への'
+           '適用、報告書作成・議事録要約・データ整理を効率化するプロンプト設計、'
+           '機密情報漏洩・誤情報・著作権侵害リスクの理解と社内利用ルールの策定。'),
+    'GA-P': ('主要な生成AIツール（ChatGPT／Claude／Gemini）の特性理解と業務への'
+             '適用、自社の業務を対象としたプロンプト設計演習、社内利用ルールの'
+             '策定。少人数制で、貴社の実業務を題材に演習を行います。'),
+    'GB': ('プログラミング不要でのWeb業務アプリ開発（生成AIによるコード生成）、'
+           '開発ツールの使い分け、作成したアプリの公開・運用。'
+           '社内の定型業務をアプリ化して自動化するための実装技能。'),
+    'GD': ('社内AI利用ガイドラインの策定、AI固有のセキュリティリスク'
+           '（プロンプトインジェクション・データ漏洩・誤情報）の評価と対策の'
+           '優先順位付け、AI起因のインシデント発生時の初動対応と再発防止。'),
+    'GE': ('生成AIによる画像・動画・音声コンテンツの制作、ブランドガイドラインに'
+           '沿った販促物制作ワークフローの構築、AI生成物の著作権・商用利用に'
+           '関する法的リスクの判断基準。'),
+}
+for _s, _label in (('GM', '製造業'), ('GH', '医療・ヘルスケア'), ('GF', '金融'),
+                   ('GL', '物流'), ('GN', '建設')):
+    DX_SKILLS[f'{_s}-A'] = (
+        f'{_label}の業務課題に対する生成AIの適用（業務データの分析・予測・'
+        f'点検業務の自動化）、プログラミング不要での業務アプリ試作、'
+        f'{_label}におけるAI導入のロードマップ策定。')
+
+
+def dx_skills(course_code):
+    """研修計画に書く「習得する知識・技能」。未登録なら空文字。"""
+    return DX_SKILLS.get(course_code, '')
+
+
+def subsidy_tag(course_code):
+    """講座ページに出す助成金の一言。対象外なら空文字。
+
+    ⛔ 「助成金対象」とだけ書かないこと。個人が自腹で受ける場合は対象外で、
+       条件を落とすと、申し込んでから受けられないと分かる形で信用を失う。
+    """
+    s = subsidy_for(course_code) or {}
+    if not s.get('eligible'):
+        return ''
+    return '法人研修なら助成金対象（実質 ¥{:,}）'.format(s['net'])
+
+
+def apply_subsidy_tags(courses, code_key='code'):
+    """掲載ページの講座dictに subsidy / subsidy_text を入れる。
+
+    ⛔ 各ページに金額を手打ちしないこと。制度が変わった日に、直し忘れた
+       ページだけが古い金額を出し続ける（法人はその額で申請して落ちる）。
+    """
+    for c in courses:
+        code = c.get(code_key) or ''
+        s = subsidy_for(code) or {}
+        tag = subsidy_tag(code)
+        c['subsidy'] = bool(tag)
+        c['subsidy_text'] = tag
+        # ⛔ テンプレート側で金額を直書きさせないための材料。無いと
+        #    「実質 ¥24,800〜」のような古い数字が画面に残る（2026-08-15 実害）
+        c['subsidy_grant'] = s.get('grant', 0)
+        c['subsidy_net'] = s.get('net', c.get('price_num') or 0)
+    return courses
+
+
+# ── 講師料（2026-08-14 社長ご判断）
+# 「単価の40%」を **1開催あたりの定額** で払う。⛔受講者の人数を掛けないこと。
+# 10名でも1名でも同じ額（＝2人目以降は受講料がまるごと利益になる）。
+FEE_RATE = 0.40
+# 講師料の条件を提示した版。⛔条件を変えたらこの日付を上げること
+#    （誰がどの条件に同意したかを追えなくなる）。
+FEE_TERMS_VERSION = '2026-08-14'
+
+
+def instructor_fee(course_code):
+    """その講座を1回担当したときの講師料（円・定額）。読めなければ None。
+
+    ⛔ 人数を掛けないこと。⛔ この式を画面やメールに書き写さないこと
+       （率を変えた日に、直し忘れた場所が古い金額を出し続ける）。
+    """
+    c = COURSE_BY_CODE.get(course_code)
+    if not c or not c.get('price'):
+        return None
+    return int(round(int(c['price']) * FEE_RATE))
+
+
+def fee_terms_text():
+    """講師登録画面とメールに出す、講師料の条件（1か所で作る）。"""
+    return ('講師料は、その講座の受講料の{}%を1開催あたりの定額でお支払いします。'
+            '受講者が何名でも金額は変わりません（お一人でも開催します）。'
+            'お支払いは開催月の翌月末までのお振込みです。'.format(
+                int(FEE_RATE * 100)))
+
+
+PAY_NOTE = ('お支払いはクレジットカード決済です。'
+            '法人で請求書払いをご希望の場合は info@jgaia.org までご連絡ください。')
+PAY_NOTE_INVOICE = ('お支払いは請求書（銀行振込）です。'
+                    'お申し込み後に請求書をお送りします。')
+
+# ── 講座の販売事業者（2026-08-14 社長ご説明で確定）
+# 商流: 教材もシステムも ZebraQuantum が開発・提供し、JQCA／JGAIA の看板で販売する。
+# よって受講契約の相手方（＝特定商取引法の「販売業者」）は ZebraQuantum。
+# ⛔ 協会名を販売事業者として書かないこと。協会は看板（認定）であって売主ではない。
+# ⛔ ここを1か所に保つこと。画面・メール・特商法表記が別々の名義を出すと、
+#    どれが売主か分からなくなる（QAI-Zen は既に Zebra 名義で公開済み）。
+# ⚠️ officer の氏名は要確認。公開中の法定表示（qai-zen.com/legal）は「諒雅」、
+#    社内資料は「涼雅」。登記どおりに確定すること。直すのはこの1行だけで済む。
+SELLER = {
+    'name': '株式会社ZebraQuantum',
+    'officer': '代表取締役 寺園 諒雅',
+    'address': '〒104-0061 東京都中央区銀座1丁目22番11号 銀座大竹ビジデンス2F',
+    'email': 'info@jgaia.org',
+    'brand': '一般社団法人日本生成AI協会（JGAIA）',
+}
+
+
+def seller_footer():
+    """メール末尾の署名。⛔売主と看板の両方を出すこと（片方だけだと誤認になる）。"""
+    return ('---\n'
+            '{brand}　認定講座\n'
+            '販売事業者：{name}（{officer}）\n'
+            '{address}\n'
+            '{email} / https://www.jgaia.org/\n'.format(**SELLER))
 
 
 # ────────────────────────────── 保存先
@@ -220,8 +639,40 @@ def find_instructor(token):
     return None
 
 
-def register_instructor(name, email, org, courses, note, days=None):
+def _norm_email(v):
+    """照合用にそろえる。⛔ 大文字小文字を区別しないこと。
+    Taro@ と taro@ は同じ受信箱に届くので、別人として登録されると
+    同じ人が二重に公開される。
+    """
+    return (v or '').strip().lower()
+
+
+def find_by_email(email):
+    """同じメールアドレスの既存の登録を返す（無ければ None）。
+
+    ⛔ 最初の1件を返すこと。2026-08-14 以前は重複チェックが無く、本番に
+       同一アドレスの行が12件並んでいた（既存の重複は最も古い行に寄せる）。
+    """
+    e = _norm_email(email)
+    if not e:
+        return None
+    for r in instructors():
+        if _norm_email(r.get('連絡先')) == e:
+            return r
+    return None
+
+
+def register_instructor(name, email, org, courses, note, days=None,
+                        fee_agreed=''):
     """講師候補の申請を受ける。戻り値: (講師, 本人用の鍵)
+
+    fee_agreed … 同意した講師料の条件の版（FEE_TERMS_VERSION）。
+    ⛔ 同意の記録を上書きで消さないこと。いつ・どの版に同意したかは、
+       条件を変えた後に「その人が何に同意していたか」を答える唯一の材料。
+
+    ⛔ 同じメールアドレスなら行を増やさず既存を更新する（下記）。新規かどうかは
+       呼ぶ前に find_by_email() で見ること（戻り値の形は変えていない＝
+       呼び出し側30箇所以上が (rec, token) で受けているため）。
 
     ⛔ 状態は必ず『申請中』で始める。ここで承認にしてはいけない。
 
@@ -243,6 +694,47 @@ def register_instructor(name, email, org, courses, note, days=None):
     if not courses:
         raise ValueError('担当できる講座を1つ以上お選びください')
     rows = instructors()
+
+    # ── 同じメールアドレスなら、行を増やさず既存の登録を更新する
+    # ⛔ append に戻さないこと（2026-08-14 社長ご指摘）。重複チェックが
+    #    無かったため、本番の台帳は12件すべてが同一アドレスで、1人が
+    #    12人として並んでいた。承認画面でどれが本物か分からなくなり、
+    #    承認済みの行が2つ残ると同じ人が公開カレンダーに二重に出る。
+    # ⛔ 鍵・id・登録日時・メール確認済み・担当できる日 は据え置くこと。
+    #    鍵を振り直すと、本人が以前に受け取ったメールのリンクが死ぬ。
+    #    メール確認済みは「本人が受け取った証拠」なので消さない。
+    # ⛔ 再登録を「コースの変更手段」として塞がないこと。登録後にコースを
+    #    変える画面が他に無いため、ここが唯一の入口になっている。
+    old = find_by_email(email)
+    if old:
+        cur = old  # rows の中の同一オブジェクト（instructors() は同じ実体）
+        for r in rows:
+            if str(r.get('id')) == str(old.get('id')):
+                cur = r
+                break
+        # ⛔ 承認済みの講座を、ここで巻き添えにしないこと（2026-08-15 修正）。
+        #    旧実装は講座が1つ増えただけで状態ごと『申請中』へ戻しており、
+        #    既に承認されている講座の日程まで予約カレンダーから消えていた。
+        #    講師が5名いれば、誰かが担当を足すたびにその人が丸ごと消える。
+        keep = set(approved_courses(cur))
+        cur['氏名'] = name
+        cur['連絡先'] = email
+        cur['所属'] = org
+        cur['対応コース'] = courses
+        cur['備考'] = note
+        # 承認済みは「今も選ばれているもの」だけ残す。足した分は審査待ち。
+        # ⛔ 審査を通さずに担当を増やせる状態にはしないこと（承認は講座ごと）。
+        cur['承認済みコース'] = sorted(keep & set(courses))
+        # 見送りからの再登録は「再申請」として受ける（行を増やせば今日も
+        # 同じことができるので、更新の方が実害が小さい）。
+        if cur.get('状態') == '見送り':
+            cur['状態'] = '申請中'
+            cur.pop('判定日時', None)
+        _record_fee_consent(cur, fee_agreed)
+        cur['更新日時'] = now_jst().strftime('%Y-%m-%d %H:%M')
+        _save('instructors.json', rows)
+        return cur, cur.get('鍵')
+
     token = secrets.token_urlsafe(16)
     rec = {
         'id': secrets.token_hex(8),
@@ -259,10 +751,126 @@ def register_instructor(name, email, org, courses, note, days=None):
                         for k, v in (days or {}).items()
                         if _is_iso(k) and v},
         '登録日時': now_jst().strftime('%Y-%m-%d %H:%M'),
+        # 講師料の条件に同意した記録（版と日時）。⛔追記のみ・消さない
+        '講師料同意': [],
     }
+    _record_fee_consent(rec, fee_agreed)
     rows.append(rec)
     _save('instructors.json', rows)
     return rec, token
+
+
+def _record_fee_consent(rec, version):
+    """講師料の条件への同意を1件追記する。
+
+    ⛔ 同じ版を何度も積まないこと（再登録のたびに行が増える）。
+    ⛔ 過去の同意を消さないこと。条件を改定したあと「その人が何に同意して
+       いたか」を答えられるのはこの記録だけ。
+    """
+    if not version:
+        return rec
+    log = list(rec.get('講師料同意') or [])
+    if any(x.get('版') == version for x in log):
+        return rec
+    log.append({'版': version,
+                '日時': now_jst().strftime('%Y-%m-%d %H:%M')})
+    rec['講師料同意'] = log
+    return rec
+
+
+def approved_courses(inst):
+    """その講師が『公開してよい』と承認されている講座。
+
+    ⛔ 担当講座を1つ足しただけで、その人の日程を全部隠さないこと
+       （2026-08-15 社長ご指摘）。旧実装は承認済みの人が講座を追加すると
+       状態ごと『申請中』へ戻していたため、既に承認されている講座の日程まで
+       予約カレンダーから消えていた。講師を増やすほどこの事故が増える。
+    ⛔ かといって、審査を通さずに担当を増やせる状態にもしないこと。
+       承認は**講座ごと**に持ち、足した分だけが審査待ちになる。
+    """
+    if inst.get('状態') != '承認':
+        return []
+    got = inst.get('承認済みコース')
+    if got is None:
+        # 2026-08-15 より前に承認された方。当時は対応コース＝承認済み
+        return list(inst.get('対応コース') or [])
+    return [c for c in got if c in (inst.get('対応コース') or [])]
+
+
+def pending_courses(inst):
+    """承認待ちの講座（本人が足したが、まだ審査されていないもの）。"""
+    ok = set(approved_courses(inst))
+    return [c for c in (inst.get('対応コース') or []) if c not in ok]
+
+
+def set_instructor_courses(token, codes):
+    """講師本人が担当講座を選び直す。戻り値: (講師, エラー文 or None)
+
+    ⛔ 外した講座に予約が入っている場合は外させないこと（受講者が待っている）。
+    ⛔ 足した講座をその場で公開しないこと（審査を通さず担当を増やせてしまう）。
+    ⛔ 承認済みの講座まで巻き添えで非公開にしないこと（上記）。
+    """
+    inst = find_instructor(token)
+    if not inst:
+        return None, 'リンクが正しくありません'
+    codes = [c for c in (codes or []) if c in COURSE_BY_CODE]
+    if not codes:
+        return None, '担当できる講座を1つ以上お選びください'
+    # 予約が入っている講座は外せない
+    booked = {b.get('コース') for b in bookings()
+              if b.get('担当講師id') == inst.get('id') and is_live(b)}
+    lost = sorted(booked - set(codes))
+    if lost:
+        return None, ('{} には受講者のお申し込みが入っているため、'
+                      '担当から外すことはできません。'
+                      'info@jgaia.org までご連絡ください'.format(' / '.join(lost)))
+    rows = instructors()
+    hit = None
+    for r in rows:
+        if r.get('鍵') != token:
+            continue
+        before = set(approved_courses(r))
+        r['対応コース'] = codes
+        # 承認済みは「今も選ばれているもの」だけを残す（外した分は消える）
+        r['承認済みコース'] = sorted(before & set(codes))
+        # ⛔ 状態は動かさない。足した分は pending_courses に出るだけ
+        r['更新日時'] = now_jst().strftime('%Y-%m-%d %H:%M')
+        # 担当できなくなった講座の日程は、その日から落とす
+        days = dict(r.get('担当できる日') or {})
+        for iso, cs in list(days.items()):
+            keep = [c for c in cs if c in codes]
+            if keep:
+                days[iso] = keep
+            else:
+                days.pop(iso, None)
+        r['担当できる日'] = days
+        hit = r
+    if hit:
+        _save('instructors.json', rows)
+    return hit, None
+
+
+def approve_courses(instructor_id, codes=None):
+    """運営が講座ごとに承認する。codes 省略で対応コース全部。"""
+    rows = instructors()
+    hit = None
+    for r in rows:
+        if str(r.get('id')) != str(instructor_id):
+            continue
+        want = codes if codes is not None else (r.get('対応コース') or [])
+        ok = set(approved_courses(r)) | {c for c in want
+                                         if c in (r.get('対応コース') or [])}
+        r['承認済みコース'] = sorted(ok)
+        hit = r
+    if hit:
+        _save('instructors.json', rows)
+    return hit
+
+
+def fee_agreed_version(inst):
+    """その講師が同意している最新の条件の版（未同意なら None）。"""
+    log = inst.get('講師料同意') or []
+    return log[-1].get('版') if log else None
 
 
 def set_state(instructor_id, state):
@@ -276,6 +884,9 @@ def set_state(instructor_id, state):
     for r in rows:
         if str(r.get('id')) == str(instructor_id):
             r['状態'] = state
+            # ⛔ 承認は講座ごとに持つ。承認を押した時点の担当を承認済みにする
+            if state == '承認':
+                r['承認済みコース'] = sorted(r.get('対応コース') or [])
             r['判定日時'] = now_jst().strftime('%Y-%m-%d %H:%M')
             hit = True
     if hit:
@@ -461,6 +1072,8 @@ def day_courses(inst, d):
     #    本人が1日ぶんでも確定すると新しい形に移る（保存側で旧欄を落とす）。
     slots = slots_on(inst, d)
     out = []
+    # ⛔ ここは本人の登録内容。承認で絞らないこと（絞ると旧形式の移行で
+    #    他の日の登録が黙って消える）。公開の判定は open_days が行う
     for c in (inst.get('対応コース') or []):
         h = course_hours(c)
         if h and course_open_on(c, d) and any(
@@ -469,11 +1082,19 @@ def day_courses(inst, d):
     return out
 
 
-def overlapping_courses(codes):
-    """同時に担当できない組み合わせ（開催時間が重なるもの）を返す。
+def same_time_courses(codes):
+    """開催時間が同じ（重なる）組み合わせを返す。⛔ 断る材料ではない。
 
-    ⛔ 同じ日に時間の重なる2つを受け付けないこと。1人が同時刻に
-       2つの講座を担当することはできない（＝バッティング）。
+    講師が選ぶのは「その日に**受けられる**講座（候補）」であって、
+    「その日に全部開催する」ではない。実際に開催されるのは申込が入った
+    1つだけで、時間の重なる他の講座はその時点で instructor_can_teach が
+    自動的に閉じる（＝バッティングはそこで確実に止まる）。
+
+    ⛔ ここを理由に登録を断らないこと。全26講座のうち18講座が 10:00〜17:00
+       なので、断ると「1日1講座しか選べない」ことになり、複数選ぶ画面その
+       ものが嘘になる（2026-08-14 社長ご指摘。SP-A・SP-B・GA・GB・GD・GE の
+       6つを選んだだけでエラーになっていた）。
+    ⛔ 使ってよいのは確認画面の注記まで（どれか1つだけ開催されると伝える）。
     """
     hours = {}
     for c in codes:
@@ -510,18 +1131,20 @@ def set_day_courses(token, iso, codes):
     ng = [c for c in (codes or []) if c not in ok]
     if ng:
         return None, '担当できる講座として登録されていないものが含まれています'
-    # ⛔ 曜日の合わない講座を受け取らないこと（画面を通らない経路もある）
+    # ⛔ 開催日でない日を受け取らないこと（画面を通らない経路もある）。
+    #    ここを開けると、講師が自由に日を選べる状態に戻り、申込が散る
     d = date.fromisoformat(iso)
+    if codes and not session_day_for(codes, d):
+        return None, ('{}は開催日ではありません。{}'
+                      .format(iso, session_day_note()))
+    # ⛔ 曜日の合わない講座を受け取らないこと（画面を通らない経路もある）
     bad_wd = [c for c in ok if not course_open_on(c, d)]
     if bad_wd:
         c = bad_wd[0]
         return None, (f'{c} は{weekday_note(c)}。'
                       f'{WEEKDAYS[d.weekday()]}曜のこの日にはお受けいただけません')
-    bad = overlapping_courses(ok)
-    if bad:
-        a, b = bad[0]
-        return None, (f'{a} と {b} は開催時間が重なるため、同じ日には'
-                      'お受けいただけません')
+    # ⛔ 開催時間が重なることを理由に断らないこと（same_time_courses の説明を参照）。
+    #    ここは「その日に受けられる講座」の登録で、開催されるのは1つだけ。
 
     rows = instructors()
     hit = None
@@ -704,8 +1327,8 @@ def publish_blockers(inst, reg=None):
         occ = occupied_days(inst.get('id'))          # 台帳の読み直しは1回だけ
         for c in multi:
             if not startable_days(inst, c, occ=occ, reg=days):
-                out.append(f'{c} は{course_days(c)}日間つづけて開催します。'
-                           f'{course_days(c)}日続けて選んだ日が無いため、'
+                out.append(f'{c} は{series_note(c)}。'
+                           f'{course_days(c)}回そろえて選んだ日が無いため、'
                            'この講座は公開されません')
     return out
 
@@ -761,6 +1384,38 @@ def course_interval(course_code):
         return 1
 
 
+def continuing_service_risk(course_code):
+    """特定継続的役務提供（パソコン教室）に当たりうるかを返す。理由 or None。
+
+    特定商取引法は「パソコン教室」を対象役務にしており、**期間2か月超 かつ
+    5万円超**の両方を満たすと、概要書面・契約書面の交付義務、クーリングオフ、
+    中途解約権が発生する。バイブコーディング／AI経営の講座はこの役務に
+    当たりうるので、線を越えたら気づけるようにしておく。
+
+    2026-08-14 時点は全26講座とも非該当（最長でも SP-C の約5週間）。
+    ⛔ この判定を消さないこと。回数や間隔を少し変えただけで越える。
+    ⛔ 「当たらないから関係ない」と読まないこと。越えた瞬間に必要な書面が
+       増える（画面を作り直す話になる）。
+    """
+    c = COURSE_BY_CODE.get(course_code)
+    if not c:
+        return None
+    span = (course_days(course_code) - 1) * course_interval(course_code)
+    # 2か月＝62日で見る（暦月の端数で判定がぶれないよう長い方に寄せる）
+    if span > 62 and int(c.get('price') or 0) > 50000:
+        return ('期間{}日・{:,}円のため、特定継続的役務提供（パソコン教室）に'
+                '当たる可能性があります。概要書面・契約書面の交付、'
+                'クーリングオフ、中途解約権の対応が必要です。'
+                ).format(span, int(c['price']))
+    return None
+
+
+def continuing_service_alerts():
+    """線を越えている講座の一覧（起動時とテストで見る）。"""
+    return {c['code']: continuing_service_risk(c['code'])
+            for c in COURSES if continuing_service_risk(c['code'])}
+
+
 def course_dates(course_code, start_iso):
     """開催する日の並び。
 
@@ -790,7 +1445,7 @@ def occupied_days(instructor_id):
     """
     out = {}
     for b in bookings():
-        if b.get('担当講師id') != instructor_id or b.get('状態') == '取消':
+        if b.get('担当講師id') != instructor_id or not is_live(b):
             continue
         start = b.get('希望日')
         for iso in (b.get('開催日') or course_dates(b.get('コース'), start)):
@@ -803,7 +1458,8 @@ def instructor_free_on(inst, d, booked=None):
 
     booked にその講師の予約済みの日を渡すと、その日は「空いている」扱いにする。
     ⛔ ここを落とすと、1人目の申込が入った日を講師が週の設定から外した瞬間に
-       2人目が申し込めなくなり、最少催行に届かず開催できない（申込は残る）。
+       2人目が申し込めなくなる。講師料は定額なので2人目以降は受講料がまるごと
+       利益になる＝ここを塞ぐと、いちばん儲かる申込だけを取りこぼす。
     """
     if booked and d.isoformat() in booked:
         return True
@@ -866,7 +1522,7 @@ def open_days(course_code, months=3):
     limit = start + timedelta(days=31 * months)
     earliest = start + timedelta(days=LEAD_DAYS)
     people = [i for i in approved_instructors()
-              if course_code in (i.get('対応コース') or [])]
+              if course_code in approved_courses(i)]
     # 予約済みの日は1回だけ集める（日ごとにファイルを読むと3か月ぶんで90回になる）
     occ = {i['id']: occupied_days(i['id']) for i in people}
     # ⛔ 登録済みの日も1人1回だけ展開すること。ここを毎日やり直すと、旧形式の
@@ -877,13 +1533,19 @@ def open_days(course_code, months=3):
     cap = (COURSE_BY_CODE.get(course_code) or {}).get('capacity', 10**6)
     taken = {}
     for b in bookings():
-        if b.get('コース') == course_code:
+        # ⛔ 取消・期限切れを残席から引かないこと（2026-08-14 修正）
+        if b.get('コース') == course_code and is_live(b):
             taken[b.get('希望日')] = taken.get(b.get('希望日'), 0) + int(b.get('人数') or 1)
 
     out = []
     d = start
     while d <= limit:
-        if d < earliest:
+        # ⛔ 開催日以外を「予約締切」と出さないこと。締切は講師の都合で閉じた
+        #    日の意味で、そもそも開催しない日とは別物（カレンダーが締切だらけ
+        #    に見えて「やっていない」と読まれる）
+        if not is_session_day(d):
+            state, who = '非開催日', []
+        elif d < earliest:
             state, who = '準備期間', []
         else:
             # ⛔ 3日間の講座は「最後まで担当できる日」だけを開始日として出す
@@ -904,32 +1566,113 @@ def open_days(course_code, months=3):
     return out
 
 
-def pick_instructor(course_code, d):
-    """その日に割り当てる講師を決める。登録が早い方から。
+# 担当回数を数える窓（日）。これより古い担当は数えない。
+# ⛔ 全期間で数えないこと。あとから入った講師が永久に有利になり、
+#    先に登録した方が長く干される。
+ASSIGN_WINDOW_DAYS = 90
 
-    ⛔ 「講師未定」で受講者に案内しない。予約が成立した時点で確定させる。
+
+def assignment_counts(since_days=ASSIGN_WINDOW_DAYS):
+    """講師id → 直近の担当回数（開催の回数）。
+
+    ⛔ 申込の件数で数えないこと。同じ回に3名申し込んでも講師の仕事は1回で、
+       講師料も1開催あたりの定額。件数で数えると「人気講座を担当した人」が
+       不当に干される。
+    ⛔ 取り消し・未決済を数えないこと（is_live）。
     """
+    limit = (today_jst() - timedelta(days=since_days)).isoformat()
+    seen, out = set(), {}
+    for b in bookings():
+        if not is_live(b):
+            continue
+        if (b.get('希望日') or '') < limit:
+            continue
+        key = (b.get('担当講師id'), b.get('コース'), b.get('希望日'))
+        if key in seen:
+            continue
+        seen.add(key)
+        out[b.get('担当講師id')] = out.get(b.get('担当講師id'), 0) + 1
+    return out
+
+
+def pick_instructor(course_code, d):
+    """その日に割り当てる講師を決める。
+
+    順番（2026-08-15 社長ご判断で「担当回数が少ない順」に変更）:
+      1. その日・その講座に既に担当が決まっている人（最優先）
+      2. 直近{}日の担当回数が少ない人
+      3. 同数なら登録が早い人（並びを決定的にするため）
+
+    ⛔ 「登録が早い順」に戻さないこと。最初に登録した1人に仕事が集中し、
+       2人目以降は一度も声がかからない。マッチング事業で講師を失う
+       いちばんの理由になる（実測：1講座に3件入ると全部同じ人だった）。
+    ⛔ 「講師未定」で受講者に案内しない。予約が成立した時点で確定させる。
+    """.format(ASSIGN_WINDOW_DAYS)
     # 同じ日に既に担当が決まっている講師を優先する（2人目の申込を同じ講師に寄せる）。
     # ⛔ 別の講師を割り当てると、同じ日・同じコースが二重開催になる
     people = [i for i in approved_instructors()
-              if course_code in (i.get('対応コース') or [])
+              if course_code in approved_courses(i)
               and instructor_can_start(i, d, course_code,
                                        occupied_days(i['id']),
                                        registered_days(i))]
     same_day = {b.get('担当講師id') for b in bookings_for(course_code, d.isoformat())}
-    people.sort(key=lambda i: (i['id'] not in same_day, i.get('登録日時') or ''))
+    counts = assignment_counts()
+    people.sort(key=lambda i: (i['id'] not in same_day,
+                               counts.get(i['id'], 0),
+                               i.get('登録日時') or ''))
     return people[0] if people else None
 
 
 # ────────────────────────────── 申込
+# 申込の状態:
+#   お支払い待ち … カード決済の画面を開いた直後。席は押さえるが、決済が
+#                  終わらなければ SESSION_TTL_MIN で自動的に解放する
+#   申込受付     … 成立（カード決済済み、または請求書払いで受付）
+#   取消         … 決済されなかった／取り消した
+PENDING = 'お支払い待ち'
+
+
 def bookings():
     return _load('bookings.json', [])
+
+
+def is_live(b):
+    """その申込を「席を押さえているもの」として数えるか。
+
+    ⛔ 取消を数えないこと。ここを見ていなかったため、取り消した申込が
+       いつまでも定員に数えられていた（open_days の残席・2026-08-14 に発見）。
+    ⛔ 決済画面を開いたまま放置された申込を、永久に席を押さえたままにしない
+       こと。1件で定員が1つ減り、誰も気づけない（Stripe の expired 通知が
+       届かない場合の保険。届けばその場で取消になる）。
+    """
+    if b.get('状態') == '取消':
+        return False
+    if b.get('状態') == PENDING:
+        try:
+            started = datetime.strptime(b.get('申込日時', ''), '%Y-%m-%d %H:%M')
+        except ValueError:
+            return True                  # 読めないものは安全側（席を押さえる）
+        limit = timedelta(minutes=payments_session_ttl_min())
+        return (now_jst().replace(tzinfo=None) - started) <= limit
+    return True
+
+
+def payments_session_ttl_min():
+    """決済画面の有効時間（分）。payments 側の設定を1か所から読む。
+
+    ⛔ 数字をここに写さないこと（片方だけ変えると席が解放されない）。
+    """
+    try:
+        import payments
+        return int(payments.SESSION_TTL_MIN)
+    except Exception:
+        return 60
 
 
 def bookings_for(course_code, day):
     return [b for b in bookings()
             if b.get('コース') == course_code and b.get('希望日') == day
-            and b.get('状態') != '取消']
+            and is_live(b)]
 
 
 def booked_summary(instructor_id):
@@ -942,7 +1685,7 @@ def booked_summary(instructor_id):
     """
     per, dates = {}, {}
     for b in bookings():
-        if b.get('担当講師id') != instructor_id or b.get('状態') == '取消':
+        if b.get('担当講師id') != instructor_id or not is_live(b):
             continue
         key = (b.get('コース'), b.get('希望日'))
         per[key] = per.get(key, 0) + int(b.get('人数') or 1)
@@ -969,8 +1712,14 @@ def booked_days_for_instructor(instructor_id):
     return sorted(occupied_days(instructor_id))
 
 
-def add_booking(course_code, day, name, email, company, people, message):
-    """申込を1件受ける。戻り値: (申込, 割り当てた講師 or None)"""
+def add_booking(course_code, day, name, email, company, people, message,
+                pending=False):
+    """申込を1件受ける。戻り値: (申込, 割り当てた講師 or None)
+
+    pending=True … カード決済の画面へ送る前に席を押さえる（状態＝お支払い待ち）。
+    ⛔ 決済が終わるまで「申込受付」にしないこと。払っていない人に
+       「お申し込みを承りました」と届き、当日その席が空く。
+    """
     course = COURSE_BY_CODE.get(course_code)
     if not course:
         raise ValueError('コースが見つかりません')
@@ -1006,7 +1755,9 @@ def add_booking(course_code, day, name, email, company, people, message):
         '人数': want, 'ご要望': message,
         '担当講師': inst['氏名'], '担当講師id': inst['id'],
         '受講料_円': course['price'],
-        '状態': '申込受付',
+        '請求額_円': course['price'] * want,
+        '状態': PENDING if pending else '申込受付',
+        '支払方法': 'card' if pending else 'invoice',
         '申込日時': now_jst().strftime('%Y-%m-%d %H:%M'),
     }
     rows.append(rec)
@@ -1014,6 +1765,132 @@ def add_booking(course_code, day, name, email, company, people, message):
 
     total = already + rec['人数']
     rec['_合計人数'] = total
-    rec['_最少催行'] = course['min_people']
-    rec['_開催確定'] = total >= course['min_people']
+    # ⛔ 「_開催確定」を人数で判定しないこと（最少催行は撤廃済み・冒頭の説明を参照）。
+    #    申込が1件入った時点で開催は確定する
+    rec['_開催確定'] = True
     return rec, inst
+
+
+def attach_checkout(booking_id, session_id):
+    """決済ページの識別子を申込に結びつける（あとで照合するため）。"""
+    rows = bookings()
+    hit = None
+    for r in rows:
+        if r.get('id') == booking_id:
+            r['決済id'] = session_id
+            hit = r
+    if hit:
+        _save('bookings.json', rows)
+    return hit
+
+
+def mark_paid(session_id, payment_id=''):
+    """決済が終わった申込を成立させる。戻り値: (申込, 講師) / (None, None)
+
+    ⛔ 何度呼ばれても1回だけ成立させること。Stripe は同じ通知を再送するので、
+       ここが冪等でないと受講者に確認メールが何通も届く。
+    """
+    rows = bookings()
+    hit = None
+    for r in rows:
+        if r.get('決済id') != session_id:
+            continue
+        if r.get('状態') != PENDING:
+            return None, None            # すでに処理済み（再送）
+        r['状態'] = '申込受付'
+        r['支払方法'] = 'card'
+        r['決済日時'] = now_jst().strftime('%Y-%m-%d %H:%M')
+        if payment_id:
+            r['決済番号'] = payment_id
+        hit = r
+    if not hit:
+        return None, None
+    _save('bookings.json', rows)
+    inst = None
+    for i in instructors():
+        if i.get('id') == hit.get('担当講師id'):
+            inst = i
+    hit['_合計人数'] = sum(int(b.get('人数') or 1) for b in
+                       bookings_for(hit['コース'], hit['希望日']))
+    hit['_開催確定'] = True
+    return hit, inst
+
+
+def certificate_data(booking_id):
+    """受講証明書（参考様式2）に書く項目を、申込から組み立てて返す。
+
+    ⛔ 総研修時間数を画面で手入力させないこと。財団は「8割以上の受講」を
+       この数字で判定するので、講座ごとの実数（TRAINING_HOURS）から出す。
+    ⛔ 出席時間はこちらで埋めないこと。実際に何時間出席されたかは当日
+       確認するもので、推測で書けば虚偽の証明になる。
+    """
+    rec = None
+    for b in bookings():
+        if b.get('id') == booking_id:
+            rec = b
+    if not rec:
+        return None
+    code = rec.get('コース')
+    hours = TRAINING_HOURS.get(code)
+    s = subsidy_for(code) or {}
+    return {
+        '申込id': booking_id,
+        '受講者': rec.get('氏名'),
+        '企業名': rec.get('会社名') or '（未入力）',
+        '研修名': '{} {}'.format(code, rec.get('コース名')),
+        '実施日': rec.get('開催日') or [rec.get('希望日')],
+        '総研修時間数': hours,
+        '必要出席時間数': (round(hours * 0.8, 1) if hours else None),
+        '出席時間数': None,          # ⛔当日に確認して埋める
+        '受講料_円': rec.get('受講料_円'),
+        '支払方法': rec.get('支払方法'),
+        '助成対象': s.get('eligible', False),
+        '対象外の理由': '' if s.get('eligible') else s.get('reason', ''),
+        '教育機関': SELLER['name'],
+        '発行者': SELLER['officer'],
+        # ⛔ カード払い・個人払いは助成の対象外。証明書を出す前に気づけるようにする
+        '注意': ('' if rec.get('支払方法') != 'card' else
+                 '受講料がクレジットカードで支払われています。助成金は'
+                 '申請企業の口座からの振込払いが要件のため、この申込は'
+                 '助成の対象になりません。'),
+    }
+
+
+def subsidy_deadline_ok(day_iso):
+    """その開催日が、助成金の申請に間に合うか。"""
+    try:
+        d = date.fromisoformat(day_iso)
+    except (TypeError, ValueError):
+        return None
+    return d >= today_jst() + timedelta(days=SUBSIDY['lead_days'])
+
+
+def cancel_booking(booking_id, reason=''):
+    """申込を取り消して席を解放する。⛔行は消さない（何件失ったかが残る）。"""
+    rows = bookings()
+    hit = None
+    for r in rows:
+        if r.get('id') == booking_id and r.get('状態') != '取消':
+            r['状態'] = '取消'
+            r['取消理由'] = reason
+            hit = r
+    if hit:
+        _save('bookings.json', rows)
+    return hit
+
+
+def mark_unpaid(session_id):
+    """決済されずに終わった申込を取り消して、席を解放する。
+
+    ⛔ 行を消さないこと。何件が決済まで至らなかったかが分からなくなる。
+    """
+    rows = bookings()
+    hit = None
+    for r in rows:
+        if r.get('決済id') == session_id and r.get('状態') == PENDING:
+            r['状態'] = '取消'
+            r['取消理由'] = 'お支払いが完了しませんでした'
+            hit = r
+    if hit:
+        _save('bookings.json', rows)
+    return hit

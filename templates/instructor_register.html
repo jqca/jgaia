@@ -41,6 +41,11 @@
              padding:16px; font-size:17px; font-weight:800; cursor:pointer;
              margin-top:20px; }
 .ir-note { font-size:12px; color:#64748b; line-height:1.8; margin-top:12px; }
+/* ⛔ .ir-card input は width:100% なので、チェックボックスは幅を戻すこと */
+.agree { display:flex; align-items:flex-start; gap:10px; padding:13px 14px;
+         border:1px solid #cbd5e1; border-radius:8px; background:#f8fafc;
+         font-size:14px; font-weight:700; color:#0d1b3e; cursor:pointer; }
+.agree input[type="checkbox"] { width:20px; height:20px; flex:none; margin:1px 0 0; }
 .ir-done { background:#ecfdf5; border:1px solid #a7f3d0; border-radius:10px;
            padding:26px; text-align:center; }
 .ir-done h2 { color:#065f46; font-size:20px; margin:0 0 10px; }
@@ -59,7 +64,30 @@
 
 {% if done %}
   <div class="ir-done">
-    <h2>ご登録ありがとうございます</h2>
+    <h2>{% if updated %}ご登録の内容を更新しました{% else %}ご登録ありがとうございます{% endif %}</h2>
+    {# ⛔ 同じアドレスの再登録で新しい行を作らないこと（2026-08-14 社長ご指摘）。
+       更新であることを必ず画面に出す。出さないと「2件登録された」と誤解され、
+       逆に、以前に選んだ講座が今回の選択で置き換わったことにも気づけない。 #}
+    {% if updated %}
+      <p style="line-height:1.9;color:#065f46;background:#f0fdf4;
+                border:1px solid #a7f3d0;border-radius:8px;padding:14px;">
+        このメールアドレスではすでにご登録がありましたので、
+        <strong>新しく追加せず、その登録を書き換えました</strong>。<br>
+        担当できる講座は、今回お選びいただいた
+        <strong>{{ rec['対応コース']|length }}件</strong>になりました
+        （以前の内容は残りません）。<br>
+        <span style="font-size:13px;">
+          すでに登録済みの日程と、あなた専用の画面のリンクはそのままお使いいただけます。
+        </span>
+      </p>
+      {% if rec['状態'] == '申請中' and was_verified %}
+        <p style="line-height:1.9;color:#92400e;background:#fffbeb;
+                  border:1px solid #fde68a;border-radius:8px;padding:14px;">
+          担当できる講座が増えたため、あらためて運営の確認をお待ちいただきます。
+          確認が済むまで、増えた講座は受講者に公開されません。
+        </p>
+      {% endif %}
+    {% endif %}
     {% if token and mailed %}
       <p style="line-height:1.9;color:#065f46;">
         <strong>{{ rec['連絡先'] }} に確認メールをお送りしました。</strong><br>
@@ -87,9 +115,16 @@
        手続きが意味を失う。実測：本番8件のうち6件がメール未確認のままだった。
        打ち間違いのアドレスでも「登録できた」で完結し、こちらから連絡が付かない。
        ⛔ ただし送れなかったときは出す（画面が唯一の受け渡し口になるため）。 #}
-    {% if token and not mailed %}
-      <p style="margin-top:18px;font-weight:700;color:#92400e;">
-        メールをお送りできなかったため、こちらに専用の画面をお出しします。<br>
+    {# ⛔ was_verified のときは出してよい。アドレスの確認はすでに済んでおり、
+       この画面を出す理由（確認という手続きを飛ばさせない）が当てはまらない。 #}
+    {% if token and (not mailed or was_verified) %}
+      <p style="margin-top:18px;font-weight:700;
+                color:{% if was_verified %}#065f46{% else %}#92400e{% endif %};">
+        {% if was_verified %}
+          アドレスの確認は済んでいます。こちらから日程の画面を開けます。<br>
+        {% else %}
+          メールをお送りできなかったため、こちらに専用の画面をお出しします。<br>
+        {% endif %}
         <span style="font-weight:400;font-size:13px;">
           このリンクはあなた専用です。お手元に控えてください。
         </span>
@@ -138,11 +173,15 @@
         <div class="cgroup">{{ group }}</div>
         <div class="cs">
           {% for c in items %}
+            {# ⛔ 講師料を伏せないこと。金額が分からないまま選ばせると、
+               あとから1件ずつ条件交渉することになる（＝発注が人手に戻る） #}
             <label>
               <input type="checkbox" name="courses" value="{{ c['code'] }}">
               <span>
                 <span class="cn">{{ c['code'] }} {{ c['name'] }}</span>
-                <span class="ch">{{ c['hours'] }}</span>
+                <span class="ch">{{ c['hours'] }}
+                  ／ 講師料 <strong>¥{{ '{:,}'.format(fees[c['code']]) }}</strong>
+                  <small>（1開催あたり・定額）</small></span>
               </span>
             </label>
           {% endfor %}
@@ -161,18 +200,30 @@
 
     <div class="ir-card">
       <h2>ご経歴・ご要望</h2>
-      <div class="hint">
-        謝礼はご相談のうえ、書面かメールで条件をお示ししてから発注します。
-      </div>
       <label class="f">ご経歴・ご要望など（任意）</label>
       <textarea name="note" placeholder="ご経歴、得意分野、講義の可否に関わるご事情などをご記入ください"></textarea>
+    </div>
+
+    {# ⛔ 「謝礼はご相談のうえ」に戻さないこと（2026-08-14 社長ご判断）。
+       1件ごとの条件交渉は全部が人手で、講座が売れるほど手が増える。
+       金額を先に示して、ここで同意をいただく形にしてある。 #}
+    <div class="ir-card">
+      <h2>講師料について</h2>
+      <div class="hint">
+        {{ fee_terms }}<br>
+        上の一覧に、講座ごとの金額を記載しています。
+      </div>
+      <label class="agree">
+        <input type="checkbox" name="fee_agree" value="{{ fee_version }}" required>
+        <span>上記の講師料の条件に同意します<span class="req">必須</span></span>
+      </label>
     </div>
 
     <button type="submit" class="ir-submit">この内容で登録する</button>
     <div class="ir-note">
       ご登録いただいた内容は、講師の選定と講座運営のためにのみ使用します。<br>
-      ご登録の時点で契約は発生しません。実際にご担当いただく際は、
-      取引条件を書面またはメールでお示しします。
+      ご登録の時点では、担当する講座・日程は確定しません。実際の発注は、
+      受講のお申し込みが入った時点で個別にご連絡します。
     </div>
   </form>
 

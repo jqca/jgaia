@@ -358,9 +358,12 @@
     {# 開催日 — 未定なら「未定」と書く。何も書かないと、見た人は
        日程を探して見つけられず、問い合わせる前に離脱する。 #}
     <div class="cd-meta-bar" style="margin-top:10px;">
+        {# 開催日はカレンダー（講師の登録）が唯一の出どころ。
+           ⛔ 手打ちの日付（旧 next_date）と併存させないこと＝講師が変えても
+              画面の日付だけ古くなり、誤案内になる #}
         <div class="cd-meta-item">
-            開催日：<strong>{{ c.next_date if c.next_date else '調整中' }}</strong>
-            {% if not c.next_date %}
+            開催日：<strong>{{ slot['表示'] }}</strong>
+            {% if not slot['件数'] %}
             <span style="opacity:.8;">（決まり次第このページでご案内します。ご希望の時期は無料相談で承ります）</span>
             {% endif %}
         </div>
@@ -374,7 +377,16 @@
     </div>
 
     <div class="cd-actions">
+        {# 開催日が1日でもあるときだけ予約へ誘導する。
+           ⛔ 日程が無いときにこのボタンを出さないこと。押した先が
+              「いまお選びいただける日程がありません」になり、行き止まりに見える。 #}
+        {% if open_days_count %}
+        <a href="{{ url_for('book_course', code=c.code) }}" class="sc-btn-primary">
+            開催日を見て申し込む →</a>
+        <a href="#inquiry" class="sc-btn-outline">まず無料で相談する</a>
+        {% else %}
         <a href="#inquiry" class="sc-btn-primary">無料で相談する →</a>
+        {% endif %}
         <a href="#curriculum" class="sc-btn-outline">カリキュラムを見る</a>
     </div>
 </section>

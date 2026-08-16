@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}お申し込みを承りました | {{ c['name'] }}{% endblock %}
+{% block description %}お申し込みとお支払いを承りました。{% endblock %}
+
+{% block head %}
+<style>
+  .dn-wrap{max-width:720px;margin:0 auto;padding:0 20px 64px}
+  .dn-card{background:#fff;border:1px solid #e4e7ec;border-radius:14px;
+           padding:28px;color:#1f2430}
+  .dn-card h1{font-size:1.5rem;color:#041f4e;margin:0 0 14px}
+  .dn-card p{line-height:1.9;margin:0 0 12px}
+  .dn-sum{background:#f6f8fc;border-radius:10px;padding:16px;margin:18px 0}
+  .dn-sum div{margin:4px 0}
+  .dn-note{font-size:.9rem;color:#5b6472;line-height:1.8;margin-top:18px}
+  .dn-acts{margin-top:22px}
+  .dn-acts a{display:inline-block;padding:12px 22px;border-radius:8px;
+             background:#041f4e;color:#fff;text-decoration:none;font-weight:600}
+</style>
+{% endblock %}
+
+{% block content %}
+<main class="content">
+<div class="page-hero">
+  <h1>Thank you</h1>
+  <div class="page-hero__sub">お申し込みを承りました</div>
+</div>
+
+<div class="page-section">
+  <div class="dn-wrap">
+    <div class="dn-card">
+      {# ⛔ この画面が開いたことを決済の証拠にしないこと。URLは誰でも開ける。
+         成立の判定は webhook（署名検証）だけが行う #}
+      <h1>お申し込みとお支払いを承りました</h1>
+      <p>
+        {{ c['code'] }}　{{ c['name'] }} のお申し込みを承りました。<br>
+        <strong>お一人からでも開催いたします。</strong>この時点で開催は確定です。
+      </p>
+
+      <div class="dn-sum">
+        <div>■ 受講料：¥{{ '{:,}'.format(c['price']) }}（税込）</div>
+        <div>■ 開催時間：{{ c['hours'] }}</div>
+      </div>
+
+      <p>
+        確認のメールをお送りしています。数分たっても届かない場合は、
+        迷惑メールフォルダをご確認のうえ
+        <a href="mailto:info@jgaia.org">info@jgaia.org</a> までご連絡ください。
+      </p>
+
+      <div class="dn-note">
+        <strong>キャンセルについて</strong>：{{ cancel_policy }}<br>
+        <strong>販売事業者</strong>：{{ seller['name'] }}
+        （{{ seller['brand'] }} 認定講座）—
+        <a href="{{ url_for('tokutei') }}">特定商取引法に基づく表記</a>
+      </div>
+
+      <div class="dn-acts">
+        <a href="{{ url_for('solo_ceo') if c['code'].startswith('SP-') else url_for('vibe_coding') }}">講座の一覧へ戻る</a>
+      </div>
+    </div>
+  </div>
+</div>
+</main>
+{% endblock %}

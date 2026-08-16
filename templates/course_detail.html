@@ -4,58 +4,18 @@
 {% block description %}{{ c.subtitle }}。受講料¥{{ c.price }}（税込）。{{ c.target }}向け。{% endblock %}
 
 {% block extra_css %}
-/* ── base.html のダークテーマ上書き（白テーマ化） ── */
-.particles-background { display:none !important; }
-body { background:#ffffff !important; }
-.header-nav {
-  background:rgba(255,255,255,0.95) !important;
-  backdrop-filter:blur(24px);
-  border-bottom:1px solid #e2e8f0;
-  position:fixed !important;
-  top:0 !important;
-  z-index:100;
-}
-.header-nav nav .nav-logo .logo-text { color:#1a1a2e !important; }
-.header-nav nav .nav-logo .logo-sub { color:#4a5568 !important; }
-.nav-menu-list__item a { color:#1a1a2e !important; }
-.nav-menu-list__item a:hover { opacity:0.7; }
-.nav-menu-list__item a span { color:#64748b !important; }
-.nav-profile .nav-register {
-  color:#fff !important;
-  background:#6366f1 !important;
-  border-color:#6366f1 !important;
-}
-.nav-profile .nav-login {
-  color:#1a1a2e !important;
-  background:transparent !important;
-  border-color:#d1d9e6 !important;
-}
-.hamburger { color:#1a1a2e !important; }
-main { padding:0 !important; margin-top:0 !important; }
-.footer { background:#f8fafc; }
-.footer__inner { border-top:1px solid #e2e8f0; }
-.footer .logo-text { color:#1a1a2e !important; }
-.footer .logo-sub { color:#64748b !important; }
-.footer__copyright { color:#64748b !important; }
-.footer__copyright p { color:#64748b !important; }
-.footer .link-button { color:#4a5568 !important; border-color:#d1d9e6 !important; }
-.footer .link-button:hover { color:#1a1a2e !important; }
-.footer .legal-link { color:#64748b !important; }
-.nav-menu-list .dropdown-menu {
-  background:rgba(255,255,255,0.97) !important;
-  border-color:#e2e8f0 !important;
-  box-shadow:0 8px 24px rgba(0,0,0,0.1) !important;
-}
-.nav-menu-list .dropdown-menu::after {
-  background:rgba(255,255,255,0.97) !important;
-  border-color:#e2e8f0 !important;
-}
-.nav-menu-list .dropdown-menu a {
-  color:#1a1a2e !important;
-}
-.nav-menu-list .dropdown-menu a:hover {
-  background:rgba(99,102,241,0.1) !important;
-  color:#6366f1 !important;
+/* ⛔ ヘッダー・フッターを上書きしないこと（2026-08-16 社長ご指摘）。
+   ここには 2026-08-16 まで「白テーマ化」の上書きが 50 行あり、この6ページ
+   （course-ga/gap/gb/gc/gd/ge）だけが協会サイトの他のどのページとも違う
+   見た目になっていた＝白い固定ヘッダー／白いフッター／ロゴも文字も紺色。
+   /vibe-coding から遷移すると、同じサイトを出たように見える。
+   ヘッダー・フッター・背景は base.html のまま使い、白くするのは
+   本文だけ（.course-body）にする。これは /vibe-coding（.lp-body）と同じ作り。 */
+
+/* ── 本文だけを白地にする（ヘッダー・ヒーロー・フッターは協会サイトの紺） ── */
+.course-body {
+  background:#ffffff;
+  color:#1a1a2e;
 }
 
 /* ── コース詳細ページ ── */
@@ -75,24 +35,32 @@ main { padding:0 !important; margin-top:0 !important; }
   --c-font: 'DM Sans','Noto Sans JP',sans-serif;
 }
 
-/* ── ヒーロー ── */
+/* ── ヒーロー ──
+   協会サイトの紺（base.html の .particles-background）の上に、コース色を
+   薄く重ねる。⛔ 黒の重ね塗りを戻さないこと＝下地が白だった頃の名残で、
+   しかも親の opacity:.25 が ::after にも掛かるため 1/4 しか効かず、
+   結果として「薄いグレーの上に白文字」＝見出しがほぼ読めない状態だった。 */
 .course-hero {
   position:relative;
-  padding:140px 80px 80px;
+  padding:60px 80px 80px;
   overflow:hidden;
-  min-height:480px;
+  min-height:420px;
   display:flex;align-items:flex-end;
 }
+{# ⛔ c.gradient は「linear-gradient(...)」という値であって宣言ではない。
+   `{{ c.gradient }};` と裸で書くとプロパティ名が無い不正な宣言になり、
+   ブラウザがその1行だけ黙って捨てる＝色が一切付かない。必ず background: を付ける。
+   2026-08-16 まで4か所がこの書き方で、ヒーロー・COURSE GAバッジ・講師アイコン・
+   「送信する」ボタンの色が全部消えていた（送信ボタンは灰色＝押せないように見えた）。 #}
 .course-hero-bg {
   position:absolute;inset:0;
-  {{ c.gradient }};
-  opacity:0.25;
-}
-.course-hero-bg::after {
-  content:'';position:absolute;inset:0;
-  background:
-    linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.1) 100%),
-    linear-gradient(to right, rgba(0,0,0,0.5) 0%, transparent 60%);
+  background:{{ c.gradient }};
+  opacity:0.32;
+  /* ⛔ 上端から色を乗せないこと＝ヘッダーの帯（協会サイトの紺）との間に
+     横一本の継ぎ目が出て、ヘッダーだけ別ページのように見える。上は透かして
+     下に向かって色を出す。 */
+  -webkit-mask-image:linear-gradient(to bottom, transparent 0, #000 55%);
+  mask-image:linear-gradient(to bottom, transparent 0, #000 55%);
 }
 .course-hero-grid {
   position:absolute;inset:0;
@@ -105,13 +73,18 @@ main { padding:0 !important; margin-top:0 !important; }
   position:relative;z-index:1;
   max-width:800px;
 }
+{# 見出しの上のラベルは /vibe-coding のヒーローと同じ「枠線の丸ピル」にする。
+   ⛔ コース色の塗りつぶしに戻さないこと＝下地が協会サイトの紺なので、
+   GA・GA-P のような青系のコースでは塗りが紺に沈んで枠が見えなくなる。
+   コースらしさは文字色（accent_light）で出す。 #}
 .course-hero-badge {
   display:inline-flex;align-items:center;gap:8px;
   font-size:11px;font-weight:700;letter-spacing:.18em;
   text-transform:uppercase;
-  padding:6px 16px;border-radius:4px;
-  {{ c.gradient }};
-  color:#fff;margin-bottom:20px;
+  padding:6px 18px;border-radius:20px;
+  background:rgba(255,255,255,0.08);
+  border:1px solid rgba(255,255,255,0.25);
+  color:{{ c.accent_light }};margin-bottom:20px;
 }
 .course-hero h1 {
   font-family:var(--c-font-d);
@@ -268,7 +241,7 @@ main { padding:0 !important; margin-top:0 !important; }
   flex-shrink:0;
   width:100px;height:100px;
   border-radius:50%;
-  {{ c.gradient }};
+  background:{{ c.gradient }};
   display:flex;align-items:center;justify-content:center;
   font-family:var(--c-font-d);font-size:32px;font-weight:800;color:#fff;
 }
@@ -401,7 +374,7 @@ main { padding:0 !important; margin-top:0 !important; }
 .c-form-textarea {resize:vertical;min-height:100px}
 .c-btn-submit {
   width:100%;padding:14px;
-  {{ c.gradient }};
+  background:{{ c.gradient }};
   color:#fff;font-size:14px;font-weight:700;
   border:none;border-radius:4px;
   cursor:pointer;letter-spacing:.03em;
@@ -424,7 +397,7 @@ main { padding:0 !important; margin-top:0 !important; }
 
 /* ── レスポンシブ ── */
 @media(max-width:768px){
-  .course-hero {padding:120px 24px 48px;min-height:auto}
+  .course-hero {padding:32px 24px 48px;min-height:auto}
   .course-hero h1 {font-size:32px}
   .c-sec {padding:64px 24px}
   .overview-grid {grid-template-columns:1fr}
@@ -462,6 +435,9 @@ main { padding:0 !important; margin-top:0 !important; }
   </div>
 </section>
 
+<!-- ここから下だけ白地（ヘッダー・ヒーロー・フッターは協会サイトの紺のまま） -->
+<div class="course-body">
+
 <!-- 概要 -->
 <div class="overview-grid">
   <div class="ov-card">
@@ -478,7 +454,7 @@ main { padding:0 !important; margin-top:0 !important; }
   </div>
   <div class="ov-card">
     <div class="ov-label">PRICE</div>
-    <div class="ov-val">&yen;{{ c.price }}<span class="sub">{% if c.subsidy %}助成金利用で実質 ¥24,800〜{% else %}法人請求書払い可{% endif %}</span></div>
+    <div class="ov-val">&yen;{{ c.price }}<span class="sub">{% if c.subsidy %}法人研修なら実質 ¥{{ '{:,}'.format(c.subsidy_net) }}{% else %}法人請求書払い可{% endif %}</span></div>
   </div>
 </div>
 
@@ -551,23 +527,28 @@ main { padding:0 !important; margin-top:0 !important; }
 <section class="c-sec subsidy-sec">
   <div class="c-sec-inner">
     <div class="c-sec-eyebrow"><span class="c-sec-eyebrow-line"></span>SUBSIDY</div>
-    <h2 class="c-sec-heading">助成金で実質 <span style="color:{{ c.accent_light }}">¥24,800</span> から受講可能</h2>
-    <p class="c-sec-sub">東京しごと財団「事業外スキルアップ助成金」の対象講座です。</p>
+    {# ⛔ 金額を直書きしないこと。旧「実質¥24,800〜」は事業外スキルアップ助成金
+       （上限25,000円）の値で、いま案内すべきDXリスキリング助成金（3/4・
+       上限75,000円）とは違う。値は booking.subsidy_for() が唯一の出どころ #}
+    <h2 class="c-sec-heading">助成金で実質 <span style="color:{{ c.accent_light }}">¥{{ '{:,}'.format(c.subsidy_net) }}</span> から受講可能</h2>
+    <p class="c-sec-sub">東京しごと財団「DXリスキリング助成金（令和8年度）」の対象講座です。</p>
     <div class="subsidy-grid">
       <div class="subsidy-card">
-        <div class="subsidy-label">小規模企業（従業員20人以下）</div>
-        <div class="subsidy-rate">受講料の <strong>2/3</strong> 助成</div>
-        <div class="subsidy-result">実質負担 <strong>¥24,800</strong>〜 / 人</div>
+        <div class="subsidy-label">法人が従業員を派遣する場合</div>
+        <div class="subsidy-rate">受講料の <strong>3/4</strong> 助成</div>
+        <div class="subsidy-result">実質負担 <strong>¥{{ '{:,}'.format(c.subsidy_net) }}</strong> / 人</div>
       </div>
       <div class="subsidy-card">
-        <div class="subsidy-label">中小企業（従業員21人以上）</div>
-        <div class="subsidy-rate">受講料の <strong>1/2</strong> 助成</div>
-        <div class="subsidy-result">実質負担 <strong>¥24,900</strong>〜 / 人</div>
+        {# ⛔ 対象外の条件を隠さないこと。申し込んでから受けられないと分かる
+           のがいちばん信用を失う #}
+        <div class="subsidy-label">対象外となる場合</div>
+        <div class="subsidy-rate">代表者ご本人・個人事業主ご本人</div>
+        <div class="subsidy-result">ご本人のお支払いも対象外です</div>
       </div>
     </div>
     <div class="subsidy-note">
-      <p>対象: 都内中小企業の従業員（代表者除く）。Jグランツにて受講開始1ヶ月前までに事前申請が必要です。</p>
-      <p>令和8年度受付: 2026年3月1日〜2027年2月28日 ｜ <a href="https://www.koyokankyo.shigotozaidan.or.jp/jigyo/skillup/skill-R8jigyogai.html" target="_blank" rel="noopener">公式サイト →</a></p>
+      <p>対象: 都内企業の従業員（代表者・個人事業主ご本人を除く）。受講料の全額を法人が負担し、業務命令として労働時間内に受講することが要件です。Jグランツにて研修開始の1ヶ月前までに事前申請が必要です。</p>
+      <p>令和8年度受付: 2026年3月1日〜2027年2月28日 ｜ <a href="{{ url_for('subsidy') }}">助成金のご案内・申請の流れ →</a></p>
     </div>
   </div>
 </section>
@@ -629,6 +610,8 @@ main { padding:0 !important; margin-top:0 !important; }
     </form>
   </div>
 </section>
+
+</div><!-- /.course-body -->
 {% endblock %}
 
 {% block extra_js %}

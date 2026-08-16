@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block title %}バイブコーディング講座{% endblock %}
-{% block description %}AIに指示するだけでアプリが作れる「バイブコーディング」を1日¥49,800から。非エンジニア向け・助成金で実質半額以下。JGAIA認定講座。{% endblock %}
+{% block description %}AIに指示するだけでアプリが作れる「バイブコーディング」を1日¥{{ '{:,}'.format(prices['GA']) }}から。非エンジニア向け・助成金で実質半額以下。JGAIA認定講座。{% endblock %}
 
 {% block extra_head %}
 <meta property="og:title" content="バイブコーディング講座 | JGAIA 日本生成AI協会">
@@ -556,8 +556,8 @@
         <div class="course-body-lp">
           <div class="course-meta-lp"><span>🕐 1日（6時間）</span><span>👤 未経験者・経営者・管理職</span><span>💻 会場＋オンライン</span></div>
           <p class="course-desc-lp">ChatGPT・Claude・Gemini の違いと使い分けからプロンプトエンジニアリングまで。6時間で主要AI 3ツールを使いこなせるようになります。</p>
-          <div class="course-price"><span class="price-main">¥49,800</span><span class="price-sub">（税込）</span></div>
-          <div class="price-subsidy">💰 助成金対象 — 実質 ¥24,800〜</div>
+          <div class="course-price"><span class="price-main">¥{{ '{:,}'.format(prices['GA']) }}</span><span class="price-sub">（税込）</span></div>
+          <div class="price-subsidy">💰 法人研修なら助成金対象 — 実質 ¥{{ '{:,}'.format(subsidy_net_typical) }}</div>
           <a href="/vibe-coding/course-ga" class="toggle-btn" style="display:block;text-align:center;text-decoration:none">コース詳細を見る →</a>
         </div>
       </div>
@@ -567,8 +567,8 @@
         <div class="course-body-lp">
           <div class="course-meta-lp"><span>🕐 1日（6時間）</span><span>👤 業務アプリを自作したい方</span><span>💻 会場＋オンライン</span></div>
           <p class="course-desc-lp">AIへの指示だけで業務アプリを企画・実装・デプロイまで。6時間で実際に動くアプリを完成させます。</p>
-          <div class="course-price"><span class="price-main">¥49,800</span><span class="price-sub">（税込）</span></div>
-          <div class="price-subsidy">💰 助成金対象 — 実質 ¥24,800〜</div>
+          <div class="course-price"><span class="price-main">¥{{ '{:,}'.format(prices['GB']) }}</span><span class="price-sub">（税込）</span></div>
+          <div class="price-subsidy">💰 法人研修なら助成金対象 — 実質 ¥{{ '{:,}'.format(subsidy_net_typical) }}</div>
           <a href="/vibe-coding/course-gb" class="toggle-btn" style="display:block;text-align:center;text-decoration:none">コース詳細を見る →</a>
         </div>
       </div>
@@ -578,7 +578,7 @@
         <div class="course-body-lp">
           <div class="course-meta-lp"><span>🕐 全5回（12.5時間）</span><span>👤 働きながら学ぶ社会人</span><span>💻 オンライン（水19:00-21:30）</span></div>
           <p class="course-desc-lp">毎週水曜夜に受講。AI業務自動化スキルを体系的に習得し、受講中に自分の業務改善アプリを完成させます。</p>
-          <div class="course-price"><span class="price-main">¥68,000</span><span class="price-sub">（税込）</span></div>
+          <div class="course-price"><span class="price-main">¥{{ '{:,}'.format(prices['GC']) }}</span><span class="price-sub">（税込）</span></div>
           <div class="price-subsidy" style="color:#64748b">※ 助成金対象外（10時間超のため）</div>
           <a href="/vibe-coding/course-gc" class="toggle-btn" style="display:block;text-align:center;text-decoration:none">コース詳細を見る →</a>
         </div>
@@ -589,8 +589,8 @@
         <div class="course-body-lp">
           <div class="course-meta-lp"><span>🕐 1日（6時間）</span><span>👤 AI利用ルール策定・情報セキュリティ担当</span><span>💻 会場＋オンライン</span></div>
           <p class="course-desc-lp">AI生成コードの脆弱性対策、プロンプトインジェクション防御、社内AIガイドライン策定を実践的に学びます。</p>
-          <div class="course-price"><span class="price-main">¥49,800</span><span class="price-sub">（税込）</span></div>
-          <div class="price-subsidy">💰 助成金対象 — 実質 ¥24,800〜</div>
+          <div class="course-price"><span class="price-main">¥{{ '{:,}'.format(prices['GD']) }}</span><span class="price-sub">（税込）</span></div>
+          <div class="price-subsidy">💰 法人研修なら助成金対象 — 実質 ¥{{ '{:,}'.format(subsidy_net_typical) }}</div>
           <a href="/vibe-coding/course-gd" class="toggle-btn" style="display:block;text-align:center;text-decoration:none">コース詳細を見る →</a>
         </div>
       </div>
@@ -603,8 +603,8 @@
         <div class="course-body-lp">
           <div class="course-meta-lp"><span>🕐 1日（6時間）</span><span>👤 デザイン・マーケティング・広報担当</span><span>💻 会場＋オンライン</span></div>
           <p class="course-desc-lp">画像生成AI（Midjourney / DALL-E / Stable Diffusion）、動画生成AI（Sora等）、音声AIを活用したクリエイティブワークフローを習得します。</p>
-          <div class="course-price"><span class="price-main">¥49,800</span><span class="price-sub">（税込）</span></div>
-          <div class="price-subsidy">💰 助成金対象 — 実質 ¥24,800〜</div>
+          <div class="course-price"><span class="price-main">¥{{ '{:,}'.format(prices['GE']) }}</span><span class="price-sub">（税込）</span></div>
+          <div class="price-subsidy">💰 法人研修なら助成金対象 — 実質 ¥{{ '{:,}'.format(subsidy_net_typical) }}</div>
           <a href="/vibe-coding/course-ge" class="toggle-btn" style="display:block;text-align:center;text-decoration:none;border-color:#8b5cf6;color:#8b5cf6">コース詳細を見る →</a>
         </div>
       </div>
@@ -621,7 +621,7 @@
       <a href="/vibe-coding/manufacturing" style="display:block;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:28px;text-decoration:none;transition:all .2s">
         <div style="font-size:28px;margin-bottom:10px">🏭🏥🏦🚚🏗️</div>
         <h3 style="font-size:16px;font-weight:700;color:#0d1b3e;margin-bottom:6px">業種特化型コース（5業種×3段階）</h3>
-        <p style="font-size:13px;color:#64748b;line-height:1.7;margin-bottom:12px">製造業・医療・金融・物流・建設。業界固有の課題をAIで解決。¥49,800〜</p>
+        <p style="font-size:13px;color:#64748b;line-height:1.7;margin-bottom:12px">製造業・医療・金融・物流・建設。業界固有の課題をAIで解決。¥{{ '{:,}'.format(prices['GM-A']) }}〜</p>
         <span style="font-size:13px;font-weight:600;color:#3b82f6">詳細を見る →</span>
       </a>
     </div>
@@ -643,18 +643,21 @@
   <div class="wrap">
     <div class="sec-label">SUBSIDY</div>
     <h2 class="sec-title">助成金で、<br>実質半額以下に</h2>
-    <p class="sec-desc">東京しごと財団「事業外スキルアップ助成金」を利用すると、受講料の最大2/3が助成されます。</p>
+    <p class="sec-desc">東京しごと財団「DXリスキリング助成金」を利用すると、受講料の<strong>4分の3</strong>が助成されます。</p>
+    {# ⛔ 助成後の金額を直書きしないこと。値は booking.subsidy_for() が唯一の
+       出どころ（旧「実質¥24,800」＝廃止した事業外スキルアップ助成金の値が
+       4ファイルに散っていた。2026-08-15 実害） #}
     <table class="subsidy-table">
-      <thead><tr><th>コース</th><th>受講料</th><th>小規模企業（2/3助成）</th><th>中小企業（1/2助成）</th></tr></thead>
+      <thead><tr><th>コース</th><th>受講料</th><th>助成額（3/4）</th><th>実質のご負担</th></tr></thead>
       <tbody>
-        <tr><td>GA: 生成AI入門（6h）</td><td>¥49,800</td><td class="hi">実質 ¥24,800</td><td class="hi">実質 ¥24,800</td></tr>
-        <tr><td>GB: バイブコーディング実践（6h）</td><td>¥49,800</td><td class="hi">実質 ¥24,800</td><td class="hi">実質 ¥24,800</td></tr>
-        <tr><td>GD: AIセキュリティ（6h）</td><td>¥49,800</td><td class="hi">実質 ¥24,800</td><td class="hi">実質 ¥24,800</td></tr>
-        <tr><td>GE: AIクリエイティブデザイン（6h）</td><td>¥49,800</td><td class="hi">実質 ¥24,800</td><td class="hi">実質 ¥24,800</td></tr>
-        <tr><td>GC: AI業務自動化マスター（12.5h）</td><td>¥68,000</td><td colspan="2" style="color:#64748b">助成金対象外（10時間超のため）</td></tr>
+        <tr><td>GA: 生成AI入門（6h）</td><td>¥{{ '{:,}'.format(prices['GA']) }}</td><td>▲¥{{ '{:,}'.format(subsidy_of['GA']['grant']) }}</td><td class="hi">実質 ¥{{ '{:,}'.format(subsidy_of['GA']['net']) }}</td></tr>
+        <tr><td>GB: バイブコーディング実践（6h）</td><td>¥{{ '{:,}'.format(prices['GB']) }}</td><td>▲¥{{ '{:,}'.format(subsidy_of['GB']['grant']) }}</td><td class="hi">実質 ¥{{ '{:,}'.format(subsidy_of['GB']['net']) }}</td></tr>
+        <tr><td>GD: AIセキュリティ（6h）</td><td>¥{{ '{:,}'.format(prices['GD']) }}</td><td>▲¥{{ '{:,}'.format(subsidy_of['GD']['grant']) }}</td><td class="hi">実質 ¥{{ '{:,}'.format(subsidy_of['GD']['net']) }}</td></tr>
+        <tr><td>GE: AIクリエイティブデザイン（6h）</td><td>¥{{ '{:,}'.format(prices['GE']) }}</td><td>▲¥{{ '{:,}'.format(subsidy_of['GE']['grant']) }}</td><td class="hi">実質 ¥{{ '{:,}'.format(subsidy_of['GE']['net']) }}</td></tr>
+        <tr><td>GC: AI業務自動化マスター（12.5h）</td><td>¥{{ '{:,}'.format(prices['GC']) }}</td><td colspan="2" style="color:#64748b">助成金対象外（10時間以上のため）</td></tr>
       </tbody>
     </table>
-    <p style="margin-top:20px;font-size:13px;color:#718096;line-height:1.8">※ 東京しごと財団 令和8年度事業外スキルアップ助成金。都内本社の中小企業が対象。<br>※ 助成上限: 1人1研修あたり¥25,000。Jグランツで1ヶ月前の事前申請が必要です。<br>※ 申請手続きのサポートも行っております。お気軽にご相談ください。</p>
+    <p style="margin-top:20px;font-size:13px;color:#718096;line-height:1.8">※ 東京しごと財団 令和8年度DXリスキリング助成金。都内企業の<strong>従業員</strong>が対象で、<strong>代表者・個人事業主ご本人は対象外</strong>です。<br>※ 会社が受講料の全額を負担し、業務命令として労働時間内に実施することが要件です。<br>※ 助成上限: 1人1研修あたり¥{{ '{:,}'.format(subsidy_cap_person) }}（1社¥{{ '{:,}'.format(subsidy_cap_company) }}まで）。Jグランツで研修開始の1ヶ月前までの事前申請が必要です。<br>※ <a href="/subsidy" style="color:#10b981;font-weight:600;">申請の流れ・当社が発行する書類はこちら →</a></p>
   </div>
 </section>
 
@@ -710,7 +713,7 @@
           <div class="form-group"><label>お名前 *</label><input type="text" name="name" required></div>
           <div class="form-group"><label>メールアドレス *</label><input type="email" name="email" required></div>
           <div class="form-group"><label>会社名（法人の方）</label><input type="text" name="company"></div>
-          <div class="form-group"><label>ご興味のあるコース</label><select name="course"><option value="">選択してください</option><option>GA: 生成AI入門1日（¥49,800）</option><option>GB: バイブコーディング実践1日（¥49,800）</option><option>GC: AI業務自動化マスター 全5回夜間（¥68,000）</option><option>GD: AIセキュリティ・ガバナンス（¥49,800）</option><option>GE: AIクリエイティブデザイン（¥49,800）</option><option>子ども向けコース（GK1/GK2/GK3）</option><option>業種特化型コース</option><option>法人カスタマイズ研修</option></select></div>
+          <div class="form-group"><label>ご興味のあるコース</label><select name="course"><option value="">選択してください</option><option>GA: 生成AI入門1日（¥{{ '{:,}'.format(prices['GA']) }}）</option><option>GB: バイブコーディング実践1日（¥{{ '{:,}'.format(prices['GB']) }}）</option><option>GC: AI業務自動化マスター 全5回夜間（¥{{ '{:,}'.format(prices['GC']) }}）</option><option>GD: AIセキュリティ・ガバナンス（¥{{ '{:,}'.format(prices['GD']) }}）</option><option>GE: AIクリエイティブデザイン（¥{{ '{:,}'.format(prices['GE']) }}）</option><option>子ども向けコース（GK1/GK2/GK3）</option><option>業種特化型コース</option><option>法人カスタマイズ研修</option></select></div>
           <div class="form-group"><label>お問い合わせ内容</label><textarea name="message" placeholder="ご質問やご要望をお書きください"></textarea></div>
           <button type="submit" class="btn-submit">送信する →</button>
           <div class="form-status" id="form-status"></div>
@@ -718,7 +721,7 @@
       </div>
       <div class="cta-right">
         <div class="cta-item"><div class="cta-item-num">01</div><h4>¥49,800から</h4><p>1日6時間の集中コースで即戦力スキルを習得</p></div>
-        <div class="cta-item"><div class="cta-item-num">02</div><h4>助成金で半額以下</h4><p>東京しごと財団の助成金で実質¥24,800から</p></div>
+        <div class="cta-item"><div class="cta-item-num">02</div><h4>助成金で半額以下</h4><p>東京しごと財団の助成金で、法人研修なら実質¥{{ '{:,}'.format(subsidy_net_typical) }}</p></div>
         <div class="cta-item"><div class="cta-item-num">03</div><h4>JGAIA認定修了証</h4><p>各コース修了時に認定証を発行</p></div>
         <div class="cta-item"><div class="cta-item-num">04</div><h4>法人カスタマイズ</h4><p>御社の業種・課題に合わせた研修設計</p></div>
       </div>
@@ -740,7 +743,8 @@ async function submitForm(e,form){e.preventDefault();var st=form.querySelector('
 function toggleFaq(el){el.classList.toggle('open');el.nextElementSibling.classList.toggle('open')}
 var qs={};
 function quizAnswer(q,v,el){qs['q'+q]=v;el.parentElement.querySelectorAll('.quiz-opt').forEach(function(o){o.classList.remove('sel')});el.classList.add('sel');if(q===1)document.getElementById('q2').style.display='';if(q===2)document.getElementById('q3').style.display='';if(q===3)showQuizResult()}
-function showQuizResult(){var rec,desc;if(qs.q2==='team'){rec='コースGC: AI業務自動化マスター';desc='組織の業務改善をお考えなら、全5回夜間で体系的にAI業務自動化を学べるマスターコースが最適です。'}else if(qs.q3==='high'){rec='コースGD: AIセキュリティ・ガバナンス';desc='セキュリティ・ガバナンスへの関心が高い方に。社内ガイドライン策定まで実践します。'}else if(qs.q1==='none'||qs.q2==='try'){rec='コースGA: 生成AI入門1日';desc='まずは1日6時間で主要AI3ツールを使いこなせるように。¥49,800、助成金で実質¥24,800から。'}else{rec='コースGB: バイブコーディング実践1日';desc='経験をお持ちの方に。1日6時間で業務アプリを企画→実装→デプロイまで完成させます。'}var el=document.getElementById('quiz-result');el.innerHTML='<h4>おすすめ: '+rec+'</h4><p>'+desc+'</p>';el.classList.add('show')}
+var SUBSIDY_NET='{{ '{:,}'.format(subsidy_net_typical) }}';
+function showQuizResult(){var rec,desc;if(qs.q2==='team'){rec='コースGC: AI業務自動化マスター';desc='組織の業務改善をお考えなら、全5回夜間で体系的にAI業務自動化を学べるマスターコースが最適です。'}else if(qs.q3==='high'){rec='コースGD: AIセキュリティ・ガバナンス';desc='セキュリティ・ガバナンスへの関心が高い方に。社内ガイドライン策定まで実践します。'}else if(qs.q1==='none'||qs.q2==='try'){rec='コースGA: 生成AI入門1日';desc='まずは1日6時間で主要AI3ツールを使いこなせるように。¥49,800、法人研修なら助成金で実質¥'+SUBSIDY_NET+'。'}else{rec='コースGB: バイブコーディング実践1日';desc='経験をお持ちの方に。1日6時間で業務アプリを企画→実装→デプロイまで完成させます。'}var el=document.getElementById('quiz-result');el.innerHTML='<h4>おすすめ: '+rec+'</h4><p>'+desc+'</p>';el.classList.add('show')}
 var io=new IntersectionObserver(function(entries){entries.forEach(function(e){if(e.isIntersecting){e.target.style.opacity='1';e.target.style.transform='none';io.unobserve(e.target)}})},{threshold:.12,rootMargin:'0px 0px -40px 0px'});
 document.querySelectorAll('.problem-card,.step-card,.course-card-lp,.corp-item,.cta-item,.faq-item').forEach(function(el,i){el.style.cssText+='opacity:0;transform:translateY(20px);transition:opacity .5s '+i*.05+'s ease,transform .5s '+i*.05+'s ease;';io.observe(el)});
 </script>

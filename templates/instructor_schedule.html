@@ -14,6 +14,11 @@
 .iv-state.ok { background:#10b981; color:#fff; }
 .iv-state.wait { background:#f59e0b; color:#fff; }
 .iv-state.no { background:#6b7280; color:#fff; }
+/* ⛔ 濃紺の帯（.iv-head）の中の文字は必ず明るい色にすること。
+   同じ色を指定すると1文字も見えない（2026-08-15 実測で発見） */
+.iv-head .iv-link { display:inline-block; font-size:13px; font-weight:700;
+                    color:#93c5fd; text-decoration:underline; }
+.iv-head .iv-link:hover { color:#fff; }
 
 .iv-card { background:#fff; border:1px solid #e2e8f0; border-radius:10px;
            padding:20px; margin-top:18px; }
@@ -47,6 +52,11 @@
    ⛔ 薄いグレーだけにしないこと。「講義しない日」と目で区別できず、
       講師が「自分が外した日」と「対象外の日」を取り違える（2026-08-09 実測） */
 .day.past { background:none; border-color:transparent; color:#e2e8f0; }
+/* 開催日でない日。⛔ 予約締切（グレー）と同じ見た目にしないこと */
+/* ⛔ 薄くしすぎないこと。開催日でない日は全体の約7割あり、
+   読めないとカレンダーが空白に見える。押せる日（緑＋白文字＝比2.54）
+   と同等の濃さにし、押せないことは破線の枠で示す（2026-08-15 実測） */
+.day.off { background:#fafafa; border-style:dashed; color:#94a3b8; }
 .day.lead { color:#cbd5e1;
             background:repeating-linear-gradient(45deg,#f8fafc 0 5px,#eef2f7 5px 10px); }
 .day.can  { background:#10b981; color:#fff; border-color:#10b981; }
@@ -95,6 +105,18 @@
     {% else %}
       <span class="iv-state no">{{ inst['状態'] }}</span>
     {% endif %}
+    {# ⛔ 担当講座を変える導線をここから消さないこと。無いと「登録し直し」が
+       唯一の手段になり、旧実装ではそれで承認が外れて日程が全部消えていた #}
+    {% if pending_courses %}
+      <span class="iv-state wait">{{ pending_courses | join(' / ') }} は運営の確認待ちです</span>
+    {% endif %}
+    {# ⛔ この帯は濃紺（#0d1b3e）。同じ色の文字を置かないこと。
+       2026-08-15 に実際に置いてしまい、リンクが1文字も見えていなかった。
+       「白背景のカードは文字色を必ず指定する」の裏返しで、同じ型の事故。 #}
+    <div style="margin-top:10px;">
+      <a class="iv-link" href="{{ url_for('instructor_courses', token=token) }}">
+        担当する講座を変更する →</a>
+    </div>
   </div>
 
   {% if just_verified %}
@@ -134,7 +156,11 @@
     <h2>講義できる日を選ぶ</h2>
     <div class="hint">
       日付を押すと、その日に担当する講座を選ぶ画面になります。
-      緑の日は登録済みで、押すと変更・取り消しができます。
+      緑の日は登録済みで、押すと変更・取り消しができます。<br>
+      {# ⛔ 選べる日が限られている理由を書かないこと＝「押せない」と苦情になる #}
+      <strong>{{ session_note }}</strong>
+      開催日をそろえることで受講者が集まりやすくなるため、
+      その日の中からお選びいただいています。
     </div>
 
     <div class="legend">
@@ -144,6 +170,7 @@
          （2026-08-13 社長ご質問）。誰の予約なのかを必ず書く #}
       <span><i style="background:#2563eb"></i>受講者の申込が入っている（変更不可）</span>
       <span><i style="background:repeating-linear-gradient(45deg,#f8fafc 0 4px,#eef2f7 4px 8px);border:1px solid #e2e8f0"></i>{{ lead_days }}日以内（対象外）</span>
+      <span><i style="background:#fafafa;border:1px dashed #cbd5e1"></i>開催日ではない</span>
     </div>
 
     {% for m in months %}
@@ -159,6 +186,10 @@
             {% elif d < today %}
               {# ⛔ 過ぎた日を「14日以内」と説明しないこと。理由が違う #}
               <div class="day past" title="過ぎた日です">{{ d[8:]|int }}</div>
+            {% elif d not in session_days %}
+              {# ⛔ 開催日でない日を押せる形で出さないこと。押した先で断ることに
+                 なる。⛔ 過ぎた日と同じ見た目にしないこと（理由が違う） #}
+              <div class="day off" title="開催日ではありません（{{ session_note }}）">{{ d[8:]|int }}</div>
             {% else %}
               <a class="day
                     {% if d in booked_days %}booked

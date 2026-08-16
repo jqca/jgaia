@@ -3,7 +3,7 @@
 ルート:
   /solo-ceo               概要LP（メイン集客ページ）
   /solo-ceo/course-spa    SP-A: AI経営 入門1日
-  /solo-ceo/course-spb    SP-B: AI経営 実践3日間
+  /solo-ceo/course-spb    SP-B: AI経営 実践マスター 全3回
   /solo-ceo/course-spc    SP-C: AI経営 夜間マスター全5回
   /api/solo-inquiry       問い合わせAPI（Resend自動返信）
 """
@@ -45,10 +45,9 @@ COURSES = {
         "format": "会場＋オンライン同時開催",
         "capacity": "20名",
         "schedule": "10:00〜17:00（昼休憩1時間）",
-        # 開催日。決まったらここに "2026年9月12日（土）" のように書けば
-        # LPとコース詳細の両方に出る。空のままなら「調整中」と表示する。
-        # ⛔ 未定を空欄のまま隠さないこと（日程が見つからないと問い合わせ前に離脱する）
-        "next_date": "",
+        # 開催日はここに書かない。講師のカレンダー（booking.open_days）が
+        # 唯一の出どころで、booking_summary() が画面に出す。
+        # ⛔ 手打ちの日付を復活させないこと（講師が変えても古い日付が残る）
         "subsidy": False,
         "subsidy_text": "",
         "curriculum": [
@@ -85,38 +84,37 @@ COURSES = {
     "spb": {
         "id": "spb",
         "code": "SP-B",
-        "title": "AI経営 実践3日間マスター",
-        "subtitle": "3日間の集中トレーニングで、AIが回す経営システムを自社に実装する",
+        "title": "AI経営 実践マスター 全3回",
+        "subtitle": "毎週土曜・全3回で、AIが回す経営システムを自社に実装する",
         "gradient": "linear-gradient(135deg, #312e81, #4f46e5)",
         "accent": "#4f46e5",
         "accent_light": "#a5b4fc",
-        "duration": "3日間（各6時間 計18時間）",
+        "duration": "全3回（各6時間 計18時間）",
         "price": "128,000",
         "price_num": 128000,
         "target": "一人会社経営者・スタートアップ創業者",
         "format": "会場開催",
         "capacity": "15名",
-        "schedule": "10:00〜17:00 × 3日間（昼休憩1時間）",
-        "next_date": "",
+        "schedule": "毎週土曜 10:00〜17:00（昼休憩1時間）・全3回",
         "subsidy": False,
         "subsidy_text": "",
         "curriculum": [
-            ("Day1: AI組織設計 — 部門構築と役割定義",
+            ("第1回: AI組織設計 — 部門構築と役割定義",
              "秘書・経理・営業・開発の4部門をAIで構築。各部門の役割定義、ツール選定、データフローを設計します。"),
-            ("Day1: バイブコーディング基礎 — AIでアプリを作る",
+            ("第1回: バイブコーディング基礎 — AIでアプリを作る",
              "コードを書かずにAIへの指示だけで業務アプリを構築。顧客管理・タスク管理・ダッシュボードを1日目で形にします。"),
-            ("Day2: 営業・マーケティング自動化システム",
+            ("第2回: 営業・マーケティング自動化システム",
              "提案書自動生成、メルマガ配信、SNS運用、リード管理の自動化パイプラインを構築します。"),
-            ("Day2: 経理・バックオフィス自動化",
+            ("第2回: 経理・バックオフィス自動化",
              "経費管理、請求書発行、売上集計、決算予測をAIで自動化。領収書OCR読取の実装も行います。"),
-            ("Day3: 統合と運用 — AI経営ダッシュボード",
+            ("第3回: 統合と運用 — AI経営ダッシュボード",
              "全部門のAIを統合する操縦席（コックピット）を構築。KPI監視、タスク管理、部門間連携を一元化します。"),
-            ("Day3: スケーリング戦略と収益化",
+            ("第3回: スケーリング戦略と収益化",
              "AIシステムを活用した事業拡大戦略。複数事業の並行運営、外注管理、パートナー連携の設計を行います。"),
         ],
         "outcomes": [
             ("AI経営システムを自社に実装できる",
-             "3日間で秘書・経理・営業・開発の4部門をAIで構築し、実際に稼働するシステムを持ち帰れます。"),
+             "全3回で秘書・経理・営業・開発の4部門をAIで構築し、実際に稼働するシステムを持ち帰れます。"),
             ("バイブコーディングでアプリが作れる",
              "コードを書かずにAIへの指示だけで業務アプリを構築するスキルを習得。受講後も自力で開発を続けられます。"),
             ("事業拡大の実行計画を策定",
@@ -125,8 +123,8 @@ COURSES = {
         "faq": [
             ("SP-Aを受講していなくても参加できますか？",
              "はい、SP-Bは独立したカリキュラムです。ただしAIツールの基本操作経験があるとスムーズです。"),
-            ("3日間連続で受講する必要がありますか？",
-             "はい、Day1→Day2→Day3と積み上げ式のカリキュラムのため、連続受講をお願いしています。"),
+            ("毎週通う必要がありますか？",
+             "はい、第1回→第2回→第3回と積み上げ式のカリキュラムのため、3週つづけてのご参加をお願いしています。土曜開催なので、お仕事を休まずにご参加いただけます。"),
             ("受講に必要なツール・環境は？",
              "ノートPC（Chrome推奨）とインターネット環境があれば参加可能です。使用するAIツールのアカウントは事前にご案内します。"),
             ("法人研修として実施できますか？",
@@ -148,7 +146,6 @@ COURSES = {
         "format": "オンライン（Zoom）",
         "capacity": "30名",
         "schedule": "毎週水曜 19:00〜21:30（全5回）",
-        "next_date": "",
         "subsidy": False,
         "subsidy_text": "",
         "curriculum": [
@@ -184,19 +181,62 @@ COURSES = {
     },
 }
 
+# ⛔ 助成金の表示を各講座に手打ちしないこと（2026-08-15）。判定も金額も
+#    booking.subsidy_for() の1か所で作る。制度が変わった日に、直し忘れた
+#    ページだけが古い金額を出し続け、法人はその額で申請して落ちる。
+# ⛔ SP-A を「代表者向けの講座だから対象外」と決めつけないこと。対象を決める
+#    のは講座名ではなく、受講者の立場・誰が払うか・研修時間の3つ。法人が
+#    従業員を研修として派遣すれば対象になる（社長ご指摘で訂正）。
+import booking as _booking  # noqa: E402
+
+_booking.apply_subsidy_tags(COURSES.values())
+_booking.apply_delivery(COURSES.values())
+_booking.apply_prices(COURSES.values())
+
+
+def booking_summary(code, logger=None):
+    """そのコースの「いちばん近い開催日」と「選べる日数」を返す。
+
+    出どころは講師のカレンダーだけにする。
+    ⛔ 開催日を手で書いた文字列（旧 next_date）と併存させないこと。
+       講師が日程を変えたときに画面の日付だけ古くなり、誤案内になる。
+    ⛔ ここが例外でページを落とさないこと（紹介は予約より上位の役目）。
+    """
+    try:
+        import booking
+        days = [d for d in booking.open_days(code) if d["状態"] == "予約可"]
+        if not days:
+            return {"件数": 0, "最短": None, "表示": "調整中"}
+        first = days[0]["日付"]
+        y, m, d = first.split("-")
+        return {"件数": len(days), "最短": first,
+                "表示": f"{int(m)}月{int(d)}日〜（他{len(days) - 1}日）"
+                        if len(days) > 1 else f"{int(m)}月{int(d)}日"}
+    except Exception:
+        if logger:
+            logger.exception("[solo-ceo] 開催日の集計に失敗しました")
+        return {"件数": 0, "最短": None, "表示": "調整中"}
+
 
 def register_solo_ceo_routes(app):
 
     @app.route("/solo-ceo")
     def solo_ceo():
-        return render_template("solo_ceo.html", courses=COURSES)
+        # コースごとの開催状況。カードとヒーローの導線をこれで出し入れする
+        slots = {cid: booking_summary(c["code"], app.logger)
+                 for cid, c in COURSES.items()}
+        return render_template("solo_ceo.html", courses=COURSES, slots=slots,
+                              open_total=sum(s["件数"] for s in slots.values()))
 
     @app.route("/solo-ceo/course-<course_id>")
     def solo_ceo_course(course_id):
         course = COURSES.get(course_id)
         if not course:
             return "コースが見つかりません", 404
-        return render_template("solo_ceo_course.html", c=course, courses=COURSES)
+        # 予約できる日が0なら予約ボタンを出さない（押した先が行き止まりになる）
+        slot = booking_summary(course["code"], app.logger)
+        return render_template("solo_ceo_course.html", c=course, courses=COURSES,
+                               slot=slot, open_days_count=slot["件数"])
 
     @app.route("/admin/inquiries")
     def admin_inquiries():
@@ -216,7 +256,8 @@ def register_solo_ceo_routes(app):
         # さらに hmac.compare_digest は str だと非ASCIIで例外を投げるため、
         # bytes に変換して比べる（合言葉の違いを500エラーで返さない）。
         def _clean(s):
-            return (s or "").strip().lstrip("﻿").strip()
+            # ⛔ 両端を剥ぐこと。末尾のBOMでも照合だけが静かに落ちる
+            return (s or "").strip("﻿ \t\r\n")
 
         expected = _clean(os.environ.get("INQUIRY_ADMIN_TOKEN", ""))
         if not expected:

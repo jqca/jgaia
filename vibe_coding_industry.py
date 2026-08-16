@@ -60,11 +60,11 @@ INDUSTRIES = {
             {
                 "code": "GM-B",
                 "name": "製造業AIマスター",
-                "sub": "3日間マスターコース",
+                "sub": "全3回マスターコース",
                 "concept": "設備予知保全、品質管理SPC、工程最適化の実装",
                 "target": "製造業のDX推進担当・エンジニア",
                 "format": "会場（少人数制）",
-                "duration": "3日間（各日 10:00〜17:00）",
+                "duration": "全3回（毎週水曜 10:00〜17:00）",
                 "capacity": "15名",
                 "price": "¥128,000",
                 "price_unit": "/名（税込）",
@@ -81,11 +81,11 @@ INDUSTRIES = {
             {
                 "code": "GM-C",
                 "name": "製造業AIアーキテクト",
-                "sub": "5日間エキスパートコース",
+                "sub": "全5回エキスパートコース",
                 "concept": "デジタルツイン、IoTセンサー連携、AI生産管理システム構築",
                 "target": "製造業SIer・スタートアップ・社内DX推進チーム",
                 "format": "会場（少人数制）",
-                "duration": "5日間（各日 10:00〜17:00）",
+                "duration": "全5回（毎週水曜 10:00〜17:00）",
                 "capacity": "10名",
                 "price": "¥228,000",
                 "price_unit": "/名（税込）",
@@ -137,8 +137,8 @@ INDUSTRIES = {
         "inquiry_industry": "manufacturing",
         "course_options": [
             "GM-A：製造業AI入門（半日・¥49,800）",
-            "GM-B：製造業AIマスター（3日間・¥128,000）",
-            "GM-C：製造業AIアーキテクト（5日間・¥228,000）",
+            "GM-B：製造業AIマスター（全3回・¥128,000）",
+            "GM-C：製造業AIアーキテクト（全5回・¥228,000）",
             "出張研修（5名以上）",
             "まず話を聞きたい",
         ],
@@ -187,11 +187,11 @@ INDUSTRIES = {
             {
                 "code": "GH-B",
                 "name": "ヘルスケアAIマスター",
-                "sub": "3日間マスターコース",
+                "sub": "全3回マスターコース",
                 "concept": "電子カルテ連携、医療画像AI基礎、患者コミュニケーション最適化",
                 "target": "医療機関のIT部門・医療情報技師",
                 "format": "会場（少人数制）",
-                "duration": "3日間（各日 10:00〜17:00）",
+                "duration": "全3回（毎週水曜 10:00〜17:00）",
                 "capacity": "15名",
                 "price": "¥128,000",
                 "price_unit": "/名（税込）",
@@ -208,11 +208,11 @@ INDUSTRIES = {
             {
                 "code": "GH-C",
                 "name": "ヘルスケアAIアーキテクト",
-                "sub": "5日間エキスパートコース",
+                "sub": "全5回エキスパートコース",
                 "concept": "病院DXシステム設計、リモート患者モニタリング、医薬品管理AI",
                 "target": "医療DX推進部門・ヘルステック・医療系SIer",
                 "format": "会場（少人数制）",
-                "duration": "5日間（各日 10:00〜17:00）",
+                "duration": "全5回（毎週水曜 10:00〜17:00）",
                 "capacity": "10名",
                 "price": "¥228,000",
                 "price_unit": "/名（税込）",
@@ -264,8 +264,8 @@ INDUSTRIES = {
         "inquiry_industry": "healthcare",
         "course_options": [
             "GH-A：医療AI入門（半日・¥49,800）",
-            "GH-B：ヘルスケアAIマスター（3日間・¥128,000）",
-            "GH-C：ヘルスケアAIアーキテクト（5日間・¥228,000）",
+            "GH-B：ヘルスケアAIマスター（全3回・¥128,000）",
+            "GH-C：ヘルスケアAIアーキテクト（全5回・¥228,000）",
             "法人・医療機関向け出張研修（5名以上）",
             "まず話を聞きたい",
         ],
@@ -314,11 +314,11 @@ INDUSTRIES = {
             {
                 "code": "GF-B",
                 "name": "金融AIマスター",
-                "sub": "3日間マスターコース",
+                "sub": "全3回マスターコース",
                 "concept": "リスク分析ダッシュボード、不正検知、審査自動化",
                 "target": "証券・銀行・保険のシステム部門",
                 "format": "会場（少人数制）",
-                "duration": "3日間（各日 10:00〜17:00）",
+                "duration": "全3回（毎週水曜 10:00〜17:00）",
                 "capacity": "15名",
                 "price": "¥128,000",
                 "price_unit": "/名（税込）",
@@ -335,11 +335,11 @@ INDUSTRIES = {
             {
                 "code": "GF-C",
                 "name": "金融AIアーキテクト",
-                "sub": "5日間エキスパートコース",
+                "sub": "全5回エキスパートコース",
                 "concept": "ALM最適化、信用スコアリング、規制対応AI",
                 "target": "フィンテック・資産運用会社・金融系SIer",
                 "format": "会場（少人数制）",
-                "duration": "5日間（各日 10:00〜17:00）",
+                "duration": "全5回（毎週水曜 10:00〜17:00）",
                 "capacity": "10名",
                 "price": "¥228,000",
                 "price_unit": "/名（税込）",
@@ -391,8 +391,8 @@ INDUSTRIES = {
         "inquiry_industry": "finance",
         "course_options": [
             "GF-A：金融AI入門（半日・¥49,800）",
-            "GF-B：金融AIマスター（3日間・¥128,000）",
-            "GF-C：金融AIアーキテクト（5日間・¥228,000）",
+            "GF-B：金融AIマスター（全3回・¥128,000）",
+            "GF-C：金融AIアーキテクト（全5回・¥228,000）",
             "法人・金融機関向け出張研修（5名以上）",
             "まず話を聞きたい",
         ],
@@ -441,11 +441,11 @@ INDUSTRIES = {
             {
                 "code": "GL-B",
                 "name": "物流AIマスター",
-                "sub": "3日間マスターコース",
+                "sub": "全3回マスターコース",
                 "concept": "倉庫自動化設計、サプライチェーン可視化、ラストワンマイル最適化",
                 "target": "物流IT部門・EC事業者・3PL企業",
                 "format": "会場（少人数制）",
-                "duration": "3日間（各日 10:00〜17:00）",
+                "duration": "全3回（毎週水曜 10:00〜17:00）",
                 "capacity": "15名",
                 "price": "¥128,000",
                 "price_unit": "/名（税込）",
@@ -462,11 +462,11 @@ INDUSTRIES = {
             {
                 "code": "GL-C",
                 "name": "物流AIアーキテクト",
-                "sub": "5日間エキスパートコース",
+                "sub": "全5回エキスパートコース",
                 "concept": "物流DXプラットフォーム設計、IoT×AI統合管理",
                 "target": "物流スタートアップ・SIer・SCMコンサルタント",
                 "format": "会場（少人数制）",
-                "duration": "5日間（各日 10:00〜17:00）",
+                "duration": "全5回（毎週水曜 10:00〜17:00）",
                 "capacity": "10名",
                 "price": "¥228,000",
                 "price_unit": "/名（税込）",
@@ -518,8 +518,8 @@ INDUSTRIES = {
         "inquiry_industry": "logistics",
         "course_options": [
             "GL-A：物流AI入門（半日・¥49,800）",
-            "GL-B：物流AIマスター（3日間・¥128,000）",
-            "GL-C：物流AIアーキテクト（5日間・¥228,000）",
+            "GL-B：物流AIマスター（全3回・¥128,000）",
+            "GL-C：物流AIアーキテクト（全5回・¥228,000）",
             "法人・物流企業向け出張研修（5名以上）",
             "まず話を聞きたい",
         ],
@@ -568,11 +568,11 @@ INDUSTRIES = {
             {
                 "code": "GN-B",
                 "name": "建設AIマスター",
-                "sub": "3日間マスターコース",
+                "sub": "全3回マスターコース",
                 "concept": "BIM×AI連携、工程管理AI、品質検査自動化",
                 "target": "建設業のIT部門・BIM担当者・施工管理技士",
                 "format": "会場（少人数制）",
-                "duration": "3日間（各日 10:00〜17:00）",
+                "duration": "全3回（毎週水曜 10:00〜17:00）",
                 "capacity": "15名",
                 "price": "¥128,000",
                 "price_unit": "/名（税込）",
@@ -589,11 +589,11 @@ INDUSTRIES = {
             {
                 "code": "GN-C",
                 "name": "建設AIアーキテクト",
-                "sub": "5日間エキスパートコース",
+                "sub": "全5回エキスパートコース",
                 "concept": "建設DX統合プラットフォーム、ドローン×AI検査、i-Construction対応",
                 "target": "ゼネコンDX推進部門・建設テック・設計事務所",
                 "format": "会場（少人数制）",
-                "duration": "5日間（各日 10:00〜17:00）",
+                "duration": "全5回（毎週水曜 10:00〜17:00）",
                 "capacity": "10名",
                 "price": "¥228,000",
                 "price_unit": "/名（税込）",
@@ -645,13 +645,22 @@ INDUSTRIES = {
         "inquiry_industry": "construction",
         "course_options": [
             "GN-A：建設AI入門（半日・¥49,800）",
-            "GN-B：建設AIマスター（3日間・¥128,000）",
-            "GN-C：建設AIアーキテクト（5日間・¥228,000）",
+            "GN-B：建設AIマスター（全3回・¥128,000）",
+            "GN-C：建設AIアーキテクト（全5回・¥228,000）",
             "法人・建設企業向け出張研修（5名以上）",
             "まず話を聞きたい",
         ],
     },
 }
+
+# ⛔ 業種別Aは助成の対象なのに、ページに1件も出していなかった（2026-08-15）。
+#    載せていない＝検討していないと読まれ、法人の申込を取り逃がす。
+import booking as _booking  # noqa: E402
+
+for _ind in INDUSTRIES.values():
+    _booking.apply_subsidy_tags(_ind.get('courses') or [])
+    _booking.apply_delivery(_ind.get('courses') or [])
+    _booking.apply_prices(_ind.get('courses') or [])
 
 
 # ─────────────────────────────────────────────────────────────
@@ -689,15 +698,16 @@ def _render_industry_page(ind):
     course_cards_html = ""
     for i, course in enumerate(c["courses"]):
         p = palette[i]
-        # Aコース（4時間）のみ事業外スキルアップ助成金対象
+        # Aコース（4時間）のみ助成金の対象（3〜10時間未満の要件）
         subsidy_badge_html = ""
         if i == 0:
             subsidy_badge_html = (
                 '<div style="margin:0 0 14px;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.35);'
                 'border-radius:10px;padding:10px 14px;font-size:0.82rem;font-weight:700;color:#10b981;">'
-                '&#10003; 東京しごと財団 助成金対象（4時間）'
+                '&#10003; 東京しごと財団 DXリスキリング助成金 対象（4時間）'
                 '<br><span style="font-weight:500;font-size:0.78rem;color:#4a5568;">'
-                '実質 &#165;24,800&#12316; / 人（助成金利用時）</span></div>'
+                # ⛔ 金額を直書きしないこと。booking.subsidy_for() が唯一の出どころ
+                f'法人研修なら実質 &#165;{_booking.subsidy_for("GM-A")["net"]:,} / 人</span></div>'
             )
         feat_items = "".join(
             f'<li style="border-bottom:1px solid #e2e8f0;padding:7px 0;display:flex;'
@@ -1005,31 +1015,32 @@ def _render_industry_page(ind):
         <div style="font-size:1.8rem;flex-shrink:0;">&#128180;</div>
         <div>
           <div style="font-size:0.72rem;font-weight:800;letter-spacing:0.12em;color:#10b981;margin-bottom:6px;">
-            東京しごと財団「事業外スキルアップ助成金」対象講座</div>
+            東京しごと財団「DXリスキリング助成金」対象講座</div>
           <h3 style="font-size:1.05rem;font-weight:900;color:#1a1a2e;margin-bottom:6px;">
-            {c["name"]}入門コース（{c["courses"][0]["code"]}）の受講料が最大2/3助成されます</h3>
+            {c["name"]}入門コース（{c["courses"][0]["code"]}）の受講料が3/4助成されます</h3>
           <p style="font-size:0.87rem;color:#4a5568;line-height:1.8;">
-            都内中小企業（本社所在地）の従業員が対象。会社が受講料を全額負担し業務命令として実施する場合に適用。
-            Jグランツで受講開始の1ヶ月前までに事前申請が必要です。
+            都内企業の従業員が対象（<strong>代表者・個人事業主ご本人は対象外</strong>）。
+            会社が受講料を全額負担し、業務命令として実施する場合に適用されます。
+            Jグランツで研修開始の1ヶ月前までに事前申請が必要です。
             B・Cコースは受講時間が10時間以上のため本助成金の対象外となります。</p>
         </div>
       </div>
       <div class="subsidy-cols" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:20px;">
         <div style="background:rgba(16,185,129,0.12);border-radius:12px;padding:16px 14px;text-align:center;">
           <div style="font-size:0.7rem;font-weight:700;color:#10b981;letter-spacing:0.08em;margin-bottom:6px;">
-            小規模企業（2/3助成）</div>
+            法人が従業員を派遣（3/4助成）</div>
           <div style="font-size:1.6rem;font-weight:900;color:#10b981;line-height:1;">
-            &#165;24,800<span style="font-size:0.75rem;font-weight:400;">&#12316;</span></div>
+            &#165;{_booking.subsidy_for("GM-A")["net"]:,}</div>
           <div style="font-size:0.7rem;color:#64748b;margin-top:4px;">
-            &#165;25,000助成 → 実質&#165;24,800</div>
+            &#165;{_booking.subsidy_for("GM-A")["grant"]:,}助成 → 実質&#165;{_booking.subsidy_for("GM-A")["net"]:,}</div>
         </div>
         <div style="background:rgba(16,185,129,0.08);border-radius:12px;padding:16px 14px;text-align:center;">
           <div style="font-size:0.7rem;font-weight:700;color:#34d399;letter-spacing:0.08em;margin-bottom:6px;">
-            中小企業（1/2助成）</div>
-          <div style="font-size:1.6rem;font-weight:900;color:#34d399;line-height:1;">
-            &#165;24,800<span style="font-size:0.75rem;font-weight:400;">&#12316;</span></div>
+            対象外となる方</div>
+          <div style="font-size:1rem;font-weight:800;color:#34d399;line-height:1.4;">
+            代表者・個人事業主ご本人</div>
           <div style="font-size:0.7rem;color:#64748b;margin-top:4px;">
-            &#165;24,900助成 → 実質&#165;24,800</div>
+            ご本人のお支払いも対象外</div>
         </div>
         <div style="background:#f8fafc;border-radius:12px;padding:16px 14px;text-align:center;">
           <div style="font-size:0.7rem;font-weight:700;color:#94a3b8;letter-spacing:0.08em;margin-bottom:6px;">
@@ -1042,8 +1053,8 @@ def _render_industry_page(ind):
       </div>
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
         <div style="font-size:0.8rem;color:#64748b;">
-          &#128197; 令和8年度受付期間：2026年3月1日&#12316;2027年2月28日　上限&#165;25,000/人</div>
-        <a href="https://www.koyokankyo.shigotozaidan.or.jp/jigyo/skillup/skill-R8jigyogai.html"
+          &#128197; 令和8年度受付期間：2026年3月1日&#12316;2027年2月28日　上限&#165;{_booking.SUBSIDY["cap_per_person"]:,}/人1研修（1社&#165;{_booking.SUBSIDY["cap_per_company"]:,}まで）</div>
+        <a href="{_booking.SUBSIDY["url"]}"
           target="_blank" style="font-size:0.82rem;color:#10b981;text-decoration:none;
           border-bottom:1px solid rgba(16,185,129,0.4);padding-bottom:2px;white-space:nowrap;">
           東京しごと財団 公式サイトで詳細を確認 →</a>

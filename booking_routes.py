@@ -17,6 +17,7 @@ from datetime import date, datetime, timedelta
 from flask import (jsonify, redirect, render_template, request, url_for)
 
 import booking
+import payments
 
 
 # ⛔ 合言葉は両端を剥ぐこと（旧実装は先頭だけの lstrip）。末尾のBOMでも
@@ -39,46 +40,72 @@ def register_booking_routes(app):
     # ─────────────── 講師候補の登録
     @app.route('/instructor/register', methods=['GET', 'POST'])
     def instructor_register():
+        # ⛔ 講師料の材料を渡し忘れないこと。Jinjaは未定義を空文字にするので
+        #    落ちずに「講師料 ¥」とだけ出る（金額の伏せられた同意になる）
+        fee_ctx = dict(
+            fees={c['code']: booking.instructor_fee(c['code'])
+                  for c in booking.COURSES},
+            fee_terms=booking.fee_terms_text(),
+            fee_version=booking.FEE_TERMS_VERSION)
+
         if request.method == 'GET':
             return render_template('instructor_register.html',
                                    courses=booking.COURSES,
                                    groups=booking.grouped_courses(),
                                    lead_days=booking.LEAD_DAYS,
-                                   weekdays=booking.WEEKDAYS)
+                                   weekdays=booking.WEEKDAYS, **fee_ctx)
 
         import antispam
         if antispam.check(request, request.form.to_dict()):
             app.logger.info('[instructor_register] スパムとして遮断')
             return render_template('instructor_register.html', done=True,
                                    courses=booking.COURSES,
-                                   weekdays=booking.WEEKDAYS)
+                                   weekdays=booking.WEEKDAYS, **fee_ctx)
 
         name = (request.form.get('name') or '').strip()
         email = (request.form.get('email') or '').strip()
+        # ⛔ 同意の確認をブラウザの required だけに任せないこと。この画面を
+        #    通らない経路（開発者ツール・自動化）では素通りする
+        agreed = (request.form.get('fee_agree') or '').strip()
+        err = None
         if not name or not email:
+            err = 'お名前とメールアドレスは必須です。'
+        elif agreed != booking.FEE_TERMS_VERSION:
+            err = '講師料の条件へのご同意が必要です。'
+        if err:
             # ⛔ lead_days を渡し忘れないこと。見出しが「開催の日以上前」と
             #    数字だけ欠けて出る（Jinjaは未定義を空文字にするので落ちない）
             return render_template('instructor_register.html',
-                                   error='お名前とメールアドレスは必須です。',
+                                   error=err,
                                    courses=booking.COURSES,
                                    groups=booking.grouped_courses(),
                                    lead_days=booking.LEAD_DAYS,
-                                   weekdays=booking.WEEKDAYS)
+                                   weekdays=booking.WEEKDAYS, **fee_ctx)
+
+        # ⛔ 登録の前に既存を見ること。同じアドレスなら行は増えず更新になるので、
+        #    完了画面の文面を変えないと「2件登録された」と誤解される（逆に、
+        #    黙って上書きされたことにも気づけない）。
+        before = booking.find_by_email(email)
+        updated = bool(before)
+        was_verified = bool(before and before.get('メール確認済み'))
 
         # ⛔ ここで予定を聞かない。日付はこの後のカレンダー画面で選ぶ
         rec, token = booking.register_instructor(
             name, email, (request.form.get('org') or '').strip(),
             request.form.getlist('courses'),
-            (request.form.get('note') or '').strip())
+            (request.form.get('note') or '').strip(),
+            fee_agreed=agreed)
 
-        app.logger.info('[instructor_register] 申請: %s', name)
+        app.logger.info('[instructor_register] %s: %s',
+                        '更新' if updated else '申請', name)
         # ⛔ 送れなくても登録は成立させる。ただし黙らないこと＝完了画面に出し、
         #    専用URLは画面にも必ず表示する（メールだけが受け渡し口だと消える）
         mailed = _notify_registered(app, rec, token)
         return render_template('instructor_register.html', done=True,
                                token=token, rec=rec, mailed=mailed,
+                               updated=updated, was_verified=was_verified,
                                courses=booking.COURSES,
-                               weekdays=booking.WEEKDAYS)
+                               weekdays=booking.WEEKDAYS, **fee_ctx)
 
     # ─────────────── メールの確認（仮登録 → 本登録）
     @app.route('/instructor/verify/<token>')
@@ -90,6 +117,35 @@ def register_booking_routes(app):
         # 確認できたら、そのまま日程を選べる画面へ送る（もう1手を要求しない）
         return redirect(url_for('instructor_schedule', token=token,
                                 verified=1))
+
+    # ─────────────── 講師本人が担当講座を変更
+    @app.route('/instructor/schedule/<token>/courses', methods=['GET', 'POST'])
+    def instructor_courses(token):
+        """⛔ ここが無いと、担当を変える唯一の手段が『登録し直し』になる。
+           旧実装ではそれをすると承認が外れ、その人の日程が全部消えていた。
+        """
+        inst = booking.find_instructor(token)
+        if not inst:
+            return 'この画面のリンクが正しくありません。運営にお問い合わせください。', 404
+        error = saved = None
+        if request.method == 'POST':
+            got, error = booking.set_instructor_courses(
+                token, request.form.getlist('courses'))
+            if got:
+                inst, saved = got, True
+        # 受講者の申込が入っている講座は外せない
+        locked = sorted({b.get('コース') for b in booking.bookings()
+                         if b.get('担当講師id') == inst.get('id')
+                         and booking.is_live(b)})
+        return render_template(
+            'instructor_courses.html', inst=inst, token=token,
+            groups=booking.grouped_courses(),
+            chosen=inst.get('対応コース') or [],
+            approved=booking.approved_courses(inst),
+            pending=booking.pending_courses(inst),
+            locked=locked, saved=saved, error=error,
+            fees={c['code']: booking.instructor_fee(c['code'])
+                  for c in booking.COURSES})
 
     # ─────────────── 講師本人が予定を編集
     @app.route('/instructor/schedule/<token>')
@@ -113,6 +169,11 @@ def register_booking_routes(app):
                                just_verified=bool(request.args.get('verified')),
                                saved=request.args.get('saved', ''),
                                blockers=booking.publish_blockers(inst, reg=days),
+                               pending_courses=booking.pending_courses(inst),
+                               # ⛔ 開催日を渡し忘れないこと。Jinjaは未定義を
+                               #    空にするので全部が「開催日でない」になる
+                               session_days=set(booking.session_days()),
+                               session_note=booking.session_day_note(),
                                weekdays=booking.WEEKDAYS,
                                months=_month_grids(3),
                                days=days, counts=counts, courses=mine,
@@ -165,10 +226,15 @@ def register_booking_routes(app):
             by_code = {m['code']: m for m in mine}
             groups = [(g, [by_code[c['code']] for c in items])
                       for g, items in booking.grouped_courses(list(by_code))]
+            # ⛔ 時間が重なることを「エラー」にしないこと。開催されるのは1つだけ
+            #    なので、そう伝えるだけにとどめる（2026-08-14 社長ご指摘）
+            same_time = sorted({c for pair in booking.same_time_courses(chosen)
+                                for c in pair})
             return render_template(
                 'instructor_day.html', inst=inst, token=token, iso=iso,
                 day=day, weekday=booking.WEEKDAYS[day.weekday()],
                 mine=mine, groups=groups, chosen=chosen, step=step, error=error,
+                same_time=same_time,
                 booked_rows=booking.booked_summary(inst['id']).get(iso, []),
                 booked=booked, too_soon=day < earliest,
                 earliest=earliest.isoformat(), lead_days=booking.LEAD_DAYS,
@@ -179,12 +245,6 @@ def register_booking_routes(app):
 
         if request.form.get('confirm') != '1':
             # ⛔ いきなり保存しないこと。ここは確認画面を出すだけ
-            bad = booking.overlapping_courses(chosen)
-            if bad:
-                a, b = bad[0]
-                return render('select',
-                              f'{a} と {b} は開催時間が重なるため、'
-                              '同じ日にはお受けいただけません。')
             return render('confirm')
 
         saved, err = booking.set_day_courses(token, iso, chosen)
@@ -205,6 +265,7 @@ def register_booking_routes(app):
         for r in booking.instructors():
             reg = booking.registered_days(r)          # 1人1回だけ展開する
             rows.append(dict(r, 公開されない理由=booking.publish_blockers(r, reg=reg),
+                             確認待ちの講座=booking.pending_courses(r),
                              登録済みの日=reg))
         return render_template('admin_instructors.html', rows=rows,
                                token=request.args.get('token', ''),
@@ -237,6 +298,7 @@ def register_booking_routes(app):
                 予約件数=len(mine),
                 予約人数=sum(int(b.get('人数') or 1) for b in mine),
                 公開されない理由=booking.publish_blockers(r, reg=reg),
+                             確認待ちの講座=booking.pending_courses(r),
                 担当できる講座=booking.teachable_courses(r, reg=reg),
                 登録済みの日=reg,
                 予定URL=url_for('instructor_schedule', token=r.get('鍵'),
@@ -304,9 +366,22 @@ def register_booking_routes(app):
                                months=_month_grids(3),
                                course_days=booking.course_days(code),
                                course_interval=booking.course_interval(code),
+                               series_note=booking.series_note(code),
                                lead_days=booking.LEAD_DAYS,
+                               session_note=booking.session_day_note(),
                                cancel_policy=booking.CANCEL_POLICY,
-                               pay_note=booking.PAY_NOTE,
+                               pay_note=(booking.PAY_NOTE if payments.enabled()
+                                         else booking.PAY_NOTE_INVOICE),
+                               card_enabled=payments.enabled(),
+                               seller=booking.SELLER,
+                               extra_cost_note=booking.EXTRA_COST_NOTE,
+                               subsidy=booking.subsidy_for(code),
+                               subsidy_lead=booking.SUBSIDY['lead_days'],
+                               # ⛔ 助成金が使える最も近い日を出すこと。「45日前まで」
+                               #    とだけ書くと、どの日なら間に合うのか読み手が
+                               #    数えることになる
+                               subsidy_from=(booking.today_jst() + timedelta(
+                                   days=booking.SUBSIDY['lead_days'])).isoformat(),
                                courses=booking.COURSES,
                                open_count=sum(1 for d in days.values()
                                               if d['状態'] == '予約可'))
@@ -325,22 +400,105 @@ def register_booking_routes(app):
         if not name or not email or not data.get('day'):
             return {'error': 'お名前・メールアドレス・希望日は必須です'}, 400
 
+        # ⛔ 支払い方法を画面の言い値で決め切らないこと。カードは鍵が
+        #    設定されているときだけ。未設定なら請求書払いに落とす（画面も
+        #    そう出しているので、利用者の見たものと実際が一致する）
+        want_card = (data.get('pay') or 'card') == 'card' and payments.enabled()
+
         try:
             rec, inst = booking.add_booking(
                 data.get('course'), data.get('day'), name, email,
                 (data.get('company') or '').strip(),
-                data.get('people') or 1, (data.get('message') or '').strip())
+                data.get('people') or 1, (data.get('message') or '').strip(),
+                pending=want_card)
         except ValueError as e:
             return {'error': str(e)}, 400
         except Exception:
             app.logger.exception('[book] 申込の保存に失敗')
             return {'error': '受付処理に失敗しました。info@jgaia.org までご連絡ください。'}, 500
 
+        if want_card:
+            course = booking.COURSE_BY_CODE[rec['コース']]
+            url, sid, err = payments.create_checkout(
+                course, rec['人数'], email, rec['id'],
+                success_url=url_for('book_done', code=rec['コース'],
+                                    _external=True) + '?ok=1',
+                cancel_url=url_for('book_course', code=rec['コース'],
+                                   _external=True),
+                day_label='・'.join(rec.get('開催日') or [rec['希望日']]))
+            if err or not url:
+                # ⛔ 席を押さえたまま返さないこと（決済に進めないのに定員が減る）
+                booking.cancel_booking(rec['id'], '決済ページを作れませんでした')
+                app.logger.error('[book] Checkout作成に失敗: %s', err)
+                return {'error': f'{err}。info@jgaia.org までご連絡ください。'}, 502
+            booking.attach_checkout(rec['id'], sid)
+            # ⛔ ここでは受講者にメールを送らないこと。まだ払っていない
+            return {'ok': True, '決済へ': url}
+
         _notify_booking(app, rec, inst)
         return {'ok': True,
                 '開催確定': rec['_開催確定'],
-                '合計人数': rec['_合計人数'],
-                '最少催行': rec['_最少催行']}
+                '合計人数': rec['_合計人数']}
+
+    @app.route('/admin/booking/<booking_id>/certificate')
+    def admin_certificate(booking_id):
+        """受講証明書（参考様式2）に転記する項目を出す。
+
+        ⛔ 当社が発行できないと、法人は助成金を受け取れない（実績報告で必須）。
+        ⛔ 出席時間だけは空で返す。当日確認して埋めるもので、推測で埋めると
+           虚偽の証明になる。
+        """
+        ok = _admin_ok()
+        if ok is None:
+            return {'error': 'disabled',
+                    'message': '管理用の合言葉が未設定のため無効です。'}, 503
+        if not ok:
+            return {'error': 'forbidden'}, 403
+        data = booking.certificate_data(booking_id)
+        if not data:
+            return {'error': 'not_found'}, 404
+        return data
+
+    @app.route('/book/<code>/done')
+    def book_done(code):
+        """決済から戻ってきた受講者に見せる画面。
+
+        ⛔ この画面が開いたことを「決済が終わった」証拠にしないこと。
+           URLは誰でも開ける。成立させるのは webhook の署名検証だけ。
+        """
+        course = booking.COURSE_BY_CODE.get(code)
+        if not course:
+            return 'コースが見つかりません', 404
+        return render_template('course_done.html', c=course,
+                               cancel_policy=booking.CANCEL_POLICY,
+                               seller=booking.SELLER)
+
+    @app.route('/api/stripe/webhook', methods=['POST'])
+    def stripe_webhook():
+        """Stripe からの決済通知。⛔署名を検証してからしか信じない。"""
+        event, err = payments.verify_webhook(
+            request.get_data(), request.headers.get('Stripe-Signature', ''))
+        if err:
+            app.logger.warning('[stripe] 通知を受け取れません: %s', err)
+            return {'error': err}, 400
+        kind = event.get('type')
+        obj = (event.get('data') or {}).get('object') or {}
+        sid = obj.get('id') or ''
+        if kind == 'checkout.session.completed':
+            # ⛔ 未払いのまま成立させないこと（後払い手段では completed でも
+            #    payment_status が unpaid のことがある）
+            if obj.get('payment_status') != 'paid':
+                return {'ok': True, 'skipped': 'unpaid'}
+            rec, inst = booking.mark_paid(sid, obj.get('payment_intent') or '')
+            if rec:
+                _notify_booking(app, rec, inst)
+                app.logger.info('[stripe] 決済完了: %s %s', rec['コース'], rec['氏名'])
+            return {'ok': True}
+        if kind in ('checkout.session.expired', 'checkout.session.async_payment_failed'):
+            if booking.mark_unpaid(sid):
+                app.logger.info('[stripe] 未決済で取消: %s', sid)
+            return {'ok': True}
+        return {'ok': True, 'ignored': kind}
 
 
 def _is_day(s):
@@ -483,6 +641,13 @@ def _notify_booking(app, rec, inst):
 
         # ⛔ 3日間の講座に開始日だけを書かないこと（受講者は1日だと思って申し込む）
         日程 = '・'.join(rec.get('開催日') or [rec['希望日']])
+        # ⛔ 支払い方法を決め打ちしないこと。カードで決済済みの方に
+        #    「請求書をお送りします」と届くと、二重払いの問い合わせになる
+        if rec.get('支払方法') == 'card':
+            pay_note = ('お支払いは完了しております（クレジットカード）。'
+                        '領収書が必要な場合は info@jgaia.org までご連絡ください。')
+        else:
+            pay_note = booking.PAY_NOTE_INVOICE
         body = '\n'.join([
             f"コース: {rec['コース']} {rec['コース名']}",
             f"開催希望日: {日程}",
@@ -491,8 +656,8 @@ def _notify_booking(app, rec, inst):
             f"会社名: {rec['会社名']}" if rec['会社名'] else '',
             f"人数: {rec['人数']}名",
             f"担当講師: {rec['担当講師']}",
-            f"この日の合計: {rec['_合計人数']}名（最少催行 {rec['_最少催行']}名）"
-            + ('→ 開催確定' if rec['_開催確定'] else '→ まだ最少催行に達していません'),
+            f"この日の合計: {rec['_合計人数']}名 → 開催確定",
+            f"講師料（定額）: {booking.instructor_fee(rec['コース']):,}円",
             f"ご要望: {rec['ご要望']}" if rec['ご要望'] else '',
         ])
         resend.Emails.send(notify_payload(
@@ -507,17 +672,13 @@ def _notify_booking(app, rec, inst):
             f"■ 開催希望日: {日程}\n"
             f"■ 人数: {rec['人数']}名\n"
             f"■ 受講料: {rec['受講料_円']:,}円（税込）\n\n"
-            f"{booking.PAY_NOTE}\n\n"
-            f"【開催の確定について】\n"
-            f"このコースは{rec['_最少催行']}名以上で開催します。"
-            + ('現時点で開催が確定しています。\n'
-               if rec['_開催確定'] else
-               '人数が集まり次第、開催の確定をご連絡します。'
-               '集まらない場合は次回へお振替いただけます。\n')
+            f"{pay_note}\n\n"
+            # ⛔ 「人数が集まれば開催します」と書かないこと（最少催行は撤廃済み）。
+            #    1人目の申込者には定義上100%その文面が届く＝いちばん申込を止める
+            f"【開催について】\n"
+            f"お一人からでも開催いたします。上記の日程で開催が確定しています。\n"
             + f"\n【キャンセルについて】\n{booking.CANCEL_POLICY}\n\n"
-            '---\n一般社団法人日本生成AI協会（JGAIA）\n'
-            '〒104-0061 東京都中央区銀座1-22-11 銀座大竹ビジデンス2階\n'
-            'info@jgaia.org / https://www.jgaia.org/\n')
+            + booking.seller_footer())
         resend.Emails.send({'from': f'JGAIA <{FROM_EMAIL}>', 'to': [rec['連絡先']],
                             'subject': f"【JGAIA】{rec['コース名']} お申し込みを承りました",
                             'text': confirm})
@@ -531,10 +692,13 @@ def _notify_booking(app, rec, inst):
                          f"下記の受講申込が入りました。ご担当をお願いできますでしょうか。\n\n"
                          f"■ 日付: {日程}\n"
                          f"■ コース: {rec['コース']} {rec['コース名']}\n"
-                         f"■ 現在の人数: {rec['_合計人数']}名"
-                         f"（最少催行 {rec['_最少催行']}名）\n\n"
-                         f"ご都合が変わった場合は、ご自身の予定画面から'"
-                         f"'その日を「不可」にしてください。\n"
-                         '---\n一般社団法人日本生成AI協会（JGAIA）\n')})
+                         f"■ 現在の人数: {rec['_合計人数']}名\n"
+                         # ⛔ 講師料を人数と並べて書かないこと（連動していると
+                         #    読まれる）。定額であることを明記する
+                         f"■ 講師料: {booking.instructor_fee(rec['コース']):,}円"
+                         f"（1開催あたりの定額・人数によって変わりません）\n\n"
+                         f"ご都合が変わった場合は、ご自身の予定画面から"
+                         f"その日を「不可」にしてください。\n"
+                         + booking.seller_footer())})
     except Exception:
         app.logger.exception('[book] 通知メールに失敗。申込は保存済み: %s', rec['氏名'])

@@ -36,6 +36,11 @@
    ⛔ CSSコメントに Jinja の二重波かっこを書かないこと。式として評価され、
       このページが500になる（2026-08-09 実測。私がやった）。 */
 .day.past { background:none; border-color:transparent; color:#e2e8f0; }
+/* ⛔ 開催日でない日を「予約締切」と同じ見た目にしないこと（締切だらけに見える） */
+/* ⛔ 薄くしすぎないこと。開催日でない日は全体の約7割あり、
+   読めないとカレンダーが空白に見える。押せる日（緑＋白文字＝比2.54）
+   と同等の濃さにし、押せないことは破線の枠で示す（2026-08-15 実測） */
+.day.off { background:#fafafa; border-style:dashed; color:#94a3b8; }
 .day.lead { color:#cbd5e1;
             background:repeating-linear-gradient(45deg,#f8fafc 0 5px,#eef2f7 5px 10px); }
 .day.sel { outline:3px solid #f59e0b; outline-offset:1px; }
@@ -58,6 +63,20 @@
 .bk-submit { width:100%; background:#0d1b3e; color:#fff; border:none; border-radius:8px;
              padding:16px; font-size:17px; font-weight:800; cursor:pointer; margin-top:18px; }
 .bk-submit:disabled { background:#94a3b8; cursor:not-allowed; }
+/* ⛔ 実在するクラスだけを使うこと。定義せずに class を書くと、当たっていない
+   ことに気づけないまま本番に載る（過去に4度再発） */
+.subsidy-box { margin-top:14px; padding:14px 16px; border-radius:8px;
+               background:#f0fdf4; border:1px solid #86efac;
+               font-size:13px; line-height:1.9; color:#14532d; }
+.subsidy-box strong { color:#065f46; }
+.subsidy-box a { color:#065f46; font-weight:700; }
+/* ⛔ .bk-card input は width:100% なので、ラジオは幅を戻すこと */
+.pay { display:grid; gap:8px; margin-bottom:4px; }
+.pay label { display:flex; align-items:center; gap:10px; padding:12px 14px;
+             border:1px solid #cbd5e1; border-radius:8px; background:#fff;
+             font-size:14px; color:#0d1b3e; cursor:pointer; }
+.pay label:hover { background:#f8fafc; }
+.pay input[type="radio"] { width:20px; height:20px; flex:none; margin:0; }
 .terms { font-size:12px; color:#64748b; line-height:1.9; margin-top:14px;
          border-top:1px solid #e2e8f0; padding-top:14px; }
 .bk-done { background:#ecfdf5;border:1px solid #a7f3d0;border-radius:10px;
@@ -80,7 +99,8 @@
     <div class="bk-meta">
       <span>{{ c['hours'] }}</span>
       <span>定員 {{ c['capacity'] }}名</span>
-      <span>最少催行 {{ c['min_people'] }}名</span>
+      {# ⛔ 「最少催行」を出さないこと（撤廃済み）。1名から開催します #}
+      <span>お一人から開催</span>
     </div>
     <div class="bk-price">¥{{ '{:,}'.format(c['price']) }}<small>（税込）</small></div>
   </div>
@@ -89,17 +109,15 @@
     <h2>1. 開催日を選ぶ</h2>
     <div class="hint">
       緑の日をお選びください。講師の都合により、日程は変わることがあります。<br>
-      <strong>開催の{{ lead_days }}日以上前まで</strong>のお申し込みを承っています。
+      <strong>開催の{{ lead_days }}日以上前まで</strong>のお申し込みを承っています。<br>
+      {{ session_note }}
       {% if course_days > 1 %}
         {# ⛔ 「1日だけ」と誤解させないこと。⛔ 毎週の講座に「つづけて」と書かない #}
         <br>
-        {% if course_interval > 1 %}
-          <strong>この講座は全{{ course_days }}回・1週間おきに開催します。</strong>
-          お選びいただくのは<strong>初回の日</strong>で、以降は毎週同じ曜日に続きます。
-        {% else %}
-          <strong>この講座は{{ course_days }}日間つづけて開催します。</strong>
-          お選びいただくのは<strong>初日</strong>で、翌日以降も続けてご参加いただきます。
-        {% endif %}
+        {# ⛔ ここで文言を組み立て直さないこと。booking.series_note() が唯一の
+           出どころで、2か所で作ると片方だけ古い言い方が残る（2026-08-15 実害） #}
+        <strong>この講座は{{ series_note }}。</strong>
+        お選びいただくのは<strong>初回の日</strong>で、以降も続けてご参加いただきます。
       {% endif %}
     </div>
 
@@ -115,6 +133,7 @@
         <span><i style="background:#10b981"></i>お申し込みできる</span>
         <span><i style="background:#e5e7eb"></i>予約締切（講師の都合）</span>
         <span><i style="background:repeating-linear-gradient(45deg,#f8fafc 0 4px,#eef2f7 4px 8px);border:1px solid #e2e8f0"></i>{{ lead_days }}日以内</span>
+        <span><i style="background:#fafafa;border:1px dashed #cbd5e1"></i>開催日ではない</span>
       </div>
 
       {% for m in months %}
@@ -133,9 +152,9 @@
                    月初が濃いグレーの「予約締切」になり、締切だらけに見えた） #}
                 {% set info = days.get(d) %}
                 {% set st = info['状態'] if info else '終了' %}
-                <div class="day {% if st == '予約可' %}open{% elif st == '準備期間' %}lead{% elif st == '終了' %}past{% else %}closed{% endif %}"
+                <div class="day {% if st == '予約可' %}open{% elif st == '準備期間' %}lead{% elif st == '非開催日' %}off{% elif st == '終了' %}past{% else %}closed{% endif %}"
                      {% if st == '予約可' %}data-day="{{ d }}"{% endif %}
-                     title="{% if st == '予約可' %}お申し込みできます（担当できる講師 {{ info['講師数'] }}名）{% elif st == '準備期間' %}{{ lead_days }}日以内のため受付対象外です{% elif st == '終了' %}過ぎた日です{% else %}予約締切です{% endif %}">
+                     title="{% if st == '予約可' %}お申し込みできます（担当できる講師 {{ info['講師数'] }}名）{% elif st == '準備期間' %}{{ lead_days }}日以内のため受付対象外です{% elif st == '非開催日' %}開催日ではありません{% elif st == '終了' %}過ぎた日です{% else %}予約締切です{% endif %}">
                   {{ d[8:]|int }}
                   {% if st == '予約可' %}<small>空き</small>{% endif %}
                 </div>
@@ -165,15 +184,21 @@
     <label class="f">ご要望・ご質問（任意）</label>
     <textarea id="bk-message" placeholder="ご質問や、当日までに知りたいことをご記入ください"></textarea>
 
+    {# ⛔ カード決済が未設定のときに選択肢を出さないこと。押した先で
+       「未設定です」と断ることになる（画面と実際を一致させる） #}
+    {% if card_enabled %}
+    <label class="f">お支払い方法</label>
+    <div class="pay">
+      <label><input type="radio" name="pay" value="card" checked>
+        <span>クレジットカード（この場でお支払い）</span></label>
+      <label><input type="radio" name="pay" value="invoice">
+        <span>請求書・銀行振込（法人の方）</span></label>
+    </div>
+    {% endif %}
+
     <button type="button" class="bk-submit" id="bkSubmit" disabled>お申し込みする</button>
     <div class="bk-err" id="bkErr"></div>
 
-    <div class="terms">
-      <strong>お支払い</strong>：{{ pay_note }}<br>
-      <strong>開催の確定</strong>：このコースは{{ c['min_people'] }}名以上で開催します。
-      人数が集まらない場合は次回へお振替いただけます。<br>
-      <strong>キャンセル</strong>：{{ cancel_policy }}
-    </div>
   </div>
 
   <div class="bk-done" id="bkDone">
@@ -181,6 +206,50 @@
     <p id="bkDoneMsg"></p>
   </div>
   {% endif %}
+
+  {# ⛔ お取引の条件（諸経費・販売事業者・キャンセル）を申込フォームの
+     中に置かないこと。予約できる日が0件のときフォームごと消え、
+     特定商取引法にかかわる表示まで画面から無くなる（2026-08-15 実害）。
+     日程の有無と関係なく出す。
+     ⛔ .bk-card の外に出したので、枠が付くよう自前で包むこと（そうしないと
+        ページの背景に文字が直に載る） #}
+  <div class="bk-card">
+    <h2>お取引の条件</h2>
+    <div class="terms" style="margin-top:0;border-top:none;padding-top:0;">
+      <strong>お支払い</strong>：{{ pay_note }}<br>
+      {# ⛔ 「人数が集まらない場合は次回へお振替」を戻さないこと。最少催行は
+         撤廃済みで、この一文は1人目の申込者に必ず届き、いちばん申込を止める #}
+      <strong>開催の確定</strong>：<strong>お一人からでも開催します。</strong>
+      お申し込みの時点で開催が確定します。<br>
+      {# ⛔ 開催方法と諸経費を書かないまま決済させないこと。受講者は
+         どこへ行くのか・追加費用が出るのかを知らないまま払うことになる #}
+      <strong>開催方法</strong>：<strong>オンライン（Zoom）</strong>が既定です。
+      会場開催をご希望の場合はお申し込み前に info@jgaia.org までご連絡ください
+      （{{ extra_cost_note }}）<br>
+      <strong>キャンセル</strong>：{{ cancel_policy }}<br>
+      <strong>販売事業者</strong>：{{ seller['name'] }}（{{ seller['brand'] }} 認定講座）
+      — <a href="{{ url_for('tokutei') }}">特定商取引法に基づく表記</a>
+    </div>
+
+    {% if subsidy and subsidy['eligible'] %}
+    {# ⛔ 「助成金対象」とだけ書かないこと。個人が自腹で受ける場合は対象外で、
+       申し込んでから受けられないと分かる形がいちばん信用を失う #}
+    <div class="subsidy-box">
+      <strong>法人のお客様へ：受講料の4分の3が助成されます</strong><br>
+      東京しごと財団のDXリスキリング助成金の対象講座です
+      （助成 ▲¥{{ '{:,}'.format(subsidy['grant']) }} →
+      <strong>実質 ¥{{ '{:,}'.format(subsidy['net']) }}</strong>）。<br>
+      法人が従業員の方を研修として派遣し、受講料の全額を法人が負担する場合が対象です
+      （代表者ご本人・個人事業主ご本人は対象外）。<br>
+      {# ⛔ 期限は「何日前」ではなく実際の日付で出す。読み手に数えさせない #}
+      交付申請は研修開始の1か月前までのため、
+      <strong>{{ subsidy_from }} 以降の開催日</strong>をお選びください
+      （{{ subsidy_lead }}日前まで）。お支払いは<strong>請求書払い</strong>をお選びください
+      （カード払い・ご本人のお支払いは助成の対象外になります）。<br>
+      <a href="{{ url_for('subsidy') }}">助成金のご案内・申請の流れ →</a>
+    </div>
+    {% endif %}
+  </div>
 
 </div>
 </main>
@@ -221,7 +290,11 @@
       course: COURSE, day: picked, name: name, email: email,
       company: document.getElementById('bk-company').value.trim(),
       people: document.getElementById('bk-people').value,
-      message: document.getElementById('bk-message').value.trim()
+      message: document.getElementById('bk-message').value.trim(),
+      // ⛔ 選択肢が出ていないときは 'invoice' を送ること。既定の 'card' を
+      //    送ると、鍵が無い環境でサーバー側の分岐と食い違う
+      pay: (document.querySelector('input[name="pay"]:checked') || {}).value
+           || 'invoice'
     };
     // 蜜壺と発行時刻（これが無いとサーバー側で弾かれる）
     data = window.jgaiaAntispam ? window.jgaiaAntispam(data) : data;
@@ -236,15 +309,15 @@
         return j;
       });
     }).then(function (j) {
+      // カード払いは Stripe の決済ページへ送る。⛔ここで完了画面を出さないこと
+      //   （まだ1円も払われていない）
+      if (j['決済へ']) { window.location.href = j['決済へ']; return; }
       document.getElementById('pickCard').style.display = 'none';
       document.getElementById('formCard').style.display = 'none';
-      var msg = j['開催確定']
-        ? 'この日程は開催が確定しました（' + j['合計人数'] + '名）。'
-          + '請求書と当日のご案内をメールでお送りします。'
-        : '現在 ' + j['合計人数'] + '名です。'
-          + '最少催行 ' + j['最少催行'] + '名に達し次第、開催の確定をご連絡します。'
-          + '集まらない場合は次回へお振替いただけます。';
-      document.getElementById('bkDoneMsg').textContent = msg;
+      // ⛔ 「最少催行に達し次第ご連絡します」を戻さないこと（撤廃済み）
+      document.getElementById('bkDoneMsg').textContent =
+        'この日程で開催が確定しました（現在 ' + j['合計人数'] + '名）。'
+        + '当日のご案内をメールでお送りします。';
       var done = document.getElementById('bkDone');
       done.style.display = 'block';
       done.scrollIntoView({behavior: 'smooth', block: 'center'});

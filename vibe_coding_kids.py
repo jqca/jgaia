@@ -8,7 +8,13 @@ RESEND_API_KEY = os.getenv('RESEND_API_KEY', '')
 def register_vibe_coding_kids_routes(app):
     @app.route('/vibe-coding/kids')
     def vibe_coding_kids():
-        return render_template('vibe_coding_kids.html')
+        # ⛔ 価格をテンプレートに直書きしないこと。booking.COURSES が唯一の
+        #    出どころで、ここがズレると紹介と申込で金額が食い違う
+        import booking
+        return render_template(
+            'vibe_coding_kids.html',
+            kids={k: booking.COURSE_BY_CODE[k]['price']
+                  for k in ('GK1', 'GK2', 'GK3')})
 
     @app.route('/api/kids-inquiry', methods=['POST'])
     def kids_inquiry_api():

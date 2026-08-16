@@ -4,3 +4,5 @@ Disallow: /api/
 Disallow: /healthz
 
 Sitemap: https://www.jgaia.org/sitemap.xml
+
+# AI向けの要約（llms.txt）: https://www.jgaia.org/llms.txt
