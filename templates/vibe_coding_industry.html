@@ -4,8 +4,12 @@
 {% block description %}{{ ind.name }}分野の生成AIアプリ開発スキルをゼロから習得。JGAIA認定修了証発行。プロンプト特典付き。{% endblock %}
 
 {% block extra_head %}
+{# ⛔ Syne / DM Sans をここで読み込まないこと（社長ご指摘 2026-08-17・2度目）。
+   どちらも欧文専用で和文の字形を持たないため、「3つのコース」「（1日）」「¥49,800〜」の
+   ように数字や英字が日本語に混ざると、その文字だけ別書体で描かれて不揃いに見える。
+   協会サイト（base.html）は 'Noto Sans','Noto Sans JP' で統一されており割れない。
+   和文フォントは base.html が読み込むので、このページ用の読み込みは不要。 #}
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;700&family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
 {% endblock %}
 
 {% block extra_css %}
@@ -26,11 +30,11 @@
   .ind-body {
     background: #ffffff;
     color: #1a1a2e;
-    font-family: 'DM Sans', 'Noto Sans JP', sans-serif;
+    font-family: 'Noto Sans', 'Noto Sans JP', sans-serif;
     line-height: 1.7;
   }
   .ind-body h1, .ind-body h2, .ind-body h3,
-  .ind-hero h1 { font-family: 'Syne', 'Noto Sans JP', sans-serif; }
+  .ind-hero h1 { font-family: 'Noto Sans', 'Noto Sans JP', sans-serif; }
 
   /* ── ヒーロー（協会サイトの紺の上に、業界色を薄く重ねる） ── */
   .ind-hero {
@@ -40,7 +44,7 @@
     min-height: 76vh;            /* ヘッダー（8em）と足して1画面に収まる高さ */
     padding: 40px 24px 72px;
     color: #fff;
-    font-family: 'DM Sans', 'Noto Sans JP', sans-serif;
+    font-family: 'Noto Sans', 'Noto Sans JP', sans-serif;
     line-height: 1.7;
   }
   /* ⛔ 上端から色を乗せないこと＝ヘッダーの帯との間に横一本の継ぎ目が出て、
@@ -67,7 +71,7 @@
     color: rgba(255,255,255,0.85);
     padding: 6px 18px; border-radius: 24px;
     font-size: 0.8rem; font-weight: 700; letter-spacing: 0.08em;
-    margin-bottom: 28px; font-family: 'Syne', sans-serif;
+    margin-bottom: 28px; font-family: 'Noto Sans', 'Noto Sans JP', sans-serif;
   }
   .ind-hero h1 {
     font-size: clamp(2.2rem, 6vw, 4rem); font-weight: 900;
@@ -107,7 +111,7 @@
     display: inline-block; font-size: 0.72rem; font-weight: 800;
     letter-spacing: 0.15em; padding: 5px 14px; border-radius: 20px; margin-bottom: 14px;
     background: rgba({{ ind.accent_rgb }},0.15); color: {{ ind.accent }};
-    font-family: 'Syne', sans-serif;
+    font-family: 'Noto Sans', 'Noto Sans JP', sans-serif;
   }
   .section-title {
     font-size: clamp(1.7rem, 3.5vw, 2.4rem); font-weight: 900;
