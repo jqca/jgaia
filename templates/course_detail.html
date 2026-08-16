@@ -231,35 +231,6 @@
   color:var(--c-text-s);line-height:1.7;
 }
 
-/* ── 講師 ── */
-.instructor-card {
-  display:flex;gap:32px;align-items:center;
-  background:var(--c-ink-s);
-  padding:40px;
-}
-.instructor-avatar {
-  flex-shrink:0;
-  width:100px;height:100px;
-  border-radius:50%;
-  background:{{ c.gradient }};
-  display:flex;align-items:center;justify-content:center;
-  font-family:var(--c-font-d);font-size:32px;font-weight:800;color:#fff;
-}
-.instructor-info {flex:1;min-width:0}
-.instructor-name {
-  font-family:var(--c-font-d);
-  font-size:22px;font-weight:800;color:var(--c-text);
-  margin-bottom:4px;
-}
-.instructor-role {
-  font-size:13px;color:var(--c-accent-l);
-  font-weight:500;margin-bottom:12px;
-}
-.instructor-bio {
-  font-size:13.5px;font-weight:300;
-  color:var(--c-text-s);line-height:1.8;
-}
-
 /* ── 助成金 ── */
 .subsidy-sec {
   background:var(--c-ink-s);
@@ -404,7 +375,6 @@
   .cur-item {padding:20px;gap:14px}
   .cur-num {width:32px;height:32px;font-size:11px}
   .out-grid {grid-template-columns:1fr}
-  .instructor-card {flex-direction:column;text-align:center;padding:28px 24px}
   .subsidy-grid {grid-template-columns:1fr}
   .form-wrap {grid-template-columns:1fr}
   .c-form-group.full {grid-column:1}
@@ -500,27 +470,11 @@
   </div>
 </section>
 
-<!-- 講師 -->
-<section class="c-sec">
-  <div class="c-sec-inner">
-    <div class="c-sec-eyebrow"><span class="c-sec-eyebrow-line"></span>INSTRUCTOR</div>
-    <h2 class="c-sec-heading">講師紹介</h2>
-    <p class="c-sec-sub">AI・量子コンピューティング分野の第一人者が直接指導します。</p>
-    <div class="instructor-card">
-      <div class="instructor-avatar">HT</div>
-      <div class="instructor-info">
-        <div class="instructor-name">高野 秀隆</div>
-        <div class="instructor-role">一般社団法人日本生成AI協会（JGAIA）代表理事</div>
-        <p class="instructor-bio">
-          一般社団法人日本生成AI協会（JGAIA）代表理事。一般社団法人日本量子コンピューティング協会（JQCA）代表理事。
-          株式会社長大 クオンタム推進部 部長。国家プロジェクト（SIP・NEDO）の研究開発を推進する傍ら、
-          全国でAI・量子コンピューティングの人材育成に取り組む。バイブコーディングを活用した40業界対応の
-          AIアプリケーション開発実績を持ち、実務に直結する講座を提供。
-        </p>
-      </div>
-    </div>
-  </div>
-</section>
+{# ⛔ 「講師紹介」セクションを戻さないこと（2026-08-16 社長ご指示）。
+   代表理事は講座の講師をしない。講師は登録・承認した方が担当する
+   （/instructor/register → /admin/instructors → その日の担当）ので、
+   特定の1名を全講座の講師として固定で載せると事実と食い違う。
+   担当講師を出すなら、載せてよいのは booking 側の登録済みの担当だけ。 #}
 
 <!-- 助成金 -->
 {% if c.subsidy %}
