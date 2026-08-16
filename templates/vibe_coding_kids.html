@@ -33,6 +33,11 @@
     --border-l: #d1d9e6;
     --font-d:   'Syne','Noto Sans JP',sans-serif;
     --font:     'DM Sans','Noto Sans JP',sans-serif;
+    /* 協会サイト（base.html）と同じ書体。⛔ Syne / DM Sans は欧文専用で
+       和文の字形を持たないため、数字と日本語が並ぶと1行の中で2書体に割れる
+       （実測「小3〜」＝小:Noto / 3:Syne / 〜:Noto ・「0行」＝0:Syne / 行:Noto）。
+       料金・数字のように和欧が必ず混ざる表示にはこちらを使う。 */
+    --font-site: 'Noto Sans','Noto Sans JP',sans-serif;
     --r:        4px;
     --ease:     cubic-bezier(0.16, 1, 0.3, 1);
   }
@@ -114,8 +119,10 @@
   }
   /* ⛔ ヒーローの数字・ラベルに本文用の色（--accent-l #1d4ed8 / --text-s #4a5568）を
      使わないこと＝下地が濃紺なので、どちらも読めない濃さになる。 */
+  /* ⛔ ここを var(--font-d)（Syne）に戻さないこと＝「小3〜」「0行」「¥9,800〜」の
+     ように和欧が混ざるので、数字だけ別書体になって不揃いに見える（社長ご指摘 2026-08-17）。 */
   .hero-stat .num{
-    font-family:var(--font-d);font-size:1.6rem;font-weight:800;
+    font-family:var(--font-site);font-size:1.6rem;font-weight:800;
     color:#22d3ee;line-height:1;
   }
   .hero-stat .label{font-size:11px;color:rgba(255,255,255,0.55);margin-top:6px;letter-spacing:.04em}
@@ -198,7 +205,8 @@
   .meta-item{background:rgba(0,0,0,0.02);border-radius:8px;padding:10px 12px}
   .meta-label{font-size:10px;color:var(--text-m);margin-bottom:2px;letter-spacing:.04em}
   .meta-value{font-size:0.88rem;font-weight:600;color:var(--text)}
-  .course-price{font-family:var(--font-d);font-size:1.6rem;font-weight:800;margin:18px 0 16px}
+  /* ⛔ 受講料も Syne に戻さないこと（「¥9,800 （税込・1組）」で数字と和文が割れる）。 */
+  .course-price{font-family:var(--font-site);font-size:1.6rem;font-weight:800;margin:18px 0 16px}
   .course-price span{font-size:0.78rem;font-weight:400;color:var(--text-m)}
   .cc-gk1 .course-price{color:#c2410c}
   .cc-gk2 .course-price{color:#0e7490}
