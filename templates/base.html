@@ -341,14 +341,22 @@
             gap: 1rem;
             align-items: center;
         }
+        /* ── アイコン（Lucide・icons.py）──
+           ⛔ 色を指定しないこと＝currentColor で親の文字色を継ぐ。これで
+              濃紺のヘッダーでも白地の本文でも、同じ指定のまま正しく見える。
+           ⛔ vertical-align を外さないこと＝文字と並べたときに行から浮く。 */
+        .lc { display: inline-block; vertical-align: -0.15em; flex: none; }
+
         .hamburger {
             display: none;
-            font-size: clamp(2rem, 8vw, 5rem);
+            line-height: 0;
             cursor: pointer;
             position: absolute;
             right: 20px; top: 20px;
             color: #fff;
         }
+        /* 絵文字は font-size で伸び縮みしていたので、SVGも画面幅に追従させる */
+        .hamburger .lc { width: clamp(28px, 7vw, 44px); height: auto; }
 
         /* モバイルメニュー */
         .mobile-menu {
@@ -398,8 +406,8 @@
         }
         .close-btn {
             position: absolute;
-            top: 10px; right: 10px;
-            font-size: 30px; cursor: pointer; color: white;
+            top: 14px; right: 14px;
+            line-height: 0; cursor: pointer; color: white;
         }
 
         /* ── 背景 ── */
@@ -932,10 +940,10 @@
                 </div>
             </div>
         </nav>
-        <div class="hamburger" onclick="toggleMenu()">&#9776;</div>
+        <div class="hamburger" onclick="toggleMenu()" role="button" aria-label="メニューを開く">{{ icon('menu', 34) }}</div>
     </div>
     <div class="mobile-menu" id="mobileMenu">
-        <div class="close-btn" onclick="toggleMenu()">&#10005;</div>
+        <div class="close-btn" onclick="toggleMenu()" role="button" aria-label="メニューを閉じる">{{ icon('x', 28) }}</div>
         <ul class="mobile-menu-list">
             <li class="mobile-nav-item"><a href="/">ホーム <span>Home</span></a></li>
             <li class="mobile-nav-item"><a href="/company-info">協会情報 <span>About</span></a></li>

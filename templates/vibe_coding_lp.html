@@ -171,7 +171,9 @@
     transform: translateY(-2px);
 }
 .problem-num { font-size: 11px; font-weight: 700; letter-spacing: .15em; color: #3b82f6; margin-bottom: 12px; }
-.problem-icon { font-size: 28px; margin-bottom: 12px; }
+/* アイコンは Lucide（icons.py）。色は指定せず currentColor を継ぐので、
+   ここで色を決めると中のSVGにそのまま効く */
+.problem-icon { color: #3b82f6; line-height: 0; margin-bottom: 12px; }
 .problem-card h3 { font-size: 15px; font-weight: 700; color: #0d1b3e; margin-bottom: 8px; }
 .problem-card p { font-size: 13px; color: #64748b; line-height: 1.7; }
 
@@ -331,7 +333,7 @@
     transition: all .2s;
 }
 .corp-item:hover { border-color: #3b82f6; background: #fff; }
-.corp-item-icon { font-size: 24px; margin-bottom: 8px; }
+.corp-item-icon { color: #3b82f6; line-height: 0; margin-bottom: 8px; }
 .corp-item h4 { font-size: 14px; font-weight: 700; color: #0d1b3e; margin-bottom: 4px; }
 .corp-item p { font-size: 12px; color: #64748b; line-height: 1.7; }
 
@@ -520,10 +522,10 @@
       <p class="sec-desc">エンジニア不足・外注コスト・セキュリティ不安。企業のDX推進を阻む壁に、バイブコーディングという新しい解を。</p>
     </div>
     <div class="problems-grid">
-      <div class="problem-card"><div class="problem-num">01</div><div class="problem-icon">💸</div><h3>外注すると数百万</h3><p>ちょっとした社内ツールを作りたいだけなのに、見積もりを見て断念した経験はありませんか。</p></div>
-      <div class="problem-card"><div class="problem-num">02</div><div class="problem-icon">👤</div><h3>エンジニアが採れない</h3><p>IT人材は2030年に79万人不足。中小企業では技術者の確保がますます困難に。</p></div>
-      <div class="problem-card"><div class="problem-num">03</div><div class="problem-icon">📚</div><h3>情報が散らばっている</h3><p>YouTube、ブログ、SNS…断片的な情報はあるけれど、体系的に学べる場所がない。</p></div>
-      <div class="problem-card"><div class="problem-num">04</div><div class="problem-icon">🔒</div><h3>セキュリティが不安</h3><p>AIが書いたコードは安全なのか。社内利用のガバナンスと脆弱性対策の知識が必要。</p></div>
+      <div class="problem-card"><div class="problem-num">01</div><div class="problem-icon">{{ icon('receipt-japanese-yen', 30, stroke=1.6) }}</div><h3>外注すると数百万</h3><p>ちょっとした社内ツールを作りたいだけなのに、見積もりを見て断念した経験はありませんか。</p></div>
+      <div class="problem-card"><div class="problem-num">02</div><div class="problem-icon">{{ icon('user-x', 30, stroke=1.6) }}</div><h3>エンジニアが採れない</h3><p>IT人材は2030年に79万人不足。中小企業では技術者の確保がますます困難に。</p></div>
+      <div class="problem-card"><div class="problem-num">03</div><div class="problem-icon">{{ icon('book-open', 30, stroke=1.6) }}</div><h3>情報が散らばっている</h3><p>YouTube、ブログ、SNS…断片的な情報はあるけれど、体系的に学べる場所がない。</p></div>
+      <div class="problem-card"><div class="problem-num">04</div><div class="problem-icon">{{ icon('shield-alert', 30, stroke=1.6) }}</div><h3>セキュリティが不安</h3><p>AIが書いたコードは安全なのか。社内利用のガバナンスと脆弱性対策の知識が必要。</p></div>
     </div>
   </div>
 </section>
@@ -554,10 +556,10 @@
       <div class="course-card-lp c-a" id="course-ga">
         <div class="course-head"><span class="course-step-tag">COURSE GA</span><h3>生成AI入門1日</h3></div>
         <div class="course-body-lp">
-          <div class="course-meta-lp"><span>🕐 1日（6時間）</span><span>👤 未経験者・経営者・管理職</span><span>💻 会場＋オンライン</span></div>
+          <div class="course-meta-lp"><span>{{ icon('clock', 14) }} 1日（6時間）</span><span>{{ icon('user-round', 14) }} 未経験者・経営者・管理職</span><span>{{ icon('monitor', 14) }} 会場＋オンライン</span></div>
           <p class="course-desc-lp">ChatGPT・Claude・Gemini の違いと使い分けからプロンプトエンジニアリングまで。6時間で主要AI 3ツールを使いこなせるようになります。</p>
           <div class="course-price"><span class="price-main">¥{{ '{:,}'.format(prices['GA']) }}</span><span class="price-sub">（税込）</span></div>
-          <div class="price-subsidy">💰 法人研修なら助成金対象 — 実質 ¥{{ '{:,}'.format(subsidy_net_typical) }}</div>
+          <div class="price-subsidy">{{ icon('banknote', 15, stroke=1.8) }} 法人研修なら助成金対象 — 実質 ¥{{ '{:,}'.format(subsidy_net_typical) }}</div>
           <a href="/vibe-coding/course-ga" class="toggle-btn" style="display:block;text-align:center;text-decoration:none">コース詳細を見る →</a>
         </div>
       </div>
@@ -565,10 +567,10 @@
       <div class="course-card-lp c-b" id="course-gb">
         <div class="course-head"><span class="course-step-tag">COURSE GB</span><h3>バイブコーディング実践1日</h3></div>
         <div class="course-body-lp">
-          <div class="course-meta-lp"><span>🕐 1日（6時間）</span><span>👤 業務アプリを自作したい方</span><span>💻 会場＋オンライン</span></div>
+          <div class="course-meta-lp"><span>{{ icon('clock', 14) }} 1日（6時間）</span><span>{{ icon('user-round', 14) }} 業務アプリを自作したい方</span><span>{{ icon('monitor', 14) }} 会場＋オンライン</span></div>
           <p class="course-desc-lp">AIへの指示だけで業務アプリを企画・実装・デプロイまで。6時間で実際に動くアプリを完成させます。</p>
           <div class="course-price"><span class="price-main">¥{{ '{:,}'.format(prices['GB']) }}</span><span class="price-sub">（税込）</span></div>
-          <div class="price-subsidy">💰 法人研修なら助成金対象 — 実質 ¥{{ '{:,}'.format(subsidy_net_typical) }}</div>
+          <div class="price-subsidy">{{ icon('banknote', 15, stroke=1.8) }} 法人研修なら助成金対象 — 実質 ¥{{ '{:,}'.format(subsidy_net_typical) }}</div>
           <a href="/vibe-coding/course-gb" class="toggle-btn" style="display:block;text-align:center;text-decoration:none">コース詳細を見る →</a>
         </div>
       </div>
@@ -576,7 +578,7 @@
       <div class="course-card-lp c-c" id="course-gc">
         <div class="course-head"><span class="course-step-tag">COURSE GC</span><h3>AI業務自動化マスター 全5回夜間</h3></div>
         <div class="course-body-lp">
-          <div class="course-meta-lp"><span>🕐 全5回（12.5時間）</span><span>👤 働きながら学ぶ社会人</span><span>💻 オンライン（水19:00-21:30）</span></div>
+          <div class="course-meta-lp"><span>{{ icon('clock', 14) }} 全5回（12.5時間）</span><span>{{ icon('user-round', 14) }} 働きながら学ぶ社会人</span><span>{{ icon('monitor', 14) }} オンライン（水19:00-21:30）</span></div>
           <p class="course-desc-lp">毎週水曜夜に受講。AI業務自動化スキルを体系的に習得し、受講中に自分の業務改善アプリを完成させます。</p>
           <div class="course-price"><span class="price-main">¥{{ '{:,}'.format(prices['GC']) }}</span><span class="price-sub">（税込）</span></div>
           <div class="price-subsidy" style="color:#64748b">※ 助成金対象外（10時間超のため）</div>
@@ -587,10 +589,10 @@
       <div class="course-card-lp c-d" id="course-gd">
         <div class="course-head"><span class="course-step-tag">COURSE GD</span><h3>AIセキュリティ・ガバナンス</h3></div>
         <div class="course-body-lp">
-          <div class="course-meta-lp"><span>🕐 1日（6時間）</span><span>👤 AI利用ルール策定・情報セキュリティ担当</span><span>💻 会場＋オンライン</span></div>
+          <div class="course-meta-lp"><span>{{ icon('clock', 14) }} 1日（6時間）</span><span>{{ icon('user-round', 14) }} AI利用ルール策定・情報セキュリティ担当</span><span>{{ icon('monitor', 14) }} 会場＋オンライン</span></div>
           <p class="course-desc-lp">AI生成コードの脆弱性対策、プロンプトインジェクション防御、社内AIガイドライン策定を実践的に学びます。</p>
           <div class="course-price"><span class="price-main">¥{{ '{:,}'.format(prices['GD']) }}</span><span class="price-sub">（税込）</span></div>
-          <div class="price-subsidy">💰 法人研修なら助成金対象 — 実質 ¥{{ '{:,}'.format(subsidy_net_typical) }}</div>
+          <div class="price-subsidy">{{ icon('banknote', 15, stroke=1.8) }} 法人研修なら助成金対象 — 実質 ¥{{ '{:,}'.format(subsidy_net_typical) }}</div>
           <a href="/vibe-coding/course-gd" class="toggle-btn" style="display:block;text-align:center;text-decoration:none">コース詳細を見る →</a>
         </div>
       </div>
@@ -601,10 +603,10 @@
       <div class="course-card-lp" style="border-color:#8b5cf6" id="course-ge">
         <div class="course-head"><span class="course-step-tag" style="background:#8b5cf6">COURSE GE</span><h3>AIクリエイティブデザイン</h3></div>
         <div class="course-body-lp">
-          <div class="course-meta-lp"><span>🕐 1日（6時間）</span><span>👤 デザイン・マーケティング・広報担当</span><span>💻 会場＋オンライン</span></div>
+          <div class="course-meta-lp"><span>{{ icon('clock', 14) }} 1日（6時間）</span><span>{{ icon('user-round', 14) }} デザイン・マーケティング・広報担当</span><span>{{ icon('monitor', 14) }} 会場＋オンライン</span></div>
           <p class="course-desc-lp">画像生成AI（Midjourney / DALL-E / Stable Diffusion）、動画生成AI（Sora等）、音声AIを活用したクリエイティブワークフローを習得します。</p>
           <div class="course-price"><span class="price-main">¥{{ '{:,}'.format(prices['GE']) }}</span><span class="price-sub">（税込）</span></div>
-          <div class="price-subsidy">💰 法人研修なら助成金対象 — 実質 ¥{{ '{:,}'.format(subsidy_net_typical) }}</div>
+          <div class="price-subsidy">{{ icon('banknote', 15, stroke=1.8) }} 法人研修なら助成金対象 — 実質 ¥{{ '{:,}'.format(subsidy_net_typical) }}</div>
           <a href="/vibe-coding/course-ge" class="toggle-btn" style="display:block;text-align:center;text-decoration:none;border-color:#8b5cf6;color:#8b5cf6">コース詳細を見る →</a>
         </div>
       </div>
@@ -613,13 +615,13 @@
     <!-- 子ども向け・業種特化リンク -->
     <div style="margin-top:48px;display:grid;grid-template-columns:1fr 1fr;gap:20px">
       <a href="/vibe-coding/kids" style="display:block;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:28px;text-decoration:none;transition:all .2s">
-        <div style="font-size:28px;margin-bottom:10px">👧👦</div>
+        <div style="margin-bottom:10px;color:#3b82f6">{{ icon('users-round', 28, stroke=1.6) }}</div>
         <h3 style="font-size:16px;font-weight:700;color:#0d1b3e;margin-bottom:6px">子ども向けコース（GK1/GK2/GK3）</h3>
         <p style="font-size:13px;color:#64748b;line-height:1.7;margin-bottom:12px">小3〜中3対象。親子参加OK。¥9,800〜のプログラミング体験。</p>
         <span style="font-size:13px;font-weight:600;color:#3b82f6">詳細を見る →</span>
       </a>
       <a href="/vibe-coding/manufacturing" style="display:block;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:28px;text-decoration:none;transition:all .2s">
-        <div style="font-size:28px;margin-bottom:10px">🏭🏥🏦🚚🏗️</div>
+        <div style="margin-bottom:10px;display:flex;gap:10px;color:#3b82f6">{{ icon('factory', 24, stroke=1.6) }}{{ icon('stethoscope', 24, stroke=1.6) }}{{ icon('landmark', 24, stroke=1.6) }}{{ icon('truck', 24, stroke=1.6) }}{{ icon('hard-hat', 24, stroke=1.6) }}</div>
         <h3 style="font-size:16px;font-weight:700;color:#0d1b3e;margin-bottom:6px">業種特化型コース（5業種×3段階）</h3>
         <p style="font-size:13px;color:#64748b;line-height:1.7;margin-bottom:12px">製造業・医療・金融・物流・建設。業界固有の課題をAIで解決。¥{{ '{:,}'.format(prices['GM-A']) }}〜</p>
         <span style="font-size:13px;font-weight:600;color:#3b82f6">詳細を見る →</span>
@@ -672,12 +674,12 @@
         <a href="#inquiry-section" class="btn-corp">法人研修のご相談 →</a>
       </div>
       <div class="corp-grid">
-        <div class="corp-item"><div class="corp-item-icon">🏭</div><h4>製造業</h4><p>生産管理・品質検査の自動化</p></div>
-        <div class="corp-item"><div class="corp-item-icon">🏦</div><h4>金融</h4><p>リスク分析・レポート自動化</p></div>
-        <div class="corp-item"><div class="corp-item-icon">🏥</div><h4>医療</h4><p>データ管理・予約システム</p></div>
-        <div class="corp-item"><div class="corp-item-icon">🏗️</div><h4>建設</h4><p>施工管理・安全報告の効率化</p></div>
-        <div class="corp-item"><div class="corp-item-icon">🚚</div><h4>物流</h4><p>配送最適化・在庫管理</p></div>
-        <div class="corp-item"><div class="corp-item-icon">🏛️</div><h4>自治体</h4><p>住民サービス・窓口DX</p></div>
+        <div class="corp-item"><div class="corp-item-icon">{{ icon('factory', 26, stroke=1.6) }}</div><h4>製造業</h4><p>生産管理・品質検査の自動化</p></div>
+        <div class="corp-item"><div class="corp-item-icon">{{ icon('landmark', 26, stroke=1.6) }}</div><h4>金融</h4><p>リスク分析・レポート自動化</p></div>
+        <div class="corp-item"><div class="corp-item-icon">{{ icon('stethoscope', 26, stroke=1.6) }}</div><h4>医療</h4><p>データ管理・予約システム</p></div>
+        <div class="corp-item"><div class="corp-item-icon">{{ icon('hard-hat', 26, stroke=1.6) }}</div><h4>建設</h4><p>施工管理・安全報告の効率化</p></div>
+        <div class="corp-item"><div class="corp-item-icon">{{ icon('truck', 26, stroke=1.6) }}</div><h4>物流</h4><p>配送最適化・在庫管理</p></div>
+        <div class="corp-item"><div class="corp-item-icon">{{ icon('building-2', 26, stroke=1.6) }}</div><h4>自治体</h4><p>住民サービス・窓口DX</p></div>
       </div>
     </div>
   </div>

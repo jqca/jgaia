@@ -8,8 +8,19 @@
 {% endblock %}
 
 {% block extra_css %}
-  /* ── キッズページ：ベーススタイル上書き ── */
-  :root {
+  /* ⛔ ヘッダー・フッター・背景を上書きしないこと（2026-08-16 社長ご指摘）。
+     ここには 2026-08-16 まで次の4行があり、このページだけが協会サイトと違う顔に
+     なっていた＝(1) :root ごと白テーマに塗り替え (2) body を白で !important
+     (3) 協会サイトの背景（.particles-background の紺／.polygon-background）を
+     display:none で全消し (4) 透明だったヘッダーを #09090b の黒い帯に置き換え。
+     しかもヒーローは元から濃紺の上に置く前提（h1 が color:#fff）だったため、
+     白地に白文字で h1・リード文・「無料相談はこちら」が本番で見えなくなっていた。
+     ヘッダー・フッター・背景は base.html のまま使い、白くするのは本文だけ
+     （.kids-body）にする。これは /vibe-coding（.lp-body）・講座詳細
+     （.course-body）と同じ作り。 */
+
+  /* ── 本文だけを白地にする（ヘッダー・ヒーロー・フッターは協会サイトの紺） ── */
+  .kids-body, .hero {
     --ink:      #ffffff;
     --ink-s:    #f8fafc;
     --ink-m:    #f0f4f8;
@@ -25,22 +36,26 @@
     --r:        4px;
     --ease:     cubic-bezier(0.16, 1, 0.3, 1);
   }
-  body {
-    background: var(--ink) !important;
+  .kids-body {
+    background: var(--ink);
     color: var(--text);
     font-family: var(--font);
     -webkit-font-smoothing: antialiased;
   }
-  .particles-background,
-  .polygon-background { display: none !important; }
-  .header-nav { background: #09090b; }
 
-  /* ── HERO ── */
+  /* ── HERO ──
+     協会サイトの紺（base.html の .particles-background）の上に、キッズ色の
+     グロウを薄く重ねる。⛔ ここに背景色を敷かないこと＝ヘッダー（透明）との間に
+     横一本の継ぎ目が出て、ヘッダーだけ別ページのように見える。
+     ⛔ 文字色は白系のまま（h1 は #fff）。下地が白だった頃は h1・リード文・
+     「無料相談はこちら」が白地に白文字で本番から消えていた。
+     高さは 100vh ではなく「画面 − ヘッダー」＝ヘッダーは position:relative で
+     場所を取るので、100vh にすると1画面目がヘッダーのぶんだけはみ出す。 */
   .hero{
-    position:relative;min-height:100vh;
+    position:relative;min-height:calc(100vh - 8em);
     display:flex;align-items:center;justify-content:center;
     text-align:center;overflow:hidden;
-    padding:120px 24px 80px;
+    padding:80px 24px 100px;
   }
   .hero::before{
     content:'';position:absolute;inset:0;
@@ -54,10 +69,10 @@
   .hero-eyebrow{
     display:inline-flex;align-items:center;gap:10px;
     font-size:11px;font-weight:600;letter-spacing:.2em;
-    text-transform:uppercase;color:var(--accent-l);
+    text-transform:uppercase;color:#818cf8;
     margin-bottom:28px;
   }
-  .hero-eyebrow::before{content:'';width:24px;height:1px;background:var(--accent-l)}
+  .hero-eyebrow::before{content:'';width:24px;height:1px;background:#818cf8}
   .hero h1{
     font-family:var(--font-d);
     font-size:clamp(2.2rem,5.5vw,3.6rem);
@@ -95,13 +110,15 @@
   .btn-hero-ghost:hover{color:#fff;border-color:rgba(255,255,255,0.35)}
   .hero-stats{
     display:flex;gap:40px;justify-content:center;flex-wrap:wrap;
-    padding-top:40px;border-top:1px solid var(--border);
+    padding-top:40px;border-top:1px solid rgba(255,255,255,0.15);
   }
+  /* ⛔ ヒーローの数字・ラベルに本文用の色（--accent-l #1d4ed8 / --text-s #4a5568）を
+     使わないこと＝下地が濃紺なので、どちらも読めない濃さになる。 */
   .hero-stat .num{
     font-family:var(--font-d);font-size:1.6rem;font-weight:800;
-    color:var(--accent-l);line-height:1;
+    color:#22d3ee;line-height:1;
   }
-  .hero-stat .label{font-size:11px;color:var(--text-s);margin-top:6px;letter-spacing:.04em}
+  .hero-stat .label{font-size:11px;color:rgba(255,255,255,0.55);margin-top:6px;letter-spacing:.04em}
 
   /* ── SECTION BASE ── */
   .kids-section{padding:100px 24px}
@@ -140,7 +157,8 @@
     transition:border-color .3s,transform .3s var(--ease);
   }
   .make-card:hover{border-color:rgba(99,102,241,0.35);transform:translateY(-4px)}
-  .make-icon{font-size:2.8rem;margin-bottom:20px}
+  /* アイコンは Lucide（icons.py）。色は currentColor を継ぐのでここで決める */
+  .make-icon{color:#6366f1;line-height:0;margin-bottom:20px}
   .make-card h3{
     font-family:var(--font-d);font-size:1.05rem;font-weight:700;
     color:var(--text);margin-bottom:10px;
@@ -166,9 +184,13 @@
   .cc-gk2 .course-header::before{background:linear-gradient(90deg,#06b6d4,#22d3ee)}
   .cc-gk3 .course-header::before{background:linear-gradient(90deg,#ec4899,#f472b6)}
   .course-code{font-family:var(--font-d);font-size:11px;font-weight:700;letter-spacing:.15em;margin-bottom:10px}
-  .cc-gk1 .course-code{color:#fb923c}
-  .cc-gk2 .course-code{color:#22d3ee}
-  .cc-gk3 .course-code{color:#f472b6}
+  /* ⛔ 文字色に明るい方の色（#fb923c／#22d3ee／#f472b6）を使わないこと＝
+     カードが白地なので受講料が読めない（実測 コントラスト比 1.81〜2.26。
+     4.5 が目安）。帯・ボタン・箇条書きの点は面で塗るので明るい色のまま、
+     文字だけ濃い方を使う。色の系統（橙／水／桃）は変えていない。 */
+  .cc-gk1 .course-code{color:#c2410c}
+  .cc-gk2 .course-code{color:#0e7490}
+  .cc-gk3 .course-code{color:#be185d}
   .course-card h3{font-family:var(--font-d);font-size:1.2rem;font-weight:800;color:var(--text);line-height:1.3;margin-bottom:8px}
   .course-concept{font-size:0.82rem;color:var(--text-m);line-height:1.65}
   .course-body{padding:0 24px 28px}
@@ -178,9 +200,9 @@
   .meta-value{font-size:0.88rem;font-weight:600;color:var(--text)}
   .course-price{font-family:var(--font-d);font-size:1.6rem;font-weight:800;margin:18px 0 16px}
   .course-price span{font-size:0.78rem;font-weight:400;color:var(--text-m)}
-  .cc-gk1 .course-price{color:#fb923c}
-  .cc-gk2 .course-price{color:#22d3ee}
-  .cc-gk3 .course-price{color:#f472b6}
+  .cc-gk1 .course-price{color:#c2410c}
+  .cc-gk2 .course-price{color:#0e7490}
+  .cc-gk3 .course-price{color:#be185d}
   .course-features{list-style:none;margin-bottom:24px}
   .course-features li{font-size:0.88rem;color:var(--text-s);padding:7px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
   .course-features li::before{content:'';width:6px;height:6px;border-radius:50%;flex-shrink:0}
@@ -197,7 +219,7 @@
   .safety{background:var(--ink)}
   .safety-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-top:56px}
   .safety-card{display:flex;gap:18px;align-items:flex-start;background:var(--ink-s);border:1px solid var(--border-l);border-radius:16px;padding:28px 24px}
-  .safety-icon{flex-shrink:0;width:48px;height:48px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.15)}
+  .safety-icon{flex-shrink:0;width:48px;height:48px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#6366f1;background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.15)}
   .safety-card h4{font-size:0.95rem;font-weight:700;color:var(--text);margin-bottom:6px}
   .safety-card p{font-size:0.84rem;color:var(--text-s);line-height:1.8}
 
@@ -235,18 +257,7 @@
   .form-submit:disabled{opacity:0.4;cursor:not-allowed}
   #form-msg{text-align:center;margin-top:16px;font-size:0.88rem;min-height:20px}
 
-  /* ── KIDS FOOTER ── */
-  .kids-footer{
-    background:var(--ink);padding:48px 24px;
-    text-align:center;border-top:1px solid var(--border);
-  }
-  .ft-logo{display:inline-flex;align-items:center;gap:10px;margin-bottom:16px}
-  .ft-logo-mark{width:28px;height:28px;border-radius:5px;border:1px solid var(--border-l);display:flex;align-items:center;justify-content:center}
-  .ft-logo-mark svg{width:14px;height:14px;fill:none;stroke:#1a1a2e;stroke-width:1.5}
-  .ft-logo-text{font-family:var(--font-d);font-size:14px;font-weight:700;color:var(--text);letter-spacing:.06em}
-  .kids-footer p{font-size:0.78rem;color:var(--text-m);margin-top:8px}
-  .kids-footer a{color:var(--text-s);transition:color .15s;text-decoration:none}
-  .kids-footer a:hover{color:var(--text)}
+  /* KIDS FOOTER の CSS はフッターごと削除（協会サイトのフッターを使う） */
 
   /* ── RESPONSIVE ── */
   @media(max-width:900px){
@@ -281,6 +292,9 @@
   </div>
 </section>
 
+{# 白地にするのはここから下だけ。ヒーローとヘッダーは協会サイトの紺のまま。 #}
+<div class="kids-body">
+
 <!-- WHAT KIDS CAN MAKE -->
 <section class="kids-section make">
   <div class="sec-inner">
@@ -291,17 +305,17 @@
     </div>
     <div class="make-grid">
       <div class="make-card">
-        <div class="make-icon">🎮</div>
+        <div class="make-icon">{{ icon('gamepad-2', 44, stroke=1.5) }}</div>
         <h3>オリジナルゲーム</h3>
         <p>自分でルールを考えたゲームを、AIがコードに変換。友達にシェアして遊べる本格的なブラウザゲーム。</p>
       </div>
       <div class="make-card">
-        <div class="make-icon">🎨</div>
+        <div class="make-icon">{{ icon('palette', 44, stroke=1.5) }}</div>
         <h3>AI画像でマンガ制作</h3>
         <p>キャラクターやシーンをAI画像生成で作成。セリフを入れてオリジナルのデジタルマンガを完成させます。</p>
       </div>
       <div class="make-card">
-        <div class="make-icon">🤖</div>
+        <div class="make-icon">{{ icon('bot', 44, stroke=1.5) }}</div>
         <h3>自分だけのチャットボット</h3>
         <p>好きなキャラクターの性格をAIに設定して、自分だけのAIアシスタントを作ることができます。</p>
       </div>
@@ -410,19 +424,19 @@
     </div>
     <div class="safety-grid">
       <div class="safety-card">
-        <div class="safety-icon">👨‍👩‍👦</div>
+        <div class="safety-icon">{{ icon('users-round', 22) }}</div>
         <div><h4>保護者同伴（GK1/GK3）</h4><p>GK1とGK3コースは保護者同伴が必須。お子さまの学びを保護者の方も間近で見守り、一緒に体験できます。GK2は中学生対象で単独参加が可能です。</p></div>
       </div>
       <div class="safety-card">
-        <div class="safety-icon">🛡️</div>
+        <div class="safety-icon">{{ icon('shield-check', 22) }}</div>
         <div><h4>フィルタリング済みAI環境</h4><p>子ども向けに設定された安全なAI環境を使用。有害なコンテンツの生成やアクセスができないよう、フィルタリングと制限を適用しています。</p></div>
       </div>
       <div class="safety-card">
-        <div class="safety-icon">🔒</div>
+        <div class="safety-icon">{{ icon('lock', 22) }}</div>
         <div><h4>個人情報の取り扱い指導</h4><p>AIに個人情報を入力しないルールを講座内で指導。デジタルリテラシーの基礎を実践的に学べます。</p></div>
       </div>
       <div class="safety-card">
-        <div class="safety-icon">🎓</div>
+        <div class="safety-icon">{{ icon('graduation-cap', 22) }}</div>
         <div><h4>JGAIA認定講師が担当</h4><p>一般社団法人日本生成AI協会が認定した講師が指導を担当。生成AI教育の専門知識を持つスタッフが、一人ひとりのペースに合わせてサポートします。</p></div>
       </div>
     </div>
@@ -494,21 +508,14 @@
     </div>
   </div>
 </section>
+
+</div><!-- /.kids-body -->
 {% endblock %}
 
-{% block footer %}
-<footer class="kids-footer">
-  <div class="ft-logo">
-    <div class="ft-logo-mark">
-      <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
-    </div>
-    <span class="ft-logo-text">JGAIA</span>
-  </div>
-  <p>一般社団法人 日本生成AI協会<br>〒104-0061 東京都中央区銀座1-22-11 銀座大竹ビジデンス2階</p>
-  <p style="margin-top:16px;"><a href="/vibe-coding">大人向け講座はこちら</a> ｜ <a href="https://www.jgaia.org">JGAIA公式サイト</a> ｜ <a href="mailto:info@jgaia.org">info@jgaia.org</a></p>
-  <p style="margin-top:16px;">&copy; 2026 一般社団法人日本生成AI協会</p>
-</footer>
-{% endblock %}
+{# ⛔ {% block footer %} を上書きしないこと（2026-08-16 社長ご指摘）。
+   ここには協会サイトとは別の白いフッター（.kids-footer）が置かれており、
+   このページだけ住所・リンク・著作権表示の並びが他のページと違っていた。
+   base.html のフッターをそのまま使う。 #}
 
 {% block extra_js %}
 <script>

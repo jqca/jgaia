@@ -34,7 +34,8 @@ INDUSTRIES = {
         ],
         "accent": "#00897b",
         "accent_rgb": "0,137,123",
-        "hero_grad": "linear-gradient(160deg,#f0fdf4 0%,#ecfdf5 40%,#f0fdf4 100%)",
+        # ⛔ hero_grad（淡い色のヒーロー背景）は廃止した。ヒーローは協会サイトの
+        #    紺の上に立つ（2026-08-16）。ここに色を足しても画面は1ドットも変わらない。
         "courses": [
             {
                 "code": "GM-A",
@@ -101,16 +102,16 @@ INDUSTRIES = {
             },
         ],
         "challenges": [
-            {"icon": "🔍", "title": "品質検査の属人化", "desc": "熟練検査員の目視検査に依存。AI外観検査で24時間均一品質を実現します。"},
-            {"icon": "📉", "title": "需要予測の精度不足", "desc": "勘と経験に頼る在庫計画。生成AIで過去データから高精度な需要予測モデルを構築。"},
-            {"icon": "⚙️", "title": "突発的な設備故障", "desc": "計画外停止による損失。センサーデータ×AIで故障を事前予測し予防保全を実現。"},
-            {"icon": "📋", "title": "生産計画の非効率", "desc": "手作業のスケジューリング。AIが制約条件を考慮し最適な生産計画を自動立案。"},
+            {"icon": "search", "title": "品質検査の属人化", "desc": "熟練検査員の目視検査に依存。AI外観検査で24時間均一品質を実現します。"},
+            {"icon": "trending-down", "title": "需要予測の精度不足", "desc": "勘と経験に頼る在庫計画。生成AIで過去データから高精度な需要予測モデルを構築。"},
+            {"icon": "settings", "title": "突発的な設備故障", "desc": "計画外停止による損失。センサーデータ×AIで故障を事前予測し予防保全を実現。"},
+            {"icon": "clipboard-list", "title": "生産計画の非効率", "desc": "手作業のスケジューリング。AIが制約条件を考慮し最適な生産計画を自動立案。"},
         ],
         "use_cases": [
-            {"icon": "🔍", "name": "外観検査AI", "desc": "画像1枚で不良品を瞬時に検出するAI検査アプリ"},
-            {"icon": "📊", "name": "需要予測ダッシュボード", "desc": "SKU別・地域別の需要変動をリアルタイム可視化"},
-            {"icon": "🔧", "name": "設備故障予知システム", "desc": "センサーデータからAIが故障兆候を事前検出"},
-            {"icon": "📋", "name": "生産計画最適化", "desc": "制約条件を考慮しAIが最適な工程順序を算出"},
+            {"icon": "search", "name": "外観検査AI", "desc": "画像1枚で不良品を瞬時に検出するAI検査アプリ"},
+            {"icon": "chart-column", "name": "需要予測ダッシュボード", "desc": "SKU別・地域別の需要変動をリアルタイム可視化"},
+            {"icon": "wrench", "name": "設備故障予知システム", "desc": "センサーデータからAIが故障兆候を事前検出"},
+            {"icon": "clipboard-list", "name": "生産計画最適化", "desc": "制約条件を考慮しAIが最適な工程順序を算出"},
         ],
         "prompts": [
             "AI外観検査アプリ構築プロンプト",
@@ -161,7 +162,6 @@ INDUSTRIES = {
         ],
         "accent": "#e53935",
         "accent_rgb": "229,57,53",
-        "hero_grad": "linear-gradient(160deg,#fef2f2 0%,#fff1f2 40%,#fef2f2 100%)",
         "courses": [
             {
                 "code": "GH-A",
@@ -228,16 +228,16 @@ INDUSTRIES = {
             },
         ],
         "challenges": [
-            {"icon": "📝", "title": "文書作成の負担", "desc": "診断書・紹介状・サマリー作成に膨大な時間。生成AIで文書作成を大幅に効率化。"},
-            {"icon": "🗣️", "title": "患者説明の属人化", "desc": "説明の質がドクターにより異なる。AIが患者向けにわかりやすい説明資料を自動生成。"},
-            {"icon": "📅", "title": "予約管理の非効率", "desc": "キャンセル・待ち時間の問題。AIが最適な予約スケジュールを自動提案。"},
-            {"icon": "💊", "title": "医薬品管理の煩雑さ", "desc": "在庫・期限・発注の手動管理。AIで医薬品在庫を最適化し廃棄ロスを削減。"},
+            {"icon": "file-pen", "title": "文書作成の負担", "desc": "診断書・紹介状・サマリー作成に膨大な時間。生成AIで文書作成を大幅に効率化。"},
+            {"icon": "speech", "title": "患者説明の属人化", "desc": "説明の質がドクターにより異なる。AIが患者向けにわかりやすい説明資料を自動生成。"},
+            {"icon": "calendar", "title": "予約管理の非効率", "desc": "キャンセル・待ち時間の問題。AIが最適な予約スケジュールを自動提案。"},
+            {"icon": "pill", "title": "医薬品管理の煩雑さ", "desc": "在庫・期限・発注の手動管理。AIで医薬品在庫を最適化し廃棄ロスを削減。"},
         ],
         "use_cases": [
-            {"icon": "📝", "name": "医療文書自動作成", "desc": "診断書・紹介状・退院サマリーをAIが下書き生成"},
-            {"icon": "🗣️", "name": "患者説明用AI資料", "desc": "症状・治療法をわかりやすく図解した説明資料を自動作成"},
-            {"icon": "📅", "name": "診療予約最適化", "desc": "AIが患者動線と診察時間を分析し最適なスケジュールを提案"},
-            {"icon": "📊", "name": "健康データダッシュボード", "desc": "バイタル・検査結果をリアルタイムで可視化・トレンド分析"},
+            {"icon": "file-pen", "name": "医療文書自動作成", "desc": "診断書・紹介状・退院サマリーをAIが下書き生成"},
+            {"icon": "speech", "name": "患者説明用AI資料", "desc": "症状・治療法をわかりやすく図解した説明資料を自動作成"},
+            {"icon": "calendar", "name": "診療予約最適化", "desc": "AIが患者動線と診察時間を分析し最適なスケジュールを提案"},
+            {"icon": "chart-column", "name": "健康データダッシュボード", "desc": "バイタル・検査結果をリアルタイムで可視化・トレンド分析"},
         ],
         "prompts": [
             "医療文書自動作成AIプロンプト",
@@ -288,7 +288,6 @@ INDUSTRIES = {
         ],
         "accent": "#1565c0",
         "accent_rgb": "21,101,192",
-        "hero_grad": "linear-gradient(160deg,#eff6ff 0%,#dbeafe 40%,#eff6ff 100%)",
         "courses": [
             {
                 "code": "GF-A",
@@ -355,16 +354,16 @@ INDUSTRIES = {
             },
         ],
         "challenges": [
-            {"icon": "📊", "title": "レポート作成の負担", "desc": "日次・週次の市場レポート作成に多大な工数。生成AIで自動生成し分析に集中。"},
-            {"icon": "🛡️", "title": "コンプライアンス対応", "desc": "規制変更への追従が困難。AIが規制文書を解析し対応状況を自動チェック。"},
-            {"icon": "🔍", "title": "不正取引の検出", "desc": "膨大なトランザクションから異常を検出。AIリアルタイム監視で不正を即座に発見。"},
-            {"icon": "🤝", "title": "顧客対応の品質", "desc": "問い合わせ対応の標準化が課題。AIチャットボットで24時間均一品質の対応を実現。"},
+            {"icon": "chart-column", "title": "レポート作成の負担", "desc": "日次・週次の市場レポート作成に多大な工数。生成AIで自動生成し分析に集中。"},
+            {"icon": "shield-check", "title": "コンプライアンス対応", "desc": "規制変更への追従が困難。AIが規制文書を解析し対応状況を自動チェック。"},
+            {"icon": "search", "title": "不正取引の検出", "desc": "膨大なトランザクションから異常を検出。AIリアルタイム監視で不正を即座に発見。"},
+            {"icon": "handshake", "title": "顧客対応の品質", "desc": "問い合わせ対応の標準化が課題。AIチャットボットで24時間均一品質の対応を実現。"},
         ],
         "use_cases": [
-            {"icon": "📊", "name": "市場分析レポート自動生成", "desc": "市場データからAIが分析レポートを自動作成"},
-            {"icon": "🤖", "name": "顧客対応AI", "desc": "FAQチャットボット・問い合わせ分類を自動化"},
-            {"icon": "🔍", "name": "不正取引検知", "desc": "異常トランザクションをリアルタイムで検出・アラート"},
-            {"icon": "✅", "name": "コンプライアンス自動チェック", "desc": "規制文書をAIが解析し対応状況を自動判定"},
+            {"icon": "chart-column", "name": "市場分析レポート自動生成", "desc": "市場データからAIが分析レポートを自動作成"},
+            {"icon": "bot", "name": "顧客対応AI", "desc": "FAQチャットボット・問い合わせ分類を自動化"},
+            {"icon": "search", "name": "不正取引検知", "desc": "異常トランザクションをリアルタイムで検出・アラート"},
+            {"icon": "circle-check", "name": "コンプライアンス自動チェック", "desc": "規制文書をAIが解析し対応状況を自動判定"},
         ],
         "prompts": [
             "市場分析レポート自動生成プロンプト",
@@ -415,7 +414,6 @@ INDUSTRIES = {
         ],
         "accent": "#ef6c00",
         "accent_rgb": "239,108,0",
-        "hero_grad": "linear-gradient(160deg,#fffbeb 0%,#fef3c7 40%,#fffbeb 100%)",
         "courses": [
             {
                 "code": "GL-A",
@@ -482,16 +480,16 @@ INDUSTRIES = {
             },
         ],
         "challenges": [
-            {"icon": "🚛", "title": "配送効率の低下", "desc": "非効率なルート設計で燃料費・人件費が増大。AIが最適な配送ルートを自動算出。"},
-            {"icon": "📦", "title": "在庫管理の課題", "desc": "過剰在庫と欠品の同時発生。AIが需要予測し適正在庫を維持。"},
-            {"icon": "🏭", "title": "倉庫作業の非効率", "desc": "ピッキング動線の無駄。AIがレイアウトと動線を最適化し生産性向上。"},
-            {"icon": "⏱️", "title": "ラストワンマイル問題", "desc": "時間帯指定と交通状況への対応。AIが動的にルートを再計算。"},
+            {"icon": "truck", "title": "配送効率の低下", "desc": "非効率なルート設計で燃料費・人件費が増大。AIが最適な配送ルートを自動算出。"},
+            {"icon": "package", "title": "在庫管理の課題", "desc": "過剰在庫と欠品の同時発生。AIが需要予測し適正在庫を維持。"},
+            {"icon": "factory", "title": "倉庫作業の非効率", "desc": "ピッキング動線の無駄。AIがレイアウトと動線を最適化し生産性向上。"},
+            {"icon": "clock", "title": "ラストワンマイル問題", "desc": "時間帯指定と交通状況への対応。AIが動的にルートを再計算。"},
         ],
         "use_cases": [
-            {"icon": "🗺️", "name": "配送ルート最適化", "desc": "AIが交通情報・時間帯指定を考慮し最適ルートを算出"},
-            {"icon": "📊", "name": "需要予測ダッシュボード", "desc": "SKU別・地域別の需要変動をリアルタイム可視化"},
-            {"icon": "📦", "name": "倉庫在庫AI管理", "desc": "入出荷・在庫回転率をAIが分析し適正在庫を維持"},
-            {"icon": "🚚", "name": "配車計画自動化", "desc": "車両×荷量×時間帯をAIが考慮し最適な配車を自動立案"},
+            {"icon": "map", "name": "配送ルート最適化", "desc": "AIが交通情報・時間帯指定を考慮し最適ルートを算出"},
+            {"icon": "chart-column", "name": "需要予測ダッシュボード", "desc": "SKU別・地域別の需要変動をリアルタイム可視化"},
+            {"icon": "package", "name": "倉庫在庫AI管理", "desc": "入出荷・在庫回転率をAIが分析し適正在庫を維持"},
+            {"icon": "truck", "name": "配車計画自動化", "desc": "車両×荷量×時間帯をAIが考慮し最適な配車を自動立案"},
         ],
         "prompts": [
             "配送ルート最適化AIプロンプト",
@@ -542,7 +540,6 @@ INDUSTRIES = {
         ],
         "accent": "#5d4037",
         "accent_rgb": "93,64,55",
-        "hero_grad": "linear-gradient(160deg,#fdf4ff 0%,#fae8ff 40%,#fdf4ff 100%)",
         "courses": [
             {
                 "code": "GN-A",
@@ -609,16 +606,16 @@ INDUSTRIES = {
             },
         ],
         "challenges": [
-            {"icon": "📋", "title": "日報・書類作成の負担", "desc": "毎日の施工日報、安全書類の作成に多大な時間。AIで自動化し現場業務に集中。"},
-            {"icon": "⚠️", "title": "安全管理の限界", "desc": "広大な現場の安全確認は人手に限界。AIカメラが危険行動・不備を即座に検知。"},
-            {"icon": "💰", "title": "積算の属人化", "desc": "経験者しかできない積算業務。AIが図面から数量を自動算出し精度と速度を向上。"},
-            {"icon": "📅", "title": "工程遅延リスク", "desc": "天候・資材・人員の変動への対応。AIが工程を動的に再計算し遅延を最小化。"},
+            {"icon": "clipboard-list", "title": "日報・書類作成の負担", "desc": "毎日の施工日報、安全書類の作成に多大な時間。AIで自動化し現場業務に集中。"},
+            {"icon": "triangle-alert", "title": "安全管理の限界", "desc": "広大な現場の安全確認は人手に限界。AIカメラが危険行動・不備を即座に検知。"},
+            {"icon": "japanese-yen", "title": "積算の属人化", "desc": "経験者しかできない積算業務。AIが図面から数量を自動算出し精度と速度を向上。"},
+            {"icon": "calendar", "title": "工程遅延リスク", "desc": "天候・資材・人員の変動への対応。AIが工程を動的に再計算し遅延を最小化。"},
         ],
         "use_cases": [
-            {"icon": "📋", "name": "施工日報AI自動化", "desc": "写真・音声メモからAIが施工日報を自動生成"},
-            {"icon": "📷", "name": "安全管理AIカメラ", "desc": "現場映像からAIが危険行動・保護具未着用を即座に検知"},
-            {"icon": "💰", "name": "積算AI支援", "desc": "図面データからAIが数量を自動算出し見積精度を向上"},
-            {"icon": "📊", "name": "工程管理ダッシュボード", "desc": "リアルタイムで工程進捗を可視化・遅延リスクを予測"},
+            {"icon": "clipboard-list", "name": "施工日報AI自動化", "desc": "写真・音声メモからAIが施工日報を自動生成"},
+            {"icon": "camera", "name": "安全管理AIカメラ", "desc": "現場映像からAIが危険行動・保護具未着用を即座に検知"},
+            {"icon": "japanese-yen", "name": "積算AI支援", "desc": "図面データからAIが数量を自動算出し見積精度を向上"},
+            {"icon": "chart-column", "name": "工程管理ダッシュボード", "desc": "リアルタイムで工程進捗を可視化・遅延リスクを予測"},
         ],
         "prompts": [
             "施工日報AI自動生成プロンプト",
@@ -655,12 +652,40 @@ INDUSTRIES = {
 
 # ⛔ 業種別Aは助成の対象なのに、ページに1件も出していなかった（2026-08-15）。
 #    載せていない＝検討していないと読まれ、法人の申込を取り逃がす。
-import booking as _booking  # noqa: E402
+import booking as _booking
+from icons import icon as _icon  # noqa: E402
+
+def _lighten(hex_color, lightness=0.74):
+    """業界色を、紺の背景の上で読める明るさにする（色みは変えない）。
+
+    ⛔ ヒーローの文字色に accent をそのまま使わないこと。5業種の accent は
+    すべて濃い色（#00897b / #e53935 / #1565c0 / #ef6c00 / #5d4037）で、
+    協会サイトの紺（#000429〜#004b8f）に乗せると沈んで読めない。
+    白地の本文では accent をそのまま使う（変えていない）。
+
+    ⛔ 白と混ぜて明るくしないこと＝彩度まで落ちるので、もともと彩度の低い
+    建設（#5d4037）が灰色（#b6a9a5）になり、業界色に見えなくなる。
+    色相はそのまま・彩度は 0.45〜0.72 に収めて・明るさだけ持ち上げる。
+
+    明るさ 0.74 は実測で決めた＝紺のいちばん明るいところ（#004b8f）に対して
+    5業種とも コントラスト比 3.7 以上（大きな文字の基準 3.0 を満たす）。
+    ここを下げると医療（赤）から先に読めなくなる。
+    """
+    import colorsys
+    h = hex_color.lstrip('#')
+    r, g, b = (int(h[i:i + 2], 16) / 255 for i in (0, 2, 4))
+    hue, _, sat = colorsys.rgb_to_hls(r, g, b)
+    sat = min(max(sat, 0.45), 0.72)
+    return '#%02x%02x%02x' % tuple(
+        round(v * 255) for v in colorsys.hls_to_rgb(hue, lightness, sat)
+    )
+
 
 for _ind in INDUSTRIES.values():
     _booking.apply_subsidy_tags(_ind.get('courses') or [])
     _booking.apply_delivery(_ind.get('courses') or [])
     _booking.apply_prices(_ind.get('courses') or [])
+    _ind['accent_light'] = _lighten(_ind['accent'])
 
 
 # ─────────────────────────────────────────────────────────────
@@ -704,7 +729,7 @@ def _render_industry_page(ind):
             subsidy_badge_html = (
                 '<div style="margin:0 0 14px;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.35);'
                 'border-radius:10px;padding:10px 14px;font-size:0.82rem;font-weight:700;color:#10b981;">'
-                '&#10003; 東京しごと財団 DXリスキリング助成金 対象（4時間）'
+                f'{_icon("check", 13)} 東京しごと財団 DXリスキリング助成金 対象（4時間）'
                 '<br><span style="font-weight:500;font-size:0.78rem;color:#4a5568;">'
                 # ⛔ 金額を直書きしないこと。booking.subsidy_for() が唯一の出どころ
                 f'法人研修なら実質 &#165;{_booking.subsidy_for("GM-A")["net"]:,} / 人</span></div>'
@@ -712,7 +737,8 @@ def _render_industry_page(ind):
         feat_items = "".join(
             f'<li style="border-bottom:1px solid #e2e8f0;padding:7px 0;display:flex;'
             f'align-items:center;gap:8px;font-size:0.88rem;color:#1a1a2e;">'
-            f'<span style="color:{p["check"]};font-weight:900;flex-shrink:0;">&#10003;</span>{f}</li>'
+            f'<span style="color:{p["check"]};line-height:0;flex-shrink:0;">'
+            f'{_icon("check", 14, stroke=2.5)}</span>{f}</li>'
             for f in course["features"]
         )
         meta_items = f"""
@@ -771,7 +797,8 @@ def _render_industry_page(ind):
             f'border-radius:20px;padding:32px 28px;transition:border-color 0.3s,transform 0.3s;"'
             f' onmouseenter="this.style.borderColor=\'rgba({accent_rgb},0.4)\';this.style.transform=\'translateY(-4px)\'"'
             f' onmouseleave="this.style.borderColor=\'rgba({accent_rgb},0.18)\';this.style.transform=\'\'">'
-            f'<div style="font-size:2.4rem;margin-bottom:14px;">{ch["icon"]}</div>'
+            f'<div style="color:{accent};line-height:0;margin-bottom:14px;">'
+            f'{_icon(ch["icon"], 34, stroke=1.6)}</div>'
             f'<h3 style="font-size:1.05rem;font-weight:800;margin-bottom:8px;color:#1a1a2e;">{ch["title"]}</h3>'
             f'<p style="font-size:0.88rem;color:#4a5568;line-height:1.8;">{ch["desc"]}</p>'
             f'</div>'
@@ -785,7 +812,8 @@ def _render_industry_page(ind):
             f'border-radius:16px;padding:22px 18px;text-align:center;transition:border-color 0.3s;"'
             f' onmouseenter="this.style.borderColor=\'rgba({accent_rgb},0.35)\'"'
             f' onmouseleave="this.style.borderColor=\'#e2e8f0\'">'
-            f'<div style="font-size:2.4rem;margin-bottom:12px;">{uc["icon"]}</div>'
+            f'<div style="color:{accent};line-height:0;margin-bottom:12px;">'
+            f'{_icon(uc["icon"], 32, stroke=1.6)}</div>'
             f'<h4 style="font-size:0.9rem;font-weight:800;margin-bottom:6px;color:#1a1a2e;">{uc["name"]}</h4>'
             f'<p style="font-size:0.8rem;color:#64748b;line-height:1.6;">{uc["desc"]}</p>'
             f'</div>'
@@ -829,10 +857,12 @@ def _render_industry_page(ind):
     )
 
     # ---------- スタッツ HTML ----------
+    # ⛔ ヒーローの文字色をここで直書きしないこと＝ヒーローは紺の上に立つので、
+    #    色はテンプレート側の .ind-hero .stat-n / .stat-lb（明るい業界色・白）が持つ。
     stats_html = "".join(
         f'<div style="text-align:center;">'
-        f'<div style="font-size:1.8rem;font-weight:900;color:{accent};line-height:1;">{s["num"]}</div>'
-        f'<div style="font-size:0.75rem;color:#4a5568;margin-top:4px;">{s["label"]}</div>'
+        f'<div class="stat-n">{s["num"]}</div>'
+        f'<div class="stat-lb">{s["label"]}</div>'
         f'</div>'
         for s in c["stats"]
     )
@@ -840,17 +870,17 @@ def _render_industry_page(ind):
     # ---------- TRUST セクション ----------
     ind_name = c["name"]
     trust_items = [
-        ("&#9889;", "生成AI活用の実績に基づくカリキュラム",
+        ("zap", "生成AI活用の実績に基づくカリキュラム",
          f"JGAIAが企業向けに提供してきた生成AI活用の知見を凝縮。{ind_name}分野の実務課題に直結するカリキュラムです。"),
-        ("&#127942;", "JGAIA認定修了証 発行",
+        ("trophy", "JGAIA認定修了証 発行",
          f"一般社団法人日本生成AI協会が発行するJGAIA認定修了証。LinkedInや名刺に記載でき、{ind_name}×生成AIスキルの証明になります。"),
-        ("&#127873;", "生成AIプロンプト特典8種",
+        ("gift", "生成AIプロンプト特典8種",
          f"{ind_name}分野特化の生成AI＆アプリ構築プロンプトを特典として提供。他講座では手に入らないJGAIA独自コンテンツです。"),
-        ("&#128105;&#8205;&#127979;", "少人数制・現役実務家が指導",
+        ("school", "少人数制・現役実務家が指導",
          "最大20名の少人数制。生成AI専門家とAIエンジニアが丁寧に指導します。"),
-        ("&#128640;", "当日中に本番デプロイ",
+        ("rocket", "当日中に本番デプロイ",
          "作ったアプリをクラウドで即日デプロイ。「作っておしまい」ではなく、実際に動くサービスとして持ち帰れます。"),
-        ("&#127970;", "法人・出張研修対応",
+        ("building", "法人・出張研修対応",
          "5名以上の場合は社内出張研修（NDA対応可）も承ります。自社データを使ったカスタム版カリキュラムも設計します。"),
     ]
     trust_html = ""
@@ -859,7 +889,8 @@ def _render_industry_page(ind):
             f'<div style="display:flex;gap:16px;align-items:flex-start;background:#f8fafc;'
             f'border:1px solid #e2e8f0;border-radius:18px;padding:26px 22px;">'
             f'<div style="font-size:1.8rem;flex-shrink:0;width:48px;height:48px;display:flex;align-items:center;'
-            f'justify-content:center;border-radius:13px;background:rgba({accent_rgb},0.12);">{t_icon}</div>'
+            f'justify-content:center;border-radius:13px;background:rgba({accent_rgb},0.12);'
+            f'color:{accent};">{_icon(t_icon, 24)}</div>'
             f'<div><h4 style="font-size:0.95rem;font-weight:800;margin-bottom:6px;color:#1a1a2e;">{t_title}</h4>'
             f'<p style="font-size:0.84rem;color:#4a5568;line-height:1.75;">{t_desc}</p>'
             f'</div></div>'
@@ -867,11 +898,11 @@ def _render_industry_page(ind):
 
     # ---------- 他業界リンク ----------
     all_industries = [
-        ("manufacturing",  "&#127981;", "製造業",         "生産管理・品質検査・設備保全"),
-        ("healthcare",     "&#127973;", "医療・ヘルスケア", "医療文書・患者説明・診療データ"),
-        ("finance",        "&#128200;", "金融",           "リスク管理・レポート・コンプライアンス"),
-        ("logistics",      "&#128666;", "物流",           "配送最適化・倉庫管理・需要予測"),
-        ("construction",   "&#127959;", "建設",           "施工管理・安全管理・積算"),
+        ("manufacturing",  "factory", "製造業",         "生産管理・品質検査・設備保全"),
+        ("healthcare",     "stethoscope", "医療・ヘルスケア", "医療文書・患者説明・診療データ"),
+        ("finance",        "trending-up", "金融",           "リスク管理・レポート・コンプライアンス"),
+        ("logistics",      "truck", "物流",           "配送最適化・倉庫管理・需要予測"),
+        ("construction",   "hard-hat", "建設",           "施工管理・安全管理・積算"),
     ]
     other_ind_html = ""
     for o_slug, o_icon, o_name, o_sub in all_industries:
@@ -883,7 +914,8 @@ def _render_industry_page(ind):
             f'text-decoration:none;color:#1a1a2e;transition:border-color 0.3s,transform 0.3s;"'
             f' onmouseenter="this.style.borderColor=\'#cbd5e1\';this.style.transform=\'translateY(-3px)\'"'
             f' onmouseleave="this.style.borderColor=\'#e2e8f0\';this.style.transform=\'\'">'
-            f'<div style="font-size:2.2rem;margin-bottom:10px;">{o_icon}</div>'
+            f'<div style="color:{accent};line-height:0;margin-bottom:10px;">'
+            f'{_icon(o_icon, 30, stroke=1.6)}</div>'
             f'<div style="font-weight:800;font-size:0.95rem;margin-bottom:4px;">{o_name}</div>'
             f'<div style="font-size:0.78rem;color:#64748b;">{o_sub}</div>'
             f'</a>'
@@ -894,7 +926,8 @@ def _render_industry_page(ind):
         'text-decoration:none;color:#1a1a2e;transition:border-color 0.3s,transform 0.3s;"'
         ' onmouseenter="this.style.borderColor=\'#cbd5e1\';this.style.transform=\'translateY(-3px)\'"'
         ' onmouseleave="this.style.borderColor=\'#e2e8f0\';this.style.transform=\'\'">'
-        '<div style="font-size:2.2rem;margin-bottom:10px;">&#128203;</div>'
+        f'<div style="color:{accent};line-height:0;margin-bottom:10px;">'
+        f'{_icon("clipboard-list", 30, stroke=1.6)}</div>'
         '<div style="font-weight:800;font-size:0.95rem;margin-bottom:4px;">全コース一覧</div>'
         '<div style="font-size:0.78rem;color:#64748b;">汎用コースも含む</div>'
         '</a>'
@@ -902,58 +935,42 @@ def _render_industry_page(ind):
 
     # ---------- ページコンテンツ HTML ----------
     page_content = f"""
-<!-- ═══════════ HERO ═══════════ -->
-<section style="position:relative;min-height:100vh;display:flex;align-items:center;justify-content:center;
-  text-align:center;overflow:hidden;padding:100px 24px 80px;background:#ffffff;">
-  <div style="position:absolute;inset:0;background:{c["hero_grad"]};"></div>
-  <!-- Grid overlay -->
-  <div style="position:absolute;inset:0;
-    background-image:linear-gradient(rgba({accent_rgb},0.04) 1px,transparent 1px),
-    linear-gradient(90deg,rgba({accent_rgb},0.04) 1px,transparent 1px);
-    background-size:60px 60px;pointer-events:none;"></div>
+<!-- ═══════════ HERO ═══════════
+     ⛔ 白地に戻さないこと（2026-08-16 社長ご指摘）。ヒーローは協会サイトの
+     紺（base.html の .particles-background）の上に立たせ、業界色は薄く重ねる。
+     ここを白で塗ると、その真上にある協会ヘッダー（透明・白ロゴ・白メニュー）が
+     読めなくなり、辻褄合わせでヘッダーを黒い帯にする羽目になる＝それが
+     「トップページとデザインが違う」の原因だった。 -->
+<section class="ind-hero">
+  <div class="ind-hero-bg"></div>
+  <div class="ind-hero-grid"></div>
   <!-- Particle canvas -->
-  <canvas id="particles" style="position:absolute;inset:0;pointer-events:none;opacity:0.35;"></canvas>
+  <canvas id="particles" style="position:absolute;inset:0;pointer-events:none;opacity:0.5;"></canvas>
   <!-- Glow orbs -->
   <div style="position:absolute;top:18%;left:12%;width:420px;height:420px;
-    background:radial-gradient(circle,rgba({accent_rgb},0.12) 0%,transparent 70%);
+    background:radial-gradient(circle,rgba({accent_rgb},0.18) 0%,transparent 70%);
     pointer-events:none;border-radius:50%;"></div>
   <div style="position:absolute;bottom:12%;right:8%;width:380px;height:380px;
-    background:radial-gradient(circle,rgba({brand_rgb},0.10) 0%,transparent 70%);
+    background:radial-gradient(circle,rgba({brand_rgb},0.16) 0%,transparent 70%);
     pointer-events:none;border-radius:50%;"></div>
 
   <div style="position:relative;z-index:1;max-width:860px;margin:0 auto;">
-    <div style="display:inline-flex;align-items:center;gap:8px;
-      background:rgba({accent_rgb},0.12);border:1px solid rgba({accent_rgb},0.3);
-      color:{accent};padding:6px 18px;border-radius:24px;font-size:0.8rem;font-weight:700;
-      letter-spacing:0.08em;margin-bottom:28px;font-family:'Syne',sans-serif;">
-      JGAIA INDUSTRY PROGRAM
-    </div>
-    <h1 style="font-size:clamp(2.2rem,6vw,4rem);font-weight:900;line-height:1.2;
-      letter-spacing:-0.02em;margin-bottom:24px;">
-      {c["title_html"].replace("<em>", f'<em style="font-style:normal;background:linear-gradient(135deg,{accent},{brand});-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">')}
-    </h1>
-    <p style="font-size:clamp(1rem,2vw,1.15rem);color:#4a5568;
-      max-width:640px;margin:0 auto 40px;line-height:1.85;">{c["lead"]}</p>
+    <div class="hero-eyebrow">JGAIA INDUSTRY PROGRAM</div>
+    <h1>{c["title_html"]}</h1>
+    <p class="hero-lead">{c["lead"]}</p>
     <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-bottom:56px;">
-      <a href="#courses" style="background:linear-gradient(135deg,{accent},{brand});color:#fff;
-        padding:16px 36px;border-radius:40px;text-decoration:none;font-weight:800;font-size:1.05rem;
-        box-shadow:0 8px 32px rgba({accent_rgb},0.30);transition:transform 0.2s,box-shadow 0.2s;"
-        onmouseenter="this.style.transform='translateY(-2px)';this.style.boxShadow='0 12px 40px rgba({accent_rgb},0.4)'"
-        onmouseleave="this.style.transform='';this.style.boxShadow='0 8px 32px rgba({accent_rgb},0.30)'">
-        コースを見る</a>
-      <a href="#inquiry" style="background:rgba(0,0,0,0.04);border:1px solid rgba(0,0,0,0.12);
-        color:#1a1a2e;padding:16px 36px;border-radius:40px;text-decoration:none;font-weight:700;
-        font-size:1.05rem;transition:background 0.2s;"
-        onmouseenter="this.style.background='rgba(0,0,0,0.08)'"
-        onmouseleave="this.style.background='rgba(0,0,0,0.04)'">
-        無料相談はこちら</a>
+      <a href="#courses" class="hero-btn-primary">コースを見る</a>
+      <a href="#inquiry" class="hero-btn-outline">無料相談はこちら</a>
     </div>
     <div class="stats-row" style="display:flex;gap:32px;justify-content:center;flex-wrap:wrap;
-      padding-top:40px;border-top:1px solid rgba(0,0,0,0.08);">
+      padding-top:40px;">
       {stats_html}
     </div>
   </div>
 </section>
+
+<!-- ⛔ ここから下だけが白地（.ind-body）。閉じ div を消さないこと。 -->
+<div class="ind-body">
 
 <!-- ═══════════ INDUSTRY CHALLENGES ═══════════ -->
 <section style="background:linear-gradient(180deg,#ffffff 0%,#f8fafc 100%);padding:88px 24px;">
@@ -998,7 +1015,7 @@ def _render_industry_page(ind):
     <!-- 特典ノート -->
     <div style="margin-top:40px;background:rgba({accent_rgb},0.08);border:1px solid rgba({accent_rgb},0.2);
       border-radius:18px;padding:28px 32px;display:flex;align-items:flex-start;gap:18px;">
-      <div style="font-size:2rem;flex-shrink:0;">&#127873;</div>
+      <div style="color:{accent};line-height:0;flex-shrink:0;">{_icon("gift", 30, stroke=1.6)}</div>
       <div>
         <h3 style="font-size:1.05rem;font-weight:800;color:{accent};margin-bottom:6px;">
           全コース共通：生成AIプロンプト特典8種付き</h3>
@@ -1012,7 +1029,7 @@ def _render_industry_page(ind):
     <div style="margin-top:28px;background:rgba(16,185,129,0.06);border:2px solid rgba(16,185,129,0.22);
       border-radius:18px;padding:28px 32px;">
       <div style="display:flex;align-items:flex-start;gap:18px;margin-bottom:20px;">
-        <div style="font-size:1.8rem;flex-shrink:0;">&#128180;</div>
+        <div style="color:#10b981;line-height:0;flex-shrink:0;">{_icon("banknote", 28, stroke=1.6)}</div>
         <div>
           <div style="font-size:0.72rem;font-weight:800;letter-spacing:0.12em;color:#10b981;margin-bottom:6px;">
             東京しごと財団「DXリスキリング助成金」対象講座</div>
@@ -1046,14 +1063,14 @@ def _render_industry_page(ind):
           <div style="font-size:0.7rem;font-weight:700;color:#94a3b8;letter-spacing:0.08em;margin-bottom:6px;">
             B・Cコース</div>
           <div style="font-size:1rem;font-weight:800;color:#94a3b8;line-height:1.4;">
-            &#10060; 対象外</div>
+            {_icon("circle-x", 15)} 対象外</div>
           <div style="font-size:0.7rem;color:#64748b;margin-top:4px;">
             受講10時間以上のため</div>
         </div>
       </div>
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
         <div style="font-size:0.8rem;color:#64748b;">
-          &#128197; 令和8年度受付期間：2026年3月1日&#12316;2027年2月28日　上限&#165;{_booking.SUBSIDY["cap_per_person"]:,}/人1研修（1社&#165;{_booking.SUBSIDY["cap_per_company"]:,}まで）</div>
+          {_icon("calendar", 13)} 令和8年度受付期間：2026年3月1日&#12316;2027年2月28日　上限&#165;{_booking.SUBSIDY["cap_per_person"]:,}/人1研修（1社&#165;{_booking.SUBSIDY["cap_per_company"]:,}まで）</div>
         <a href="{_booking.SUBSIDY["url"]}"
           target="_blank" style="font-size:0.82rem;color:#10b981;text-decoration:none;
           border-bottom:1px solid rgba(16,185,129,0.4);padding-bottom:2px;white-space:nowrap;">
@@ -1179,6 +1196,7 @@ def _render_industry_page(ind):
   </div>
 </section>
 
+</div><!-- /.ind-body -->
 """
 
     # ---------- JavaScript ----------
@@ -1200,7 +1218,8 @@ def _render_industry_page(ind):
       if(p.x<0)p.x=W;if(p.x>W)p.x=0;
       if(p.y<0)p.y=H;if(p.y>H)p.y=0;
       ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
-      ctx.fillStyle='rgba({accent_rgb},0.5)';ctx.fill();
+      // ⛔ 濃い業界色にしないこと＝ヒーローの下地は協会サイトの紺で、粒が見えなくなる
+      ctx.fillStyle='rgba(255,255,255,0.45)';ctx.fill();
     }});
     requestAnimationFrame(draw);
   }}

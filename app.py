@@ -37,6 +37,13 @@ app = Flask(__name__, static_folder="static", static_url_path="/static")
 from werkzeug.middleware.proxy_fix import ProxyFix  # noqa: E402
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
+# アイコン（Lucide）。テンプレートから {{ icon('clock', 16) }} で呼べるようにする。
+# ⛔ |safe を書かせないこと＝書き忘れると <svg> がそのまま文字として出る。
+#    Markup を返して、常にそのまま描かれるようにしておく。
+import icons  # noqa: E402
+from markupsafe import Markup  # noqa: E402
+app.jinja_env.globals['icon'] = lambda *a, **k: Markup(icons.icon(*a, **k))
+
 register_vibe_coding_routes(app)
 register_vibe_coding_course_routes(app)
 register_vibe_coding_kids_routes(app)

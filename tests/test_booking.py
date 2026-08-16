@@ -2829,5 +2829,242 @@ class Testコース色を宣言として書く(unittest.TestCase):
             'プロパティ名の無いCSS宣言があります（ブラウザが黙って捨てます）: %s' % bad)
 
 
+class Testページに絵文字を使わない(unittest.TestCase):
+    """2026-08-16 社長ご指示「絵文字をよく使うのをやめてほしい。lucide.dev を使って
+    プロフェッショナルなデザインにしてほしい」。
+
+    それまで公開ページには絵文字が310箇所あった。絵文字は端末（Windows /
+    iPhone / Android）ごとに絵柄も色も変わるので、法人のお客様に見せる講座案内
+    としては見た目が定まらない。アイコンは icons.py（Lucide・ISC）に一本化した。
+
+    ⛔ 検査するのは「実際に描画されたHTML」＝ソースを見るだけでは、
+       HTMLの数値参照（&#128640; のような書き方）で書かれた絵文字を見逃す。
+       実際に2026-08-16の初回調査で87個と数え、数値参照を戻したら310個だった。
+    ⛔ コード中のコメントの ⛔ は対象外（利用者には出ない）。
+    """
+
+    # 絵文字・装飾記号。矢印（→）は文章の記号として使うので対象にしない。
+    EMOJI = re.compile('[⌚-⏿☀-➿⬀-⯿'
+                       '\U0001F000-\U0001FAFF]️?')
+
+    PAGES = ['/', '/company-info', '/team-members', '/course', '/member', '/join-us',
+             '/contact', '/gpu-guide', '/subsidy', '/tokutei', '/vibe-coding',
+             '/vibe-coding/kids', '/vibe-coding/course-ga', '/vibe-coding/course-gb',
+             '/vibe-coding/course-gc', '/vibe-coding/course-gd', '/vibe-coding/course-ge',
+             '/vibe-coding/course-gap', '/vibe-coding/manufacturing',
+             '/vibe-coding/healthcare', '/vibe-coding/finance', '/vibe-coding/logistics',
+             '/vibe-coding/construction', '/book/GA', '/instructor/register', '/solo-ceo']
+
+    def setUp(self):
+        import app as _app
+        self.c = _app.app.test_client()
+
+    @staticmethod
+    def _visible_text(body):
+        """利用者の目に入る文字だけを取り出す。
+
+        ⛔ 正規表現で <script>〜</script> を剥がす方法は使わないこと。
+           2026-08-16 に実際に取りこぼした＝JSの中に "</script" を含む文字列が
+           あると対応が1つずれ、剥がれない塊が残る。JSやCSSのコメントに書いた
+           ⛔ を「ページに絵文字がある」と誤検知した。
+        """
+        from html.parser import HTMLParser
+
+        class _T(HTMLParser):
+            def __init__(self):
+                super().__init__(convert_charrefs=True)
+                self.skip = 0
+                self.buf = []
+
+            def handle_starttag(self, tag, attrs):
+                if tag in ('script', 'style'):
+                    self.skip += 1
+
+            def handle_endtag(self, tag):
+                if tag in ('script', 'style') and self.skip:
+                    self.skip -= 1
+
+            def handle_data(self, d):
+                if not self.skip:
+                    self.buf.append(d)
+
+        t = _T()
+        t.feed(body)
+        return ''.join(t.buf)
+
+    def test_公開ページに絵文字が出ない(self):
+        bad = []
+        for p in self.PAGES:
+            r = self.c.get(p)
+            if r.status_code != 200:
+                continue
+            found = self.EMOJI.findall(self._visible_text(r.get_data(as_text=True)))
+            if found:
+                bad.append('%s: %s' % (p, ''.join(sorted(set(found)))))
+        self.assertEqual(bad, [], '絵文字が残っているページがあります: %s' % bad)
+
+    def test_アイコンが実際に描かれている(self):
+        """絵文字を消しただけで何も出ていない、という壊れ方を防ぐ。"""
+        thin = []
+        for p in ['/vibe-coding', '/vibe-coding/kids', '/vibe-coding/manufacturing',
+                  '/solo-ceo', '/gpu-guide']:
+            r = self.c.get(p)
+            n = r.get_data(as_text=True).count('class="lc')
+            if n < 3:
+                thin.append('%s: %d個' % (p, n))
+        self.assertEqual(thin, [], 'アイコンが描かれていないページがあります: %s' % thin)
+
+
+class Testアイコン名が実在する(unittest.TestCase):
+    """icons.icon() は知らない名前を例外にする（黙って空白にしない）。
+    ⛔ その代わり、書き間違えると本番で500になる。ここで先に落とす。"""
+
+    def test_テンプレートとモジュールが呼ぶアイコンはすべて登録済み(self):
+        import icons
+        root = os.path.dirname(HERE)
+        known = icons.names()
+        bad = []
+        pat = re.compile(r"""icon\(\s*['"]([a-z0-9-]+)['"]""")
+        for sub in ('', 'templates'):
+            d = os.path.join(root, sub)
+            for name in sorted(os.listdir(d)):
+                if not name.endswith(('.html', '.py')):
+                    continue
+                body = io.open(os.path.join(d, name), encoding='utf-8-sig').read()
+                for m in pat.finditer(body):
+                    if m.group(1) not in known:
+                        bad.append('%s: %s' % (name, m.group(1)))
+        self.assertEqual(bad, [], '登録されていないアイコン名です: %s' % bad)
+
+    def test_業界データのアイコン名がすべて登録済み(self):
+        import icons
+        import vibe_coding_industry as ind
+        known = icons.names()
+        bad = []
+        for slug, c in ind.INDUSTRIES.items():
+            for key in ('challenges', 'use_cases'):
+                for item in c.get(key, []):
+                    if item.get('icon') not in known:
+                        bad.append('%s/%s: %r' % (slug, key, item.get('icon')))
+        self.assertEqual(bad, [], '登録されていないアイコン名です: %s' % bad)
+
+    def test_知らない名前は黙って空にせず例外にする(self):
+        import icons
+        with self.assertRaises(KeyError):
+            icons.icon('そんなアイコンはない')
+
+    def test_データURIの色が二重にエンコードされていない(self):
+        """2026-08-16 実際に踏んだ。CSS の背景としてSVGを敷くとき、色の # を
+        先に %23 にしてから quote() を通すと %2523 になり、色が無効になる。
+        ブラウザはエラーを出さず線を描かないだけなので、画面から印が消えても
+        「絵文字を消した」ように見えて気づけない。
+
+        ⛔ url("data:image/svg+xml,…") の中に %25 が出たら二重エンコード。
+        """
+        root = os.path.dirname(HERE)
+        bad = []
+        for sub in ('', 'templates'):
+            d = os.path.join(root, sub)
+            for name in sorted(os.listdir(d)):
+                if not name.endswith(('.html', '.py')):
+                    continue
+                body = io.open(os.path.join(d, name), encoding='utf-8-sig').read()
+                for m in re.finditer(r'data:image/svg\+xml,([^"\')]+)', body):
+                    if '%25' in m.group(1):
+                        bad.append('%s: %s' % (name, m.group(1)[:60]))
+        self.assertEqual(bad, [], 'データURIが二重エンコードされています: %s' % bad)
+
+
+class Test協会サイトの背景を消さない(unittest.TestCase):
+    """2026-08-16 社長ご指摘（2度目）「/vibe-coding/manufacturing のヘッダー
+    デザインなどがトップページと違う」。
+
+    業種別5ページ（manufacturing / healthcare / finance / logistics /
+    construction）は body を #ffffff で塗り、協会サイトの背景
+    （base.html の .particles-background）を display:none で消していた。
+    すると真上にある協会ヘッダー（透明・白ロゴ・白メニュー）が白地に白で
+    読めなくなるので、辻褄合わせでヘッダーだけ真っ黒の帯にしていた
+    ＝これが「トップページとデザインが違う」の正体。
+
+    ⛔ 既存の Test協会サイトのヘッダーを明るく塗り替えない では捕まらない。
+       あちらは「ヘッダーの文字が濃いか／固定か」を見るので、
+       「白い本文＋黒い帯」は素通りする。下地の側を見張るのがこの検査。
+    """
+
+    def _css(self, name):
+        tpl = os.path.join(os.path.dirname(HERE), 'templates')
+        body = io.open(os.path.join(tpl, name), encoding='utf-8').read()
+        body = re.sub(r'\{#.*?#\}', '', body, flags=re.S)
+        return re.sub(r'/\*.*?\*/', '', body, flags=re.S)
+
+    def _templates(self):
+        tpl = os.path.join(os.path.dirname(HERE), 'templates')
+        for name in sorted(os.listdir(tpl)):
+            if name.endswith('.html') and name != 'base.html':
+                yield name
+
+    def test_サイト背景を消さない(self):
+        bad = []
+        for name in self._templates():
+            css = self._css(name)
+            for m in re.finditer(r'([^{}]*(?:particles|polygon)-background[^{}]*)'
+                                 r'\{([^{}]*)\}', css):
+                if re.search(r'display\s*:\s*none', m.group(2)):
+                    bad.append('%s: %s' % (name, m.group(1).strip()))
+        self.assertEqual(
+            bad, [],
+            '協会サイトの背景を消しているページがあります（白くするのは本文の '
+            'ラッパーだけにしてください）: %s' % bad)
+
+    def test_bodyを明るい色で塗り替えない(self):
+        """⛔ 白くするのは本文のラッパー（.lp-body / .course-body / .ind-body）。
+        body ごと白くすると、ヘッダーとフッターまで巻き添えになる。"""
+        bad = []
+        for name in self._templates():
+            css = self._css(name)
+            for m in re.finditer(r'(^|\})\s*(html\s*,\s*)?body\s*\{([^{}]*)\}', css):
+                for v in re.findall(r'background(?:-color)?\s*:\s*([^;!}]+)',
+                                    m.group(3)):
+                    L = Test協会サイトのヘッダーを明るく塗り替えない._lum(
+                        v.strip().split()[0] if v.strip() else '')
+                    if L is not None and L > 0.35:
+                        bad.append('%s: body background %s' % (name, v.strip()))
+        self.assertEqual(
+            bad, [], 'body を明るく塗り替えているページがあります: %s' % bad)
+
+
+class Test差し込んだJavaScriptをscriptで囲む(unittest.TestCase):
+    """2026-08-16 発見。vibe_coding_industry.html の extra_js ブロックが
+
+        {% block extra_js %}{{ page_js|safe }}{% endblock %}
+
+    と <script> 無しで書かれていた。base.html の extra_js は中身をそのまま
+    置くだけなので、囲み忘れると JavaScript が「ページ末尾の地の文」として
+    印字され、しかも1行も実行されない。本番の業種別5ページはこの状態で、
+    ヒーローの粒子・FAQの開閉・お問い合わせの「送信する」が全部死んでいた
+    （submitInquiry is not defined）。
+
+    ⛔ 画面が壊れて見えないので、目視でも気づけない（本文は普通に出る）。
+    """
+
+    def test_extra_jsに置いた変数はscriptで囲む(self):
+        tpl = os.path.join(os.path.dirname(HERE), 'templates')
+        bad = []
+        for name in sorted(os.listdir(tpl)):
+            if not name.endswith('.html') or name == 'base.html':
+                continue
+            body = io.open(os.path.join(tpl, name), encoding='utf-8').read()
+            for m in re.finditer(
+                    r'\{%-?\s*block\s+extra_js\s*-?%\}(.*?)\{%-?\s*endblock',
+                    body, flags=re.S):
+                chunk = re.sub(r'\{#.*?#\}', '', m.group(1), flags=re.S)
+                if '{{' in chunk and '<script' not in chunk:
+                    bad.append(name)
+        self.assertEqual(
+            bad, [],
+            'JavaScript を <script> で囲まずに置いているページがあります'
+            '（実行されず、地の文として画面に出ます）: %s' % bad)
+
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)

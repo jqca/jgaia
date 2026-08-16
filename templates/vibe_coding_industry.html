@@ -9,17 +9,91 @@
 {% endblock %}
 
 {% block extra_css %}
-  /* ── Industry page: override base dark theme ── */
-  body {
-    background: #ffffff !important;
+  /* ⛔ ヘッダー・フッター・背景を上書きしないこと（2026-08-16 社長ご指摘）。
+     ここには 2026-08-16 まで「白テーマ化」の上書きがあり、この5ページ
+     （manufacturing / healthcare / finance / logistics / construction）だけが
+     協会サイトのどのページとも違う見た目になっていた＝
+       ・body を #ffffff で塗りつぶす（!important）
+       ・協会サイトの背景（.particles-background の紺のグラデーション）を display:none で消す
+       ・その結果ヘッダーの白ロゴ・白メニューが読めなくなるので、ヘッダーだけ
+         真っ黒の帯（#09090b）にする
+     ＝トップページや /vibe-coding から遷移すると「同じサイトを出た」ように見える。
+     ヘッダー・フッター・背景は base.html のまま使い、白くするのは本文だけ
+     （.ind-body）にする。これは /vibe-coding（.lp-body）・講座詳細（.course-body）
+     と同じ作り。 */
+
+  /* ── 本文だけを白地にする（ヘッダー・ヒーロー・フッターは協会サイトの紺） ── */
+  .ind-body {
+    background: #ffffff;
     color: #1a1a2e;
     font-family: 'DM Sans', 'Noto Sans JP', sans-serif;
     line-height: 1.7;
   }
-  h1, h2, h3 { font-family: 'Syne', 'Noto Sans JP', sans-serif; }
-  .particles-background,
-  .polygon-background { display: none !important; }
-  .header-nav { background: #09090b; }
+  .ind-body h1, .ind-body h2, .ind-body h3,
+  .ind-hero h1 { font-family: 'Syne', 'Noto Sans JP', sans-serif; }
+
+  /* ── ヒーロー（協会サイトの紺の上に、業界色を薄く重ねる） ── */
+  .ind-hero {
+    position: relative; overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+    text-align: center;
+    min-height: 76vh;            /* ヘッダー（8em）と足して1画面に収まる高さ */
+    padding: 40px 24px 72px;
+    color: #fff;
+    font-family: 'DM Sans', 'Noto Sans JP', sans-serif;
+    line-height: 1.7;
+  }
+  /* ⛔ 上端から色を乗せないこと＝ヘッダーの帯との間に横一本の継ぎ目が出て、
+     ヘッダーだけ別ページのように見える。上は透かして下に向かって色を出す。 */
+  .ind-hero-bg {
+    position: absolute; inset: 0; pointer-events: none;
+    background:
+      radial-gradient(ellipse 70% 60% at 50% 55%, rgba({{ ind.accent_rgb }},0.30) 0%, transparent 70%);
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 45%);
+    mask-image: linear-gradient(to bottom, transparent 0, #000 45%);
+  }
+  .ind-hero-grid {
+    position: absolute; inset: 0; pointer-events: none;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
+    background-size: 60px 60px;
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 45%);
+    mask-image: linear-gradient(to bottom, transparent 0, #000 45%);
+  }
+  .ind-hero .hero-eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    border: 1px solid rgba(255,255,255,0.28);
+    color: rgba(255,255,255,0.85);
+    padding: 6px 18px; border-radius: 24px;
+    font-size: 0.8rem; font-weight: 700; letter-spacing: 0.08em;
+    margin-bottom: 28px; font-family: 'Syne', sans-serif;
+  }
+  .ind-hero h1 {
+    font-size: clamp(2.2rem, 6vw, 4rem); font-weight: 900;
+    line-height: 1.2; letter-spacing: -0.02em; margin-bottom: 24px; color: #fff;
+  }
+  .ind-hero h1 em { font-style: normal; color: {{ ind.accent_light }}; }
+  .ind-hero .hero-lead {
+    font-size: clamp(1rem, 2vw, 1.15rem); color: rgba(255,255,255,0.78);
+    max-width: 640px; margin: 0 auto 40px; line-height: 1.85;
+  }
+  .ind-hero .hero-btn-primary {
+    background: #fff; color: #0d1b3e;
+    padding: 16px 36px; border-radius: 40px; text-decoration: none;
+    font-weight: 800; font-size: 1.05rem;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.25); transition: transform .2s, box-shadow .2s;
+  }
+  .ind-hero .hero-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(0,0,0,0.32); }
+  .ind-hero .hero-btn-outline {
+    background: transparent; border: 1px solid rgba(255,255,255,0.45); color: #fff;
+    padding: 16px 36px; border-radius: 40px; text-decoration: none;
+    font-weight: 700; font-size: 1.05rem; transition: background .2s, border-color .2s;
+  }
+  .ind-hero .hero-btn-outline:hover { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.7); }
+  .ind-hero .stats-row { border-top: 1px solid rgba(255,255,255,0.18); }
+  .ind-hero .stat-n { font-size: 1.8rem; font-weight: 900; line-height: 1; color: {{ ind.accent_light }}; }
+  .ind-hero .stat-lb { font-size: 0.75rem; color: rgba(255,255,255,0.65); margin-top: 4px; }
 
   /* ─── Sections ─── */
   .ind-section { padding: 88px 24px; }
@@ -56,14 +130,9 @@
   .form-group textarea { height: 100px; resize: vertical; }
   .form-group select option { background: #ffffff; }
 
-  /* ─── Industry footer ─── */
-  .ind-footer {
-    background: #f8fafc; padding: 48px 24px; text-align: center;
-    border-top: 1px solid #e2e8f0;
-  }
-  .ind-footer p { font-size: 0.8rem; color: #64748b; margin-top: 8px; }
-  .ind-footer a { color: #4a5568; text-decoration: none; }
-  .ind-footer a:hover { color: #1a1a2e; }
+  /* ⛔ フッターを差し替えないこと。ここには白い独自フッター（.ind-footer）が
+     あったが、協会サイトのフッターは base.html の .footer（紺の上に立つ）。
+     この5ページだけ明るいフッターだと、最後まで読んだ人に別サイトに見える。 */
 
   /* ─── Responsive ─── */
   @media (max-width: 1024px) {
@@ -87,20 +156,18 @@
 {{ page_content|safe }}
 {% endblock %}
 
-{% block footer %}
-<footer class="ind-footer">
-  <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:12px;">
-    <span style="font-size:1.2rem;font-weight:900;font-family:'Syne',sans-serif;
-      background:linear-gradient(135deg,#6366f1,#818cf8);
-      -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">JGAIA</span>
-  </div>
-  <p>&copy; 2026 一般社団法人日本生成AI協会（JGAIA）</p>
-  <p style="margin-top:8px;font-size:0.75rem;">
-    <a href="/vibe-coding">バイブコーディング講座トップ</a> ｜
-    <a href="https://www.jgaia.org" target="_blank">JGAIA公式</a></p>
-</footer>
-{% endblock %}
+{# ⛔ footer ブロックを上書きしないこと＝base.html の協会フッターをそのまま使う。
+   ここには白い独自フッター（.ind-footer）があり、この5ページだけ最後まで
+   読んだ人に「別サイト」に見えていた。 #}
 
 {% block extra_js %}
+{# ⛔ <script> で囲むのを忘れないこと（2026-08-16 修正）。base.html の
+   extra_js ブロックは中身をそのまま置くだけなので、囲み忘れると JavaScript が
+   「ページ末尾の地の文」として画面に印字され、しかも1行も実行されない
+   ＝ヒーローの粒子・FAQの開閉・お問い合わせの「送信する」が全部死ぬ。
+   5ページ（manufacturing/healthcare/finance/logistics/construction）とも
+   本番でこの状態だった。他のページ（vibe_coding_lp / kids）は囲んである。 #}
+<script>
 {{ page_js|safe }}
+</script>
 {% endblock %}
