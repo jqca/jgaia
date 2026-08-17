@@ -371,7 +371,11 @@ def register_vibe_coding_course_routes(app):
 def _render_course_page(course_id):
     """コース詳細ページ — base.html を継承するJinjaテンプレートで描画"""
     c = COURSES[course_id]
-    return render_template("course_detail.html", c=c)
+    # ⛔ 開催日があるのに「お問い合わせ」しか出さないこと（2026-08-17 社長ご質問で
+    #    発覚）。日程が公開されていれば予約へ送り、フォームは相談用に降ろす。
+    #    出どころは booking.open_slots() の1か所（一人会社の講座と同じ判断）。
+    return render_template("course_detail.html", c=c,
+                           slot=_booking.open_slots(c["code"]))
 
 
 def _render_thank_you_page(course, name):

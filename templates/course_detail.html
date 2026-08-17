@@ -414,6 +414,24 @@
     {% if c.exam %}
     <p style="margin-top:6px;font-size:13px;color:rgba(255,255,255,.8);font-weight:500">{{ c.exam_note }}</p>
     {% endif %}
+    {# ⛔ 開催日があるのに「お問い合わせ」しか出さないこと（2026-08-17 社長ご質問で
+       発覚）。日程が公開されていれば、まず予約へ送る。日程が無いときにこの
+       ボタンを出さないこと＝押した先が「いまお選びいただける日程がありません」
+       になり、行き止まりに見える（一人会社の講座ページと同じ約束）。
+       判断は booking.open_slots() の1か所。 #}
+    {% if slot and slot['件数'] %}
+    <div style="margin-top:20px;display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+      <a href="{{ url_for('book_course', code=c.code) }}"
+         style="display:inline-block;padding:14px 28px;border-radius:6px;
+                background:#fff;color:#0d1b3e;font-weight:800;font-size:15px;
+                text-decoration:none">開催日を見て申し込む →</a>
+      <a href="#inquiry"
+         style="display:inline-block;padding:14px 24px;border-radius:6px;
+                border:1px solid rgba(255,255,255,.35);color:#fff;
+                font-weight:600;font-size:14px;text-decoration:none">まず相談する</a>
+      <span style="font-size:13px;color:rgba(255,255,255,.75)">直近の開催：{{ slot['表示'] }}</span>
+    </div>
+    {% endif %}
   </div>
 </section>
 
@@ -546,8 +564,21 @@
 <section class="c-sec form-sec" id="inquiry">
   <div class="c-sec-inner">
     <div class="c-sec-eyebrow"><span class="c-sec-eyebrow-line"></span>INQUIRY</div>
+    {# ⛔ 開催日があるときに、このフォームが「お申し込み」を名乗らないこと
+       （2026-08-17 社長ご質問）。ここはメールを送るだけで、予約台帳には入らない
+       ＝席も押さえられず、講師も割り当たらず、受講証明書も出せない。
+       申し込んだつもりの方をここで受けてしまうのがいちばん重い事故。 #}
+    {% if slot and slot['件数'] %}
+    <h2 class="c-sec-heading">お問い合わせ・ご相談</h2>
+    <p class="c-sec-sub">お申し込みは
+      <a href="{{ url_for('book_course', code=c.code) }}"
+         style="color:{{ c.accent_light }};text-decoration:underline">開催日を選ぶ画面</a>
+      からお願いします（直近の開催：{{ slot['表示'] }}）。
+      ご不明な点は下記フォームからどうぞ。担当者より2営業日以内にご連絡いたします。</p>
+    {% else %}
     <h2 class="c-sec-heading">お問い合わせ・お申し込み</h2>
     <p class="c-sec-sub">下記フォームよりお気軽にお問い合わせください。担当者より2営業日以内にご連絡いたします。</p>
+    {% endif %}
     <form id="inquiry-form" action="/api/course-inquiry" method="POST">
       <input type="hidden" name="course" value="JGAIA {{ c.code }}：{{ c.title }}">
       <div class="form-wrap">

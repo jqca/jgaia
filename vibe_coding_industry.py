@@ -803,6 +803,28 @@ def _render_industry_page(ind):
             <div style="font-size:0.82rem;font-weight:700;color:#1a1a2e;">{course["capacity"]}</div>
           </div>
         """
+        # ⛔ 開催日があるのに「お問い合わせ」しか出さないこと（2026-08-17 社長ご質問で
+        #    発覚）。日程が公開されていれば、まず予約へ送る。⛔ 日程が無いときに
+        #    予約ボタンを出さないこと＝押した先が行き止まりに見える。
+        #    判断は booking.open_slots() の1か所。
+        _slot = _booking.open_slots(course["code"])
+        _btn = ('display:block;text-align:center;padding:14px;border-radius:14px;'
+                'font-weight:800;font-size:0.92rem;text-decoration:none;color:#fff;'
+                f'background:{p["btn_grad"]};transition:opacity 0.2s;')
+        if _slot["件数"]:
+            cta_html = (
+                f'<a href="/book/{course["code"]}" style="{_btn}"'
+                " onmouseenter=\"this.style.opacity='0.85'\""
+                " onmouseleave=\"this.style.opacity='1'\">開催日を見て申し込む →</a>"
+                '<div style="text-align:center;margin-top:8px;font-size:0.78rem;color:#64748b;">'
+                f'直近の開催：{_slot["表示"]} ／ '
+                '<a href="#inquiry" style="color:#4a5568;text-decoration:underline;">まず相談する</a></div>')
+        else:
+            cta_html = (
+                f'<a href="#inquiry" style="{_btn}"'
+                " onmouseenter=\"this.style.opacity='0.85'\""
+                " onmouseleave=\"this.style.opacity='1'\">"
+                f'{course["btn_label"]}</a>')
         course_cards_html += f"""
         <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:24px;
           overflow:hidden;transition:transform 0.3s,box-shadow 0.3s;display:flex;flex-direction:column;"
@@ -832,10 +854,7 @@ def _render_industry_page(ind):
             {unit_price_html}
             {exam_note_html}
             <ul style="list-style:none;margin:0 0 20px;padding:0;flex:1;">{feat_items}</ul>
-            <a href="#inquiry" style="display:block;text-align:center;padding:14px;border-radius:14px;
-              font-weight:800;font-size:0.92rem;text-decoration:none;color:#fff;background:{p['btn_grad']};
-              transition:opacity 0.2s;" onmouseenter="this.style.opacity='0.85'"
-              onmouseleave="this.style.opacity='1'">{course["btn_label"]}</a>
+            {cta_html}
           </div>
         </div>
         """

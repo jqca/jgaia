@@ -569,6 +569,32 @@ def apply_exam(courses, code_key='code'):
 apply_exam(COURSES)
 
 
+def open_slots(course_code, logger=None):
+    """その講座の「いちばん近い開催日」と「選べる日数」。
+
+    紹介ページが「申し込む」を出すか「まず相談する」を出すかの判断に使う。
+    ⛔ 開催日を手で書いた文字列と併存させないこと。講師が日程を変えたときに
+       画面の日付だけ古くなり、誤案内になる。
+    ⛔ ここが例外でページを落とさないこと（紹介は予約より上位の役目）。
+    ⛔ 2026-08-17 まで solo_ceo.py にしか無く、バイブコーディングの23講座は
+       この判断を一切していなかった＝日程が公開されても紹介ページからは
+       予約に行けず、「お申し込み」を名乗るフォームがメールを送るだけだった。
+    """
+    try:
+        days = [d for d in open_days(course_code) if d['状態'] == '予約可']
+        if not days:
+            return {'件数': 0, '最短': None, '表示': '調整中'}
+        first = days[0]['日付']
+        _y, m, d = first.split('-')
+        return {'件数': len(days), '最短': first,
+                '表示': ('{}月{}日〜（他{}日）'.format(int(m), int(d), len(days) - 1)
+                         if len(days) > 1 else '{}月{}日'.format(int(m), int(d)))}
+    except Exception:                            # noqa: BLE001
+        if logger:
+            logger.exception('[booking] 開催日の集計に失敗しました')
+        return {'件数': 0, '最短': None, '表示': '調整中'}
+
+
 def sessions_of(course_code):
     """その講座を何本の研修として掲載しているか（分割していなければ1）。"""
     return SESSIONS.get(course_code, 1)

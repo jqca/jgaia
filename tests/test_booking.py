@@ -3481,6 +3481,83 @@ class Test研修ごとに申し込める(unittest.TestCase):
         self.assertEqual(amounts, [booking.UNIT_PRICE])
 
 
+class Test紹介ページから予約に行ける(unittest.TestCase):
+    """社長ご質問 2026-08-17「紹介ページの最後のお問い合わせ・申込フォームは、
+    講師の予定がある講座では非表示になるの？ それとも問い合わせという意味だけ？」
+    → **どちらも実装されていなかった**。実測で /book/ へのリンクは
+    一人会社の3講座にしかなく、バイブコーディングの23講座は日程が公開されても
+    紹介ページから予約に行けず、「お問い合わせ・お申し込み」を名乗るフォームが
+    メールを送るだけだった。
+
+    固定している事故の型:
+      ・日程があるのに予約への導線が出ない（お客様は /book/ を知らない）
+      ・メールを送るだけのフォームが「お申し込み」を名乗る
+        （予約台帳に入らない＝席も押さえず、講師も割り当たらず、
+          受講証明書も出せない。申し込んだつもりの方をここで受けてしまう）
+      ・日程が無いのに予約ボタンを出す（押した先が行き止まりに見える）
+    """
+
+    def setUp(self):
+        _clear()
+        self.c = app.test_client()
+
+    def _open(self, code):
+        booking.register_instructor('山田', 'y@example.com', '', [code], '',
+                                    _days_all((code,)))
+        i = booking.instructors()[0]
+        booking.set_state(i['id'], '承認')
+        booking.verify_email(i['鍵'])
+
+    def test_日程が無いときは予約ボタンを出さない(self):
+        # ⛔ 押した先が「いまお選びいただける日程がありません」になる
+        for p in ('/vibe-coding/course-ga', '/vibe-coding/manufacturing'):
+            h = self.c.get(p).get_data(as_text=True)
+            self.assertNotIn('/book/', h, p)
+            self.assertNotIn('開催日を見て申し込む', h, p)
+
+    def test_日程があれば予約へ送る(self):
+        self._open('GA')
+        h = self.c.get('/vibe-coding/course-ga').get_data(as_text=True)
+        self.assertIn('/book/GA', h)
+        self.assertIn('開催日を見て申し込む', h)
+
+    def test_日程があるフォームはお申し込みを名乗らない(self):
+        # ⛔ ここはメールを送るだけで、予約台帳には入らない
+        self._open('GA')
+        t = _visible(self.c.get('/vibe-coding/course-ga').get_data(as_text=True))
+        self.assertIn('お問い合わせ・ご相談', t)
+        self.assertNotIn('お問い合わせ・お申し込み', t)
+        self.assertIn('開催日を選ぶ画面', t)
+
+    def test_業種別も講座ごとに切り替わる(self):
+        # ⛔ 1つの講座に日程が入ったからといって、他の講座にも予約ボタンを
+        #    出さないこと（講座ごとに講師の予定が違う）
+        self._open('GM-A')
+        h = self.c.get('/vibe-coding/manufacturing').get_data(as_text=True)
+        self.assertIn('/book/GM-A', h)
+        self.assertNotIn('/book/GM-B', h)
+        self.assertNotIn('/book/GM-C', h)
+
+    def test_判断の出どころは1か所(self):
+        # ⛔ 各ページで open_days を数え直さないこと（判断がずれる）
+        import solo_ceo
+        self.assertEqual(solo_ceo.booking_summary('SP-A'),
+                         booking.open_slots('SP-A'))
+        root = os.path.dirname(HERE)
+        src = io.open(os.path.join(root, 'vibe_coding_courses.py'),
+                      encoding='utf-8').read()
+        self.assertIn('open_slots', src)
+        self.assertNotIn('open_days(', src)
+
+    def test_一人会社の講座は元から切り替わっている(self):
+        # ⛔ 直したついでに壊さないこと
+        h = self.c.get('/solo-ceo/course-spa').get_data(as_text=True)
+        self.assertNotIn('/book/SP-A', h)
+        self._open('SP-A')
+        h = self.c.get('/solo-ceo/course-spa').get_data(as_text=True)
+        self.assertIn('/book/SP-A', h)
+
+
 class Test受講料の単位を出す(unittest.TestCase):
     """社長ご提案 2026-08-17「¥xxxx より ¥xxxx/人 の方がいいのでは？」。
 

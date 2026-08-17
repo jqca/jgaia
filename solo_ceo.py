@@ -198,25 +198,13 @@ _booking.apply_exam(COURSES.values())
 def booking_summary(code, logger=None):
     """そのコースの「いちばん近い開催日」と「選べる日数」を返す。
 
-    出どころは講師のカレンダーだけにする。
-    ⛔ 開催日を手で書いた文字列（旧 next_date）と併存させないこと。
-       講師が日程を変えたときに画面の日付だけ古くなり、誤案内になる。
-    ⛔ ここが例外でページを落とさないこと（紹介は予約より上位の役目）。
+    ⛔ 中身をここに持たないこと。出どころは booking.open_slots() の1か所で、
+       バイブコーディングの講座ページも同じ判断を使う（2026-08-17 まで
+       この判断は一人会社の3講座にしか無く、残る23講座は日程が公開されても
+       紹介ページから予約に行けなかった）。
     """
-    try:
-        import booking
-        days = [d for d in booking.open_days(code) if d["状態"] == "予約可"]
-        if not days:
-            return {"件数": 0, "最短": None, "表示": "調整中"}
-        first = days[0]["日付"]
-        y, m, d = first.split("-")
-        return {"件数": len(days), "最短": first,
-                "表示": f"{int(m)}月{int(d)}日〜（他{len(days) - 1}日）"
-                        if len(days) > 1 else f"{int(m)}月{int(d)}日"}
-    except Exception:
-        if logger:
-            logger.exception("[solo-ceo] 開催日の集計に失敗しました")
-        return {"件数": 0, "最短": None, "表示": "調整中"}
+    import booking
+    return booking.open_slots(code, logger)
 
 
 def register_solo_ceo_routes(app):
