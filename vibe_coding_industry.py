@@ -759,8 +759,12 @@ def _render_industry_page(ind):
             unit_price_html = (
                 '<div style="margin:-2px 0 14px;font-size:0.8rem;color:#4a5568;line-height:1.6;">'
                 f'<b>{course["unit_note"]}</b>'
+                # ⛔ 「1研修ごとにお申し込みができます」と書かないこと（2026-08-17 に
+                #    削除）。申込は booking.add_booking() が course['price'] を一括で
+                #    請求する＝**全回セットでしか買えない**。実装が追いつくまでは
+                #    交付申請の単位の話だけにする。⛔ 画面の約束を実装より先に出さない。
                 '<br><span style="color:#64748b;">各回が独立した研修です。'
-                '1研修ごとにお申し込み・助成金の申請ができます。</span></div>'
+                '1研修ごとに交付申請・受講証明書の発行ができます。</span></div>'
             )
         # ⛔ 試験名・受験料をここに書かないこと。出どころは booking.exam_note() の1か所。
         #    ⛔ 白いカードの上なので文字色を必ず指定する（既定の色に頼らない）。
