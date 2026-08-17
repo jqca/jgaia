@@ -723,16 +723,35 @@ def _render_industry_page(ind):
     course_cards_html = ""
     for i, course in enumerate(c["courses"]):
         p = palette[i]
-        # Aコース（4時間）のみ助成金の対象（3〜10時間未満の要件）
+        # ⛔ 「Aコースだけ対象」と決め打ちしないこと（2026-08-17 社長ご指摘で全コース対象化）。
+        #    対象を分けるのは講座の格ではなく**1研修あたりの時間**だけ。B・Cは回ごとに
+        #    独立した研修として掲載することで対象になった。判定は subsidy_for() が唯一の出どころ。
+        # ⛔ 金額・時間を直書きしないこと（制度が変わった日に、直し忘れた画面だけが古い額を出す）。
+        _sub = _booking.subsidy_for(course["code"]) or {}
         subsidy_badge_html = ""
-        if i == 0:
+        if _sub.get("eligible"):
+            _h = _sub["hours"]
+            _htxt = f'{_h:g}時間'
+            _unit = ('' if _sub["sessions"] == 1
+                     else f'／全{_sub["sessions"]}研修とも対象')
             subsidy_badge_html = (
                 '<div style="margin:0 0 14px;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.35);'
                 'border-radius:10px;padding:10px 14px;font-size:0.82rem;font-weight:700;color:#10b981;">'
-                f'{_icon("check", 13)} 東京しごと財団 DXリスキリング助成金 対象（4時間）'
+                f'{_icon("check", 13)} 東京しごと財団 DXリスキリング助成金 対象'
+                f'（1研修 {_htxt}{_unit}）'
                 '<br><span style="font-weight:500;font-size:0.78rem;color:#4a5568;">'
-                # ⛔ 金額を直書きしないこと。booking.subsidy_for() が唯一の出どころ
-                f'法人研修なら実質 &#165;{_booking.subsidy_for("GM-A")["net"]:,} / 人</span></div>'
+                f'法人研修なら実質 &#165;{_sub["net"]:,} / 人</span></div>'
+            )
+        # ⛔ 分割掲載する講座は「1研修あたりの受講料」を必ず画面に出すこと。
+        #    助成の要件2が「一般に公開された受講案内に**受講者1人1研修単位の経費**が
+        #    明記されていること」なので、これが無いと法人は交付申請できない。
+        unit_price_html = ""
+        if _sub.get("sessions", 1) > 1:
+            unit_price_html = (
+                '<div style="margin:-2px 0 14px;font-size:0.8rem;color:#4a5568;line-height:1.6;">'
+                f'<b>1研修 &#165;{_sub["unit_price"]:,}</b>（税込）&times; 全{_sub["sessions"]}研修'
+                '<br><span style="color:#64748b;">各回が独立した研修です。'
+                '1研修ごとにお申し込み・助成金の申請ができます。</span></div>'
             )
         feat_items = "".join(
             f'<li style="border-bottom:1px solid #e2e8f0;padding:7px 0;display:flex;'
@@ -785,6 +804,7 @@ def _render_industry_page(ind):
             <div style="font-size:2rem;font-weight:900;color:{p['accent']};margin-bottom:4px;">
               &yen;{course["price"]}<span style="font-size:0.8rem;font-weight:400;color:#64748b;">
               {course["price_unit"]}</span></div>
+            {unit_price_html}
             <ul style="list-style:none;margin:0 0 20px;padding:0;flex:1;">{feat_items}</ul>
             <a href="#inquiry" style="display:block;text-align:center;padding:14px;border-radius:14px;
               font-weight:800;font-size:0.92rem;text-decoration:none;color:#fff;background:{p['btn_grad']};

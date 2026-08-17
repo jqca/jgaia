@@ -1777,8 +1777,10 @@ class Test講師料の明示と同意(unittest.TestCase):
 
     def test_登録画面に講座ごとの金額が出る(self):
         html = self.c.get('/instructor/register').get_data(as_text=True)
-        self.assertIn('19,920', html)         # SP-A
-        self.assertIn('51,200', html)         # SP-B
+        # ⛔ 金額を書き写さないこと＝受講料を変えた日にここだけ古くなる
+        #    （2026-08-17 の値上げで実際に落ちた）。式から出して突き合わせる。
+        for code in ('SP-A', 'SP-B'):
+            self.assertIn('{:,}'.format(booking.instructor_fee(code)), html, code)
         self.assertIn('1開催あたり', html)
         # ⛔ 都度交渉に戻す文言を残さないこと
         self.assertNotIn('謝礼はご相談のうえ', html)
@@ -2020,12 +2022,16 @@ class Test助成金の判定(unittest.TestCase):
     def test_対象を決めるのは講座名ではなく研修時間(self):
         # ⛔ SP-A は「一人会社」の講座だが、法人が従業員を送れば対象になる
         self.assertTrue(booking.subsidy_for('SP-A')['eligible'])
-        # SP-B・SP-C が外れる理由は立場ではなく時間であること
+        # SP-B・SP-C も、回ごとに独立した研修として掲載し直して対象になった
+        # （2026-08-17）。⛔ 講座名や格で決めていないことを固定する。
         for code in ('SP-B', 'SP-C'):
+            self.assertTrue(booking.subsidy_for(code)['eligible'], code)
+        # 対象外になるのは立場（受講者が従業員でない）だけ
+        for code in ('GK1', 'GK2', 'GK3'):
             s = booking.subsidy_for(code)
-            self.assertFalse(s['eligible'])
-            self.assertIn('時間', s['reason'])
-            self.assertNotIn('代表', s['reason'])
+            self.assertFalse(s['eligible'], code)
+            self.assertIn('従業員', s['reason'])
+            self.assertNotIn('時間', s['reason'])
 
     def test_時間の境目で切り替わる(self):
         # 3時間以上10時間未満（GK1は3時間ちょうど＝時間の要件は満たす）
@@ -2046,16 +2052,41 @@ class Test助成金の判定(unittest.TestCase):
         self.assertEqual(s['grant'], 33954)
         self.assertEqual(s['net'], 49800 - 33954)
 
-    def test_1人あたりの上限を超えない(self):
+    def test_1研修あたりの上限を超えない(self):
+        # ⛔ 上限は「1人1研修あたり」75,000円。分割掲載の講座は研修の本数だけ
+        #    受けられるので、講座単位の合計で判定しないこと（2026-08-17）。
         for code in booking.subsidy_courses():
-            self.assertLessEqual(booking.subsidy_for(code)['grant'],
+            s = booking.subsidy_for(code)
+            self.assertLessEqual(s.get('grant_unit', s['grant']),
                                  booking.SUBSIDY['cap_per_person'], code)
+            # 合計は 1研修あたり × 本数 でなければならない
+            self.assertEqual(s['grant'],
+                             s.get('grant_unit', s['grant']) * s['sessions'], code)
 
-    def test_対象講座は11件(self):
-        # SP-A ＋ GA/GA-P/GB/GD/GE ＋ 業種別A×5
-        self.assertEqual(sorted(booking.subsidy_courses()),
-                         sorted(['SP-A', 'GA', 'GA-P', 'GB', 'GD', 'GE',
-                                 'GM-A', 'GH-A', 'GF-A', 'GL-A', 'GN-A']))
+    def test_対象講座は24件(self):
+        # 2026-08-17 社長ご指示で、長時間の講座を「回ごとに独立した研修」として
+        # 掲載し直し、13講座を新たに対象化した（B/C・GC・SP-B・SP-C）。
+        # ⛔ 子ども向け（GK1〜3）は受講者が従業員でないので時間に関係なく対象外。
+        self.assertEqual(
+            sorted(booking.subsidy_courses()),
+            sorted(['SP-A', 'SP-B', 'SP-C', 'GA', 'GA-P', 'GB', 'GC', 'GD', 'GE',
+                    'GM-A', 'GM-B', 'GM-C', 'GH-A', 'GH-B', 'GH-C',
+                    'GF-A', 'GF-B', 'GF-C', 'GL-A', 'GL-B', 'GL-C',
+                    'GN-A', 'GN-B', 'GN-C']))
+
+    def test_1研修あたりが3時間以上10時間未満に収まる(self):
+        # ⛔ 下限3時間も効く。夜間コース（1回2.5時間）を回ごとにばらすと
+        #    下限を割って逆に対象外になる（GC・SP-C を2本にしているのはこのため）。
+        for code, n in booking.SESSIONS.items():
+            h = booking.unit_hours(code)
+            self.assertGreaterEqual(h, booking.SUBSIDY['min_hours'], code)
+            self.assertLess(h, booking.SUBSIDY['max_hours'], code)
+
+    def test_分割掲載の受講料は1研修単価かける本数(self):
+        # ⛔ 価格を手打ちしないこと（SESSIONS を触って価格を直し忘れる事故を防ぐ）
+        for code, n in booking.SESSIONS.items():
+            self.assertEqual(booking.COURSE_BY_CODE[code]['price'],
+                             booking.UNIT_PRICE * n, code)
 
     def test_研修時間は全講座に登録されている(self):
         # ⛔ 未登録があると、その講座だけ判定できず黙って対象外になる
@@ -2066,7 +2097,9 @@ class Test助成金の判定(unittest.TestCase):
         tag = booking.subsidy_tag('SP-A')
         self.assertIn('法人研修なら', tag)
         self.assertIn('15,846', tag)
-        self.assertEqual(booking.subsidy_tag('SP-B'), '')
+        # ⛔ 例に SP-B を使わないこと＝2026-08-17 に対象になった。
+        #    時間に関係なく対象外なのは子ども向けだけ。
+        self.assertEqual(booking.subsidy_tag('GK1'), '')
 
     def test_掲載ページの金額は計算値と一致する(self):
         # ⛔ 旧「実質 ¥24,800〜」（事業外スキルアップの値）が残っていたら落とす
@@ -2145,11 +2178,12 @@ class Test助成金の判定(unittest.TestCase):
         self.assertIn(want, t)
 
     def test_対象外の講座に助成金の案内を出さない(self):
-        booking.register_instructor('鈴木', 's@example.com', '', ['SP-C'], '',
-                                    _days_all(('SP-C',)))
+        # ⛔ 例に SP-C を使わないこと＝2026-08-17 に対象になった。
+        booking.register_instructor('鈴木', 's@example.com', '', ['GK1'], '',
+                                    _days_all(('GK1',)))
         booking.set_state(booking.instructors()[-1]['id'], '承認')
         booking.verify_email(booking.instructors()[-1]['鍵'])
-        t = _visible(self.c.get('/book/SP-C').get_data(as_text=True))
+        t = _visible(self.c.get('/book/GK1').get_data(as_text=True))
         self.assertNotIn('4分の3', t)
 
 
@@ -2626,7 +2660,9 @@ class Test赤字にしない(unittest.TestCase):
         s = booking.subsidy_for('GA-P')
         self.assertIn('{:,}'.format(s['net']), t)
         # 対象外の講座には出さない（日程の有無に関わらず）
-        t2 = _visible(self.c.get('/book/GC').get_data(as_text=True))
+        # ⛔ 例に GC を使わないこと＝2026-08-17 に回ごとの研修として掲載し直して
+        #    対象になった。時間に関係なく対象外なのは子ども向け（受講者が従業員でない）。
+        t2 = _visible(self.c.get('/book/GK1').get_data(as_text=True))
         self.assertNotIn('4分の3', t2)
 
     def test_申込画面に開催方法と諸経費を出す(self):

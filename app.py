@@ -228,9 +228,13 @@ def tokutei():
     #    ZebraQuantum で、条件は booking.py が唯一の出どころ（画面・メール・
     #    法定表示が別々の答えを出すのを防ぐ）
     import booking
+    # ⛔ 価格帯も直書きしないこと（2026-08-17 に ¥228,000 が残っていた）。実価格から出す。
+    _p = [c['price'] for c in booking.COURSES]
+    price_range = '¥{:,}〜¥{:,}'.format(min(_p), max(_p))
     return render_template("tokutei.html", seller=booking.SELLER,
                            cancel_policy=booking.CANCEL_POLICY,
                            extra_cost_note=booking.EXTRA_COST_NOTE,
+                           price_range=price_range,
                            delivery_note=booking.DELIVERY_NOTE)
 
 

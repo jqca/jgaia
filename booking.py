@@ -34,6 +34,7 @@ import re
 import secrets
 import threading
 from datetime import date, datetime, timedelta, timezone
+from decimal import Decimal, ROUND_DOWN
 
 JST = timezone(timedelta(hours=9))
 _LOCK = threading.Lock()
@@ -353,6 +354,54 @@ for _s in ('GM', 'GH', 'GF', 'GL', 'GN'):
     TRAINING_HOURS[f'{_s}-B'] = 18
     TRAINING_HOURS[f'{_s}-C'] = 30
 
+# ── 1講座を「独立した複数の研修」として掲載する（社長ご指示 2026-08-17）
+# 助成の要件は「**1研修あたり**の総研修時間数が3時間以上10時間未満」だけで、
+# 講座の格・内容・段階は関係ない。複数日開催も条文が認めている
+# （募集要項 要件10・※11）。そして要件2「レディメイド研修＝一般に公開された
+# 受講案内に**受講者1人1研修単位の経費**が明記されていること」より、
+# **1研修の区切りは当社が受講案内（自社サイト）にどう書くかで決まる**。
+# → 長時間の講座を、回ごとに独立した研修として掲載し直すことで対象になる。
+#
+# 値 = その講座を何本の研修として掲載するか。
+# ⛔ 1本あたりが3時間以上10時間未満に収まること（下限も効く）。
+#    夜間コース（1回2.5時間）を回ごとにばらすと下限3時間を割って**逆に対象外**になる。
+#    GC・SP-C を2本にしているのはこのため。
+# ⛔ 本数を増やすほど法人の負担額が増える（1研修 = UNIT_PRICE のため）。
+#    掲載回をそのまま単位にするのが、いまの受講料より安くなる範囲で最大。
+SESSIONS = {
+    'SP-B': 3, 'SP-C': 2, 'GC': 2,
+}
+for _s in ('GM', 'GH', 'GF', 'GL', 'GN'):
+    SESSIONS[f'{_s}-B'] = 3
+    SESSIONS[f'{_s}-C'] = 5
+
+# 1研修あたりの受講料（税込）。税抜ちょうど10万円＝助成上限75,000円を使い切る点。
+# ⛔ ここを下げると助成の取りこぼしになる（税抜10万円未満は3/4しか出ない）。
+# ⛔ 上げても助成は増えない（1人1研修あたり75,000円で頭打ち）。差額は法人の持ち出し。
+UNIT_PRICE = 110000
+
+
+# ⛔ 分割掲載する講座の受講料は手打ちしないこと。1研修 UNIT_PRICE × 本数で導出する
+#    （SESSIONS を触ったのに価格を直し忘れる、を構造的に防ぐ）。
+#    COURSE_BY_CODE は同じ dict を参照しているので、ここで書き換えれば両方に効く。
+for _c in COURSES:
+    _n = SESSIONS.get(_c['code'])
+    if _n:
+        _c['price'] = UNIT_PRICE * _n
+
+
+def sessions_of(course_code):
+    """その講座を何本の研修として掲載しているか（分割していなければ1）。"""
+    return SESSIONS.get(course_code, 1)
+
+
+def unit_hours(course_code):
+    """1研修あたりの総研修時間数。助成の判定はこちらで行う。"""
+    h = TRAINING_HOURS.get(course_code)
+    if h is None:
+        return None
+    return h / sessions_of(course_code)
+
 
 # ── 東京しごと財団「DXリスキリング助成金」（令和8年度）
 # 出典: https://www.koyokankyo.shigotozaidan.or.jp/jigyo/skillup/skill-R8dx-risk.html
@@ -388,9 +437,12 @@ def subsidy_for(course_code):
     c = COURSE_BY_CODE.get(course_code)
     if not c:
         return None
-    hours = TRAINING_HOURS.get(course_code)
+    n = sessions_of(course_code)
+    hours = unit_hours(course_code)          # ⛔ 講座全体ではなく1研修あたりで判定する
     out = {'name': SUBSIDY['name'], 'url': SUBSIDY['url'],
-           'hours': hours, 'eligible': False, 'reason': '',
+           'hours': hours, 'total_hours': TRAINING_HOURS.get(course_code),
+           'sessions': n, 'unit_price': c['price'] // n if c else 0,
+           'eligible': False, 'reason': '',
            'grant': 0, 'net': c['price'] if c else 0,
            'lead_days': SUBSIDY['lead_days']}
     if course_code in _SUBSIDY_NEVER:
@@ -400,17 +452,25 @@ def subsidy_for(course_code):
         out['reason'] = '総研修時間数が未登録のため判定できません'
         return out
     if not (SUBSIDY['min_hours'] <= hours < SUBSIDY['max_hours']):
-        out['reason'] = ('総研修時間数が{}時間で、助成の要件（{}時間以上{}時間未満）'
-                         'から外れます'.format(hours, SUBSIDY['min_hours'],
-                                              SUBSIDY['max_hours']))
+        out['reason'] = ('1研修あたりの総研修時間数が{}時間で、助成の要件'
+                         '（{}時間以上{}時間未満）から外れます'.format(
+                             hours, SUBSIDY['min_hours'], SUBSIDY['max_hours']))
         return out
     # 消費税は助成対象外。税込価格から税抜に直してから助成率をかける。
     # ⛔ 端数は切り上げないこと。案内した助成額が実際より多いと、法人は
     #    その差額を自腹で被る（少なく見せる側に倒すのが安全）。
-    base = int(c['price'] / (1 + SUBSIDY['tax_rate']))
-    grant = min(int(base * SUBSIDY['rate']), SUBSIDY['cap_per_person'])
+    # ⛔ float で割らないこと＝110,000/1.1 が 99999.99… になり、税抜が99,999円、
+    #    助成が74,999円と1円少なく出る（2026-08-17 実測）。Decimal で計算する。
+    unit = Decimal(c['price']) / Decimal(n)
+    base_d = (unit / (Decimal(1) + Decimal(str(SUBSIDY['tax_rate'])))
+              ).quantize(Decimal('1'), rounding=ROUND_DOWN)
+    grant_unit = min(
+        int((base_d * Decimal(str(SUBSIDY['rate']))).quantize(
+            Decimal('1'), rounding=ROUND_DOWN)),
+        SUBSIDY['cap_per_person'])
+    grant = grant_unit * n
     out.update(eligible=True, grant=grant, net=c['price'] - grant,
-               base=base,
+               base=int(base_d), grant_unit=grant_unit,
                reason=('法人が従業員を研修として派遣し、受講料の全額を'
                        '法人が負担する場合に対象となります'))
     return out
@@ -429,6 +489,62 @@ def subsidy_courses():
 #    名称は、所管が中身を測れるようにこちらが言葉を用意する
 #    （2026-08-15 社長ご指摘：障害は中身ではなく名称）。
 DX_SKILLS = {
+    # ── 回ごとに独立した研修として掲載する講座（2026-08-17）。
+    #    ⛔ 文言は掲載ページの features / curriculum から起こしたもの。作文しない。
+    #    ⛔ 対象講座に1つでも欠けると tests が落ちる＝法人が交付申請の
+    #       「研修計画（様式第3号）」を書けないまま「対象です」と案内することになる。
+    'SP-B': ('部門構築と役割定義、AIでアプリを作る、営業・マーケティング自動'
+             '化システム、経理・バックオフィス自動化、AI経営ダッシュボード、'
+             'スケーリング戦略と収益化。各回は独立した研修として実施し、1研修'
+             'ごとに受講証明書を発行します。'),
+    'SP-C': ('AI経営の設計図を描く、AI秘書・経理を構築する、営業・集客をA'
+             'Iで自動化する、バイブコーディングで業務アプリを作る、統合・運用'
+             '・スケーリング。各回は独立した研修として実施し、1研修ごとに受講'
+             '証明書を発行します。'),
+    'GC': ('プロンプト設計の深化、RAG（検索拡張生成）でナレッジベース構築'
+             '、AIエージェント入門、ワークフロー自動化、卒業制作＋発表会。各'
+             '回は独立した研修として実施し、1研修ごとに受講証明書を発行します'
+             '。'),
+    'GM-B': ('製造業分野における主要AIコーディングツール 完全習得、設備予知'
+             '保全AIアプリの開発、品質管理SPC自動化ダッシュボード構築、工'
+             '程最適化エンジンの実装。各回は独立した研修として実施し、1研修ご'
+             'とに受講証明書を発行します。'),
+    'GM-C': ('製造業分野におけるデジタルツイン設計・構築実践、IoTセンサーデ'
+             'ータ×生成AI連携、AI生産管理システム設計・アーキテクチャ、本'
+             '番デプロイ・運用保守体制構築。各回は独立した研修として実施し、1'
+             '研修ごとに受講証明書を発行します。'),
+    'GH-B': ('医療・ヘルスケア分野における主要AIコーディングツール 完全習得'
+             '、電子カルテ連携AIアプリ開発、医療画像AI基礎・診断支援ツール'
+             '構築、患者コミュニケーション最適化AI実装。各回は独立した研修と'
+             'して実施し、1研修ごとに受講証明書を発行します。'),
+    'GH-C': ('医療・ヘルスケア分野における病院DXシステム設計・アーキテクチャ'
+             '、リモート患者モニタリングAI構築、医薬品管理AI・在庫最適化実'
+             '装、本番デプロイ・運用保守体制構築。各回は独立した研修として実施'
+             'し、1研修ごとに受講証明書を発行します。'),
+    'GF-B': ('金融分野における主要AIコーディングツール 完全習得、リスク分析'
+             'ダッシュボード開発、不正検知AIモデルの構築・実装、審査自動化ワ'
+             'ークフロー構築。各回は独立した研修として実施し、1研修ごとに受講'
+             '証明書を発行します。'),
+    'GF-C': ('金融分野におけるALM最適化システム設計、信用スコアリングAIモ'
+             'デル構築、規制対応AIチェックシステム実装、本番デプロイ・運用保'
+             '守体制構築。各回は独立した研修として実施し、1研修ごとに受講証明'
+             '書を発行します。'),
+    'GL-B': ('物流分野における主要AIコーディングツール 完全習得、倉庫自動化'
+             'AIシステム設計、サプライチェーン可視化ダッシュボード構築、ラス'
+             'トワンマイル最適化エンジン実装。各回は独立した研修として実施し、'
+             '1研修ごとに受講証明書を発行します。'),
+    'GL-C': ('物流分野における物流DXプラットフォーム設計・アーキテクチャ、I'
+             'oTセンサー×AI統合管理システム構築、リアルタイム配送ダッシュ'
+             'ボードAPI開発、本番デプロイ・SaaS商用化。各回は独立した研'
+             '修として実施し、1研修ごとに受講証明書を発行します。'),
+    'GN-B': ('建設分野における主要AIコーディングツール 完全習得、BIM×A'
+             'I連携アプリ開発、工程管理AIダッシュボード構築、品質検査自動化'
+             'システム実装。各回は独立した研修として実施し、1研修ごとに受講証'
+             '明書を発行します。'),
+    'GN-C': ('建設分野における建設DX統合プラットフォーム設計、ドローン×AI'
+             '検査システム構築、i-Construction対応AI実装、本番'
+             'デプロイ・運用保守体制構築。各回は独立した研修として実施し、1研'
+             '修ごとに受講証明書を発行します。'),
     'SP-A': ('生成AIを用いた社内業務の自動化（スケジュール管理・経費処理・'
              '請求書発行）、営業・マーケティング業務の自動化、'
              '業務用AIツールの比較・選定基準、AI利用に伴う情報セキュリティと'
