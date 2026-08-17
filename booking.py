@@ -326,6 +326,7 @@ def apply_prices(courses, code_key='code'):
         c['price_unit'] = PRICE_UNIT
         c['price_suffix'] = PRICE_SUFFIX
         c['unit_note'] = unit_price_note(live['code'])
+        c['order_note'] = order_note(live['code'])
     return courses
 
 
@@ -495,6 +496,18 @@ def unit_price_note(course_code):
         c['price'] // n, PRICE_UNIT, PRICE_SUFFIX, n)
 
 
+# 分割掲載の講座の買い方（2026-08-17 社長ご指示で1研修ずつ申し込めるようにした）。
+# ⛔ この一文を各画面で書き起こさないこと。⛔ 実装（add_booking の sessions）を
+#    外したらこの文も消すこと＝画面の約束を実装より先に出さない。
+ORDER_NOTE = ('各回が独立した研修です。1研修ずつお申し込みいただけます'
+              '（あとから追加も可能）。交付申請・受講証明書も1研修ごとにお出しします。')
+
+
+def order_note(course_code):
+    """分割掲載の講座に出す「買い方」の一言。1本の講座なら空文字。"""
+    return ORDER_NOTE if SESSIONS.get(course_code) else ''
+
+
 def exam_for(course_code):
     """その講座の受講料に含まれる認定試験。組み込んでいなければ None。"""
     key = EXAM_FOR.get(course_code)
@@ -559,6 +572,37 @@ apply_exam(COURSES)
 def sessions_of(course_code):
     """その講座を何本の研修として掲載しているか（分割していなければ1）。"""
     return SESSIONS.get(course_code, 1)
+
+
+def unit_price_of(course_code):
+    """1研修あたりの受講料（円・税込）。分割していない講座は受講料そのもの。
+
+    ⛔ UNIT_PRICE を直接使わないこと。掲載価格から割り出す（価格を動かした日に
+       申込金額だけ古い単価で計算される、を構造的に防ぐ）。
+    """
+    c = COURSE_BY_CODE.get(course_code)
+    if not c:
+        return None
+    return int(c['price']) // sessions_of(course_code)
+
+
+def normalize_sessions(course_code, want):
+    """今回申し込む研修数を 1〜全研修数 に丸める。省略・不正なら全部。
+
+    社長ご指示 2026-08-17。法人の担当者が起案する金額を決裁権限の内側
+    （1研修 ¥110,000＝税抜10万円）に収めるため、分割掲載の講座は
+    「今回何研修ぶん申し込むか」を選べるようにした。
+    ⛔ 値引きではない。3研修受ければ受講料の合計は従来と同じ。
+    ⛔ 画面から来た数字をそのまま金額に使わないこと（ここで必ず丸める）。
+    """
+    n = sessions_of(course_code)
+    if n <= 1:
+        return 1
+    try:
+        v = int(want)
+    except (TypeError, ValueError):
+        return n
+    return max(1, min(n, v))
 
 
 def unit_hours(course_code):
@@ -1998,12 +2042,17 @@ def booked_days_for_instructor(instructor_id):
 
 
 def add_booking(course_code, day, name, email, company, people, message,
-                pending=False):
+                pending=False, sessions=None):
     """申込を1件受ける。戻り値: (申込, 割り当てた講師 or None)
 
     pending=True … カード決済の画面へ送る前に席を押さえる（状態＝お支払い待ち）。
     ⛔ 決済が終わるまで「申込受付」にしないこと。払っていない人に
        「お申し込みを承りました」と届き、当日その席が空く。
+
+    sessions … 分割掲載の講座で「今回申し込む研修数」（省略＝全部）。
+    ⛔ 講師の割り当てと定員は全研修ぶんで判定したまま変えないこと。開催そのものは
+       予定どおり全回行う（他のお客様は全回お申し込みになる）ので、講師の枠は
+       全回ぶん押さえる必要がある。ここを緩めると当日に講師が居ない事故になる。
     """
     course = COURSE_BY_CODE.get(course_code)
     if not course:
@@ -2029,18 +2078,25 @@ def add_booking(course_code, day, name, email, company, people, message,
         left = course['capacity'] - already
         raise ValueError('この日は残り{}名です（定員{}名）'.format(
             max(0, left), course['capacity']))
+    # 今回申し込む研修数。⛔ 画面の値をそのまま金額に使わないこと
+    n_all = sessions_of(course_code)
+    n_take = normalize_sessions(course_code, sessions)
+    fee = unit_price_of(course_code) * n_take
     rec = {
         'id': secrets.token_hex(8),
         'コース': course_code, 'コース名': course['name'],
         '希望日': day,
         # 3日間の講座は開催する日をすべて残す。⛔ 開始日だけだと、あとから
         #    日数の設定を変えたときに過去の予約の実際の日程が変わってしまう
-        '開催日': course_dates(course_code, day),
+        # ⛔ 申し込んだ研修数ぶんだけを残すこと。全回ぶん書くと、受講証明書の
+        #    実施日が実際に出ない日まで並ぶ（虚偽の証明になる）
+        '開催日': course_dates(course_code, day)[:n_take],
         '氏名': name, '連絡先': email, '会社名': company,
         '人数': want, 'ご要望': message,
         '担当講師': inst['氏名'], '担当講師id': inst['id'],
-        '受講料_円': course['price'],
-        '請求額_円': course['price'] * want,
+        '研修数': n_take, '全研修数': n_all,
+        '受講料_円': fee,
+        '請求額_円': fee * want,
         '状態': PENDING if pending else '申込受付',
         '支払方法': 'card' if pending else 'invoice',
         '申込日時': now_jst().strftime('%Y-%m-%d %H:%M'),
@@ -2116,13 +2172,23 @@ def certificate_data(booking_id):
     if not rec:
         return None
     code = rec.get('コース')
+    # ⛔ 講座全体の時間を書かないこと。財団は「8割以上の受講」をこの数字で
+    #    判定するので、実際に申し込まれた研修数ぶんに直す（2026-08-17）。
+    #    ⛔ 古い申込（研修数を持たない行）は全研修ぶんとして扱う。
     hours = TRAINING_HOURS.get(code)
+    n_all = sessions_of(code)
+    n_take = int(rec.get('研修数') or n_all)
+    if hours is not None and n_all > 1:
+        hours = round(hours / n_all * n_take, 2)
     s = subsidy_for(code) or {}
     return {
         '申込id': booking_id,
         '受講者': rec.get('氏名'),
         '企業名': rec.get('会社名') or '（未入力）',
-        '研修名': '{} {}'.format(code, rec.get('コース名')),
+        '研修名': '{} {}{}'.format(
+            code, rec.get('コース名'),
+            '' if n_all <= 1 else '（全{}研修のうち{}研修）'.format(n_all, n_take)),
+        '研修数': n_take, '全研修数': n_all,
         '実施日': rec.get('開催日') or [rec.get('希望日')],
         '総研修時間数': hours,
         '必要出席時間数': (round(hours * 0.8, 1) if hours else None),

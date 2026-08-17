@@ -37,7 +37,15 @@
       </p>
 
       <div class="dn-sum">
+        {# ⛔ 分割掲載の講座に講座全体の受講料を出さないこと。1研修だけお申し込みの
+           方に全研修ぶんの金額が出る（この画面は決済から戻ってくるだけで、
+           どの申込かを知らない）。単価と、正確な額はメールにある旨を出す。 #}
+        {% if unit_notes.get(c['code']) %}
+        <div>■ 受講料：{{ unit_notes[c['code']] }} のうち、お申し込みの研修数ぶん</div>
+        <div>　（正確な金額は確認メールに記載しています）</div>
+        {% else %}
         <div>■ 受講料：¥{{ '{:,}'.format(c['price']) }}{{ price_unit }}{{ price_suffix }}</div>
+        {% endif %}
         {% if c.get('exam_note') %}
         <div>■ 認定試験：{{ c['exam_name'] }}（受験料は受講料に含まれます）</div>
         {% endif %}

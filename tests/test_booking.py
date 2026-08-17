@@ -3158,6 +3158,174 @@ class Test対象判定を画面に直書きしない(unittest.TestCase):
             self.assertNotIn('助成金対象外', html, path)
 
 
+class Test研修ごとに申し込める(unittest.TestCase):
+    """社長ご指示 2026-08-17「20万円未満だと現場の担当者の決裁権限の内側」。
+
+    値引きではなく**買う単位**で解く＝分割掲載の講座は「今回いくつ申し込むか」を
+    選べるようにし、担当者が起案する金額を1研修 ¥110,000（税抜10万円）にする。
+    全部お申し込みになれば受講料の合計は従来と同じ。
+
+    固定している事故の型:
+      ・画面から来た研修数をそのまま金額に使う（値引き放題になる）
+      ・受講証明書に講座全体の時間を書く（財団は8割以上をこの数字で判定する）
+      ・申し込んでいない回まで実施日に並べる（虚偽の証明）
+      ・講師の枠・定員を申込研修数に合わせて緩める（当日に講師が居ない）
+      ・カード決済に講座全体の金額を渡す
+    """
+
+    def setUp(self):
+        _clear()
+        booking.register_instructor('山田', 'y@example.com', '',
+                                    ['GM-B', 'GA'], '',
+                                    _days_all(('GM-B', 'GA')))
+        i = booking.instructors()[0]
+        booking.set_state(i['id'], '承認')
+        booking.verify_email(i['鍵'])
+        self.day = [d for d in booking.open_days('GM-B', months=4)
+                    if d['講師数'] > 0][0]['日付']
+
+    def _book(self, sessions=None, code='GM-B', day=None, people=1):
+        rec, _ = booking.add_booking(
+            code, day or self.day, 'テスト', 't@example.com', '株式会社A',
+            people, '', sessions=sessions)
+        return rec
+
+    def test_1研修だけ申し込むと決裁ラインの内側になる(self):
+        rec = self._book(1)
+        self.assertEqual(rec['受講料_円'], booking.UNIT_PRICE)
+        self.assertLess(rec['受講料_円'], 200000)
+        # 税抜も20万円未満（稟議は税抜で見る）
+        self.assertLess(rec['受講料_円'] / 1.1, 200000)
+
+    def test_全部申し込めば合計は従来どおり(self):
+        # ⛔ 値引きにしないこと
+        rec = self._book(None)
+        self.assertEqual(rec['受講料_円'],
+                         booking.COURSE_BY_CODE['GM-B']['price'])
+        self.assertEqual(rec['研修数'], booking.sessions_of('GM-B'))
+
+    def test_画面から来た値をそのまま金額にしない(self):
+        # ⛔ 範囲外・不正な値は必ず丸める（0や負で値引きされない）
+        for bad, want in ((0, 1), (-5, 1), (99, 3), ('x', 3), (None, 3)):
+            self.assertEqual(booking.normalize_sessions('GM-B', bad), want, bad)
+        self.assertEqual(self._book(0)['受講料_円'], booking.UNIT_PRICE)
+        self.assertEqual(self._book(99)['受講料_円'],
+                         booking.COURSE_BY_CODE['GM-B']['price'])
+
+    def test_人数は研修数と別に掛かる(self):
+        rec = self._book(1, people=3)
+        self.assertEqual(rec['請求額_円'], booking.UNIT_PRICE * 3)
+
+    def test_申し込んでいない回を実施日に並べない(self):
+        # ⛔ 受講証明書の実施日になる。出ない日を書けば虚偽の証明
+        self.assertEqual(len(self._book(1)['開催日']), 1)
+        self.assertEqual(len(self._book(2)['開催日']), 2)
+        self.assertEqual(len(self._book(None)['開催日']), 3)
+
+    def test_受講証明書の時間を申込研修数に合わせる(self):
+        # 財団は「8割以上の受講」をこの数字で判定する
+        full = booking.TRAINING_HOURS['GM-B']
+        n = booking.sessions_of('GM-B')
+        c1 = booking.certificate_data(self._book(1)['id'])
+        self.assertEqual(c1['総研修時間数'], round(full / n, 2))
+        self.assertEqual(c1['必要出席時間数'], round(full / n * 0.8, 1))
+        # ⛔ 1研修あたりが助成の時間要件（3時間以上10時間未満）に収まること
+        self.assertGreaterEqual(c1['総研修時間数'], booking.SUBSIDY['min_hours'])
+        self.assertLess(c1['総研修時間数'], booking.SUBSIDY['max_hours'])
+        cN = booking.certificate_data(self._book(None)['id'])
+        self.assertEqual(cN['総研修時間数'], full)
+        self.assertIn('全3研修のうち', cN['研修名'])
+
+    def test_古い申込は全研修ぶんとして扱う(self):
+        # ⛔ 研修数を持たない過去の行で証明書が壊れないこと
+        rec = self._book(None)
+        rows = booking.bookings()
+        for r in rows:
+            if r['id'] == rec['id']:
+                r.pop('研修数', None)
+                r.pop('全研修数', None)
+        booking._save('bookings.json', rows)
+        c = booking.certificate_data(rec['id'])
+        self.assertEqual(c['総研修時間数'], booking.TRAINING_HOURS['GM-B'])
+
+    def test_1本の講座には研修数の欄を出さない(self):
+        # 「全1研修のうち1研修」は意味が無い
+        day = [d for d in booking.open_days('GA', months=4)
+               if d['講師数'] > 0][0]['日付']
+        rec = self._book(None, code='GA', day=day)
+        self.assertEqual(rec['受講料_円'], booking.COURSE_BY_CODE['GA']['price'])
+        c = booking.certificate_data(rec['id'])
+        self.assertNotIn('研修のうち', c['研修名'])
+        html = app.test_client().get('/book/GA').get_data(as_text=True)
+        # ⛔ JS は常に getElementById('bk-sessions') を呼ぶ（無ければ送らない）。
+        #    見るのは「欄が出ているか」＝見出しの有無
+        self.assertNotIn('今回お申し込みになる研修数', html)
+        self.assertNotIn('<select id="bk-sessions"', html)
+
+    def test_申込画面に研修数の欄と単価が出る(self):
+        html = app.test_client().get('/book/GM-B').get_data(as_text=True)
+        self.assertIn('bk-sessions', html)
+        self.assertIn('今回お申し込みになる研修数', html)
+        self.assertIn('{:,}'.format(booking.UNIT_PRICE), html)
+
+    def test_1研修ずつ買えることを講座ページに書く(self):
+        # ⛔ 画面の約束を実装より先に出さないこと（2026-08-17 に一度、申込は
+        #    セットのみなのに「1研修ごとにお申し込みができます」と出ていた）。
+        #    実装した以上は、買い方を分割掲載の全ページに出す。
+        for p in ('/vibe-coding/course-gc', '/solo-ceo/course-spb',
+                  '/vibe-coding/manufacturing'):
+            html = app.test_client().get(p).get_data(as_text=True)
+            self.assertIn('1研修ずつお申し込みいただけます', html, p)
+        # 1本の講座には出さない
+        html = app.test_client().get('/vibe-coding/course-ga').get_data(as_text=True)
+        self.assertNotIn('1研修ずつお申し込みいただけます', html)
+
+    def test_講師の枠と定員は全研修ぶんで押さえたまま(self):
+        # ⛔ 1研修だけの申込でも、開催は予定どおり全回行う。講師の枠を
+        #    緩めると当日に講師が居ない事故になる
+        cap = booking.COURSE_BY_CODE['GM-B']['capacity']
+        self._book(1, people=cap)
+        with self.assertRaises(ValueError):
+            self._book(1, people=1)
+
+    def test_APIから研修数が届く(self):
+        # ⛔ 画面→サーバーの配線が抜けていると、選んでも全研修ぶん請求される
+        import antispam
+        import time as _t
+        antispam._RECENT.clear()
+        app.logger.disabled = True
+        r = app.test_client().post('/api/book', json={
+            'course': 'GM-B', 'day': self.day, 'name': '鈴木 花子',
+            'email': 's@example.com', 'company': '株式会社A', 'people': 1,
+            'message': '', 'sessions': '1', 'pay': 'invoice',
+            antispam.HONEYPOT_FIELD: '',
+            'ts': antispam.issue_token(now=_t.time() - 6)})
+        self.assertEqual(r.status_code, 200, r.get_data(as_text=True))
+        rows = booking.bookings()
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]['研修数'], 1)
+        self.assertEqual(rows[0]['受講料_円'], booking.UNIT_PRICE)
+
+    def test_カード決済に講座全体の金額を渡さない(self):
+        import payments
+        seen = {}
+
+        def fake_post(path, fields):
+            seen.update(fields)
+            return {'url': 'https://example.com/x', 'id': 'cs_test'}, None
+
+        orig = payments._post
+        payments._post = fake_post
+        try:
+            course = booking.COURSE_BY_CODE['GM-B']
+            payments.create_checkout(course, 1, 'a@example.com', 'bid',
+                                     's', 'c', amount=booking.UNIT_PRICE)
+        finally:
+            payments._post = orig
+        amounts = [v for k, v in seen.items() if k.endswith('[unit_amount]')]
+        self.assertEqual(amounts, [booking.UNIT_PRICE])
+
+
 class Test受講料の単位を出す(unittest.TestCase):
     """社長ご提案 2026-08-17「¥xxxx より ¥xxxx/人 の方がいいのでは？」。
 

@@ -366,6 +366,10 @@ def register_booking_routes(app):
                                months=_month_grids(3),
                                course_days=booking.course_days(code),
                                course_interval=booking.course_interval(code),
+                               # 分割掲載の講座で「今回いくつ申し込むか」を選ばせる。
+                               # ⛔ 単価をテンプレートで計算しないこと
+                               sessions_all=booking.sessions_of(code),
+                               unit_price=booking.unit_price_of(code),
                                series_note=booking.series_note(code),
                                lead_days=booking.LEAD_DAYS,
                                session_note=booking.session_day_note(),
@@ -410,7 +414,10 @@ def register_booking_routes(app):
                 data.get('course'), data.get('day'), name, email,
                 (data.get('company') or '').strip(),
                 data.get('people') or 1, (data.get('message') or '').strip(),
-                pending=want_card)
+                pending=want_card,
+                # ⛔ ここで丸めないこと。booking.normalize_sessions が
+                #    1〜全研修数に必ず収める（金額の出どころを1か所にする）
+                sessions=data.get('sessions'))
         except ValueError as e:
             return {'error': str(e)}, 400
         except Exception:
@@ -421,6 +428,9 @@ def register_booking_routes(app):
             course = booking.COURSE_BY_CODE[rec['コース']]
             url, sid, err = payments.create_checkout(
                 course, rec['人数'], email, rec['id'],
+                # ⛔ course['price'] を渡さないこと。分割掲載の講座は
+                #    申し込まれた研修数ぶんしか請求しない（2026-08-17）
+                amount=rec['受講料_円'],
                 success_url=url_for('book_done', code=rec['コース'],
                                     _external=True) + '?ok=1',
                 cancel_url=url_for('book_course', code=rec['コース'],
@@ -655,6 +665,10 @@ def _notify_booking(app, rec, inst):
             f"メール: {rec['連絡先']}",
             f"会社名: {rec['会社名']}" if rec['会社名'] else '',
             f"人数: {rec['人数']}名",
+            # ⛔ 分割掲載の講座は「全何研修のうち何研修」を必ず出すこと。
+            #    出さないと、運営も講師も全回来る前提で準備してしまう
+            (f"研修数: 全{rec['全研修数']}研修のうち {rec['研修数']}研修"
+             if int(rec.get('全研修数') or 1) > 1 else ''),
             f"担当講師: {rec['担当講師']}",
             f"この日の合計: {rec['_合計人数']}名 → 開催確定",
             f"講師料（定額）: {booking.instructor_fee(rec['コース']):,}円",
@@ -671,7 +685,11 @@ def _notify_booking(app, rec, inst):
             f"■ コース: {rec['コース']} {rec['コース名']}\n"
             f"■ 開催希望日: {日程}\n"
             f"■ 人数: {rec['人数']}名\n"
-            f"■ 受講料: {rec['受講料_円']:,}円（税込）\n"
+            # ⛔ 何研修ぶんのお申し込みかを書かずに金額だけ出さないこと
+            + (f"■ 研修数: 全{rec['全研修数']}研修のうち {rec['研修数']}研修"
+               f"（1研修 {booking.unit_price_of(rec['コース']):,}円）\n"
+               if int(rec.get('全研修数') or 1) > 1 else '')
+            + f"■ 受講料: {rec['受講料_円']:,}円（税込）\n"
             # ⛔ 受験料を別の行の金額として書かないこと。受講料に含まれる1本の
             #    金額であることが、助成金の交付申請（1人1研修単位の経費）の前提。
             + (f"■ 認定試験: {booking.exam_for(rec['コース'])['name']}"

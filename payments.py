@@ -96,13 +96,15 @@ def _flatten(prefix, value, out):
 
 
 def create_checkout(course, people, email, booking_id, success_url, cancel_url,
-                    day_label=''):
+                    day_label='', amount=None):
     """決済ページを1つ作る。戻り値: (URL, session_id, エラー文 or None)
 
-    ⛔ 金額は course['price'] から作ること（画面の値を使わない）。
+    ⛔ 金額は course['price']、または申込に保存済みの受講料（amount）から作ること。
+       画面から来た数字をそのまま使わない（amount は booking.add_booking が
+       1研修あたりの単価 × 申し込まれた研修数で計算して保存したもの）。
     ⛔ 円は「最小単位＝円」なので100倍しないこと。100倍すると請求が100倍になる。
     """
-    price = int(course['price'])
+    price = int(amount if amount is not None else course['price'])
     qty = max(1, int(people or 1))
     name = f"{course['code']} {course['name']}"
     if day_label:

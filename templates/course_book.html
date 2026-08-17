@@ -186,6 +186,25 @@
     <select id="bk-people">
       {% for n in range(1, 11) %}<option value="{{ n }}">{{ n }}名</option>{% endfor %}
     </select>
+    {# 分割掲載の講座は「今回いくつ申し込むか」を選べるようにする（社長ご指示
+       2026-08-17）。法人の担当者が起案する金額を決裁権限の内側に収めるため。
+       ⛔ 値引きではない＝全部お申し込みになれば合計は従来と同じ。
+       ⛔ 金額をここで計算して送らないこと。サーバーが単価×研修数で出す。 #}
+    {% if sessions_all > 1 %}
+    <label class="f">今回お申し込みになる研修数</label>
+    <select id="bk-sessions">
+      {% for n in range(1, sessions_all + 1) %}
+      <option value="{{ n }}" {% if n == sessions_all %}selected{% endif %}>
+        {{ n }}研修（¥{{ '{:,}'.format(unit_price * n) }}{{ price_unit }}{{ price_suffix }}）{% if n == sessions_all %} … 全{{ sessions_all }}研修{% endif %}</option>
+      {% endfor %}
+    </select>
+    <div class="hint" style="margin-top:6px">
+      各回は独立した研修です。まず1研修だけお申し込みいただき、あとから
+      追加でお申し込みいただくこともできます。
+      助成金の交付申請・受講証明書も1研修ごとにお出しします。
+    </div>
+    {% endif %}
+
     <label class="f">ご要望・ご質問（任意）</label>
     <textarea id="bk-message" placeholder="ご質問や、当日までに知りたいことをご記入ください"></textarea>
 
@@ -295,6 +314,8 @@
       course: COURSE, day: picked, name: name, email: email,
       company: document.getElementById('bk-company').value.trim(),
       people: document.getElementById('bk-people').value,
+      // 分割掲載の講座だけ出る欄。⛔ 無いときは送らない（サーバーは省略＝全部）
+      sessions: (document.getElementById('bk-sessions') || {}).value,
       message: document.getElementById('bk-message').value.trim(),
       // ⛔ 選択肢が出ていないときは 'invoice' を送ること。既定の 'card' を
       //    送ると、鍵が無い環境でサーバー側の分岐と食い違う
