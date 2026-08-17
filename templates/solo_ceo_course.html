@@ -380,6 +380,8 @@
         {% endif %}
         {% if c.subsidy %}
         <div class="cd-subsidy-tag">{{ c.subsidy_text }}</div>
+        {# ⛔ 実質のご負担を出す画面には必ず注釈を出すこと #}
+        <div style="margin-top:4px;font-size:12px;color:rgba(255,255,255,.65)">{{ subsidy_note }}</div>
         {% endif %}
         {# ⛔ 試験名・受験料をここに直書きしないこと。出どころは booking.exam_note() の1か所。 #}
         {% if c.exam %}

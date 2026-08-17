@@ -271,7 +271,9 @@
       （{{ subsidy_lead }}日前まで）。{% if card_enabled %}お支払いは<strong>請求書払い</strong>をお選びください
       （カード払い・ご本人のお支払いは助成の対象外になります）{% else %}お支払いは<strong>請求書払い（銀行振込）</strong>です
       （従業員ご本人のお支払いは助成の対象外になります）{% endif %}。<br>
-      <a href="{{ url_for('subsidy') }}">助成金のご案内・申請の流れ →</a>
+      <a href="{{ url_for('subsidy') }}">助成金のご案内・申請の流れ →</a><br>
+      {# ⛔ 実質のご負担を出す画面には必ず注釈を出すこと #}
+      {{ subsidy_note }}
     </div>
     {% endif %}
   </div>

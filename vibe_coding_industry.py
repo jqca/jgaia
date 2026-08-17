@@ -746,7 +746,10 @@ def _render_industry_page(ind):
                 f'{_icon("check", 13)} 東京しごと財団 DXリスキリング助成金 対象'
                 f'（1研修 {_htxt}{_unit}）'
                 '<br><span style="font-weight:500;font-size:0.78rem;color:#4a5568;">'
-                f'法人研修なら実質 &#165;{_sub["net"]:,} / 人</span></div>'
+                f'法人研修なら実質 &#165;{_sub["net"]:,} / 人'
+                # ⛔ 実質のご負担を出すところには必ず注釈も出すこと。
+                #    出どころは booking.SUBSIDY_DISCLAIMER_SHORT の1か所。
+                f'<br>{_booking.SUBSIDY_DISCLAIMER_SHORT}</span></div>'
             )
         # ⛔ 分割掲載する講座は「1研修あたりの受講料」を必ず画面に出すこと。
         #    助成の要件2が「一般に公開された受講案内に**受講者1人1研修単位の経費**が

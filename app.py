@@ -193,6 +193,12 @@ def _subsidy_globals():
                            for c in booking.COURSES},
             "subsidy_net_typical": s["net"],
             "subsidy_grant_typical": s["grant"],
+            # ⛔ 実質のご負担を出す画面には必ず注釈も出すこと（社長ご指摘
+            #    2026-08-17）。出どころは booking の1か所で、各画面に
+            #    文を書き起こさない。tests が「実質を出す画面に注釈があるか」
+            #    を実際に描画して検査する。
+            "subsidy_note": booking.SUBSIDY_DISCLAIMER_SHORT,
+            "subsidy_note_full": booking.SUBSIDY_DISCLAIMER,
             "subsidy_cap_person": booking.SUBSIDY["cap_per_person"],
             "subsidy_cap_company": booking.SUBSIDY["cap_per_company"]}
 

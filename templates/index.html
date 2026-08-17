@@ -381,6 +381,8 @@
             {# ⛔ 金額を直書きしないこと。値は booking.subsidy_for() が唯一の出どころ #}
             <a href="/vibe-coding">バイブコーディング講座</a>（1日6時間 ¥{{ '{:,}'.format(prices['GA']) }}{{ price_unit }}・認定試験の受験料込み・法人研修で助成金を使う場合は実質 ¥{{ '{:,}'.format(subsidy_net_typical) }}）と、
             一人で会社を運営する経営者向けの<a href="/solo-ceo">一人会社AI経営講座</a>を提供しています。
+            {# ⛔ 実質のご負担を出す画面には必ず注釈を出すこと #}
+            <br><small>{{ subsidy_note }}</small>
         </p>
     </section>
 

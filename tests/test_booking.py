@@ -2179,6 +2179,53 @@ class Test助成金の判定(unittest.TestCase):
                     bad.append(name)
         self.assertEqual(bad, [], '旧助成金の金額が残っています: %s' % bad)
 
+    def test_実質のご負担を出す画面には必ず注釈を出す(self):
+        # 社長ご指摘 2026-08-17「制度改正などにより、必ず補償が受けられることを
+        # 保証するものではないという注釈があった方がいいのでは」→ そのとおりで、
+        # 実測すると実質の金額を出している8ページのうち注釈があったのは
+        # /subsidy の1行だけ（しかも「審査により決定」だけで、予算の上限・
+        # 制度改正に触れていなかった）。金額だけが独り歩きすると、受けられ
+        # なかった法人との間で「そう書いてあった」になる。
+        # ⛔ 各画面に文を書き起こさないこと。出どころは booking の1か所。
+        pages = ('/', '/vibe-coding', '/vibe-coding/course-ga',
+                 '/solo-ceo/course-spa', '/vibe-coding/manufacturing',
+                 '/subsidy', '/book/SP-A')
+        bad = []
+        for p in pages:
+            t = _visible(self.c.get(p).get_data(as_text=True))
+            if '実質' not in t:
+                continue                       # 実質を出していない画面は対象外
+            if ('保証するものではありません' not in t):
+                bad.append(p)
+        self.assertEqual(bad, [],
+                         '実質のご負担を出しているのに注釈がない画面: %s' % bad)
+
+    def test_注釈は制度改正と予算に触れる(self):
+        # ⛔ 「審査により決定されます」だけにしないこと。社長のご指摘は
+        #    「制度改正など」で受けられない場合があることの明示だった。
+        for text in (booking.SUBSIDY_DISCLAIMER,
+                     booking.SUBSIDY_DISCLAIMER_SHORT):
+            self.assertIn('保証するものではありません', text)
+            self.assertIn('制度', text)
+            self.assertIn('予算', text)
+        # 長い版は「表示している金額は満額支給の目安」まで言い切る
+        self.assertIn('目安', booking.SUBSIDY_DISCLAIMER)
+
+    def test_注釈を画面に手打ちしない(self):
+        # ⛔ 制度が変わった日に、直し忘れた画面だけが古い言い方で残る
+        root = os.path.dirname(HERE)
+        bad = []
+        for d in (root, os.path.join(root, 'templates')):
+            for name in sorted(os.listdir(d)):
+                if not name.endswith(('.html', '.py')) or name == 'booking.py':
+                    continue
+                body = io.open(os.path.join(d, name), encoding='utf-8').read()
+                body = re.sub(r'\{#.*?#\}', '', body, flags=re.S)
+                body = re.sub(r'^\s*#.*$', '', body, flags=re.M)
+                if '保証するものではありません' in body:
+                    bad.append(name)
+        self.assertEqual(bad, [], '注釈が画面に直書きされています: %s' % bad)
+
     def test_対象講座には習得する知識技能がある(self):
         # ⛔ 無いと法人が研修計画を自分で書き起こすことになる（申請の障害）
         for code in booking.subsidy_courses():
