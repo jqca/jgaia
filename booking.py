@@ -2048,6 +2048,16 @@ def pick_instructor(course_code, d):
 #   申込受付     … 成立（カード決済済み、または請求書払いで受付）
 #   取消         … 決済されなかった／取り消した
 PENDING = 'お支払い待ち'
+# ── メールアドレスの確認（社長ご指摘 2026-08-17「いきなり確定してしまった」）
+# ⛔ 確認しないまま確定させないこと。誤入力のアドレスだと、お客様は申し込んだ
+#    つもりでこちらは連絡が取れず、請求書も受講案内も届かない。いたずらの
+#    申込で定員が埋まっても気づけない。
+# ⛔ 席は押さえる（確認している間に他の方に埋められると体験が悪い）。ただし
+#    放置された仮申込が永久に席を持たないよう、時間で切る（カード決済と同じ形）。
+# ⛔ 期限が切れていても、その日にまだ空きがあれば確認を通すこと。時間ぴったりで
+#    断るのは、こちらの都合であってお客様の落ち度ではない。
+PENDING_VERIFY = 'メール確認待ち'
+VERIFY_TTL_HOURS = 24
 
 
 def bookings():
@@ -2065,12 +2075,14 @@ def is_live(b):
     """
     if b.get('状態') == '取消':
         return False
-    if b.get('状態') == PENDING:
+    if b.get('状態') in (PENDING, PENDING_VERIFY):
         try:
             started = datetime.strptime(b.get('申込日時', ''), '%Y-%m-%d %H:%M')
         except ValueError:
             return True                  # 読めないものは安全側（席を押さえる）
-        limit = timedelta(minutes=payments_session_ttl_min())
+        limit = (timedelta(hours=VERIFY_TTL_HOURS)
+                 if b.get('状態') == PENDING_VERIFY
+                 else timedelta(minutes=payments_session_ttl_min()))
         return (now_jst().replace(tzinfo=None) - started) <= limit
     return True
 
@@ -2136,7 +2148,7 @@ def booked_days_for_instructor(instructor_id):
 
 
 def add_booking(course_code, day, name, email, company, people, message,
-                pending=False, sessions=None, pay='invoice'):
+                pending=False, sessions=None, pay='invoice', verify=False):
     """申込を1件受ける。戻り値: (申込, 割り当てた講師 or None)
 
     pending=True … カード決済の画面へ送る前に席を押さえる（状態＝お支払い待ち）。
@@ -2191,11 +2203,14 @@ def add_booking(course_code, day, name, email, company, people, message,
         '研修数': n_take, '全研修数': n_all,
         '受講料_円': fee,
         '請求額_円': fee * want,
-        '状態': PENDING if pending else '申込受付',
+        '状態': (PENDING if pending
+                 else (PENDING_VERIFY if verify else '申込受付')),
         # ⛔ 画面から来た値をそのまま入れないこと。知らない支払方法は
         #    請求書も入金の記録も作れない（2026-08-17）。
         '支払方法': ('card' if pending
                      else (pay if pay in ('invoice', 'bank') else 'invoice')),
+        # ⛔ 確認鍵は申込ごとに作ること（使い回すと他人の申込を確定できる）
+        '確認鍵': secrets.token_urlsafe(24) if (verify and not pending) else '',
         '申込日時': now_jst().strftime('%Y-%m-%d %H:%M'),
     }
     rows.append(rec)
@@ -2313,6 +2328,63 @@ def subsidy_deadline_ok(day_iso):
     return d >= today_jst() + timedelta(days=SUBSIDY['lead_days'])
 
 
+def confirm_booking(token):
+    """受講者がメールの確認リンクを開いたときに、申込を確定する。
+
+    戻り値: (申込, エラー文 or None)。すでに確定済みなら申込をそのまま返す
+    （⛔ 二度押しをエラーにしないこと。お客様は不安になってもう一度押す）。
+
+    ⛔ 期限が切れていても、その日にまだ空きがあれば通すこと。時間ぴったりで
+       断るのはこちらの都合で、お客様の落ち度ではない。
+    ⛔ 空きが無いときは黙って確定させないこと（定員を超えて受け入れてしまう）。
+    """
+    token = (token or '').strip()
+    if not token:
+        return None, 'リンクが正しくありません'
+    rows = bookings()
+    rec = None
+    for r in rows:
+        if r.get('確認鍵') and r.get('確認鍵') == token:
+            rec = r
+    if not rec:
+        return None, ('リンクが正しくありません。'
+                      'info@jgaia.org までお問い合わせください')
+    if rec.get('状態') == '取消':
+        return None, 'このお申し込みは取り消されています'
+    if rec.get('状態') != PENDING_VERIFY:
+        return rec, None                       # すでに確定済み（二度押し）
+    # 期限切れのときだけ、いまの空きを見る
+    if not is_live(rec):
+        course = COURSE_BY_CODE.get(rec.get('コース')) or {}
+        taken = sum(int(b.get('人数') or 1)
+                    for b in rows
+                    if b.get('コース') == rec.get('コース')
+                    and b.get('希望日') == rec.get('希望日')
+                    and b is not rec and is_live(b))
+        if taken + int(rec.get('人数') or 1) > int(course.get('capacity') or 0):
+            return None, ('確認の期限（{}時間）を過ぎ、この日は満席になりました。'
+                          'info@jgaia.org までご連絡ください'
+                          .format(VERIFY_TTL_HOURS))
+    rec['状態'] = '申込受付'
+    rec['確認日時'] = now_jst().strftime('%Y-%m-%d %H:%M')
+    _save('bookings.json', rows)
+    # ⛔ 呼び出し元が「いま確定したのか、二度押しなのか」を推測しないこと。
+    #    推測すると、二度押しのたびに講師へ担当依頼が飛ぶ
+    rec['_確定した'] = True
+    rec['_合計人数'] = sum(int(b.get('人数') or 1)
+                          for b in rows
+                          if b.get('コース') == rec.get('コース')
+                          and b.get('希望日') == rec.get('希望日')
+                          and is_live(b))
+    rec['_開催確定'] = True
+    return rec, None
+
+
+def unverified_bookings():
+    """メールの確認がまだ済んでいない申込（運営が見る）。"""
+    return [b for b in bookings() if b.get('状態') == PENDING_VERIFY]
+
+
 def _find_booking(booking_id):
     for b in bookings():
         if b.get('id') == booking_id:
@@ -2424,10 +2496,14 @@ def unpaid_bookings():
     """お振込みをお待ちしている申込（運営が見る）。
 
     ⛔ カード決済は含めない（その場で払い終わっている）。
+    ⛔ まだ確定していない申込を含めないこと（2026-08-17）。メールの
+       確認待ちは請求書をまだ出しておらず、催促する相手ではない。
     """
     out = []
     for b in bookings():
         if not is_live(b) or b.get('入金'):
+            continue
+        if b.get('状態') in (PENDING, PENDING_VERIFY):
             continue
         if (b.get('支払方法') or 'invoice') == 'card':
             continue

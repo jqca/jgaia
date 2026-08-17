@@ -4,3 +4,8 @@ __pycache__/
 .env
 staticimg/
 generate_images.py
+
+# ⛔ 申込・講師の台帳をリポジトリに入れないこと。このリポジトリは Public で、
+# 中身はお客様の氏名・メール・会社名。本番の正は Railway の
+# ボリューム（INQUIRY_LOG_DIR=/data）で、ここは手元の確認用。
+data/

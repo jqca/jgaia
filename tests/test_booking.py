@@ -94,6 +94,37 @@ def _far_day(offset=30):
     raise AssertionError('開催日が見つかりません')
 
 
+
+_RESEND_SENT = None
+
+
+def _stub_resend(bucket):
+    """メールを実際に送らず、送ろうとした中身を集める。
+
+    ⛔ 送信の有無をログ文字列で判定しないこと。宛先が誰かこそが要点で、
+       「講師に飛んでいないか」はここでしか見られない。
+    """
+    import types
+    global _RESEND_SENT
+    os.environ['RESEND_API_KEY'] = 'test-key'
+    fake = types.ModuleType('resend')
+    fake.api_key = ''
+    fake.Emails = types.SimpleNamespace(
+        send=lambda payload: bucket.append(payload) or {'id': 'test'})
+    _RESEND_SENT = sys.modules.get('resend')
+    sys.modules['resend'] = fake
+
+
+def _unstub_resend():
+    global _RESEND_SENT
+    os.environ.pop('RESEND_API_KEY', None)
+    if _RESEND_SENT is None:
+        sys.modules.pop('resend', None)
+    else:
+        sys.modules['resend'] = _RESEND_SENT
+    _RESEND_SENT = None
+
+
 def _far_weekday(weekday, offset=20):
     """offset 日より先で、最初にその曜日（月=0）になる日。
 
@@ -1866,7 +1897,11 @@ class Testカード決済(unittest.TestCase):
         j = r.get_json()
         self.assertTrue(j.get('ok'), j)
         self.assertNotIn('決済へ', j)
-        self.assertEqual(booking.bookings()[0]['状態'], '申込受付')
+        # ⛔ カードが使えない環境では、請求書払いと同じ道に落ちること。
+        #    請求書払いはメールの確認を挟むので「申込受付」ではなく確認待ち
+        #    （2026-08-17 社長ご指摘）。⛔ ここだけ確認を飛ばさないこと
+        self.assertEqual(booking.bookings()[0]['状態'], booking.PENDING_VERIFY)
+        self.assertTrue(j.get('確認待ち'))
 
     def test_決済待ちは申込受付にしない(self):
         rec, _ = booking.add_booking('SP-A', _far_day(), '鈴木',
@@ -4159,6 +4194,242 @@ class Test認定試験を受講料に組み込む(unittest.TestCase):
         #    申請書に書かせることになる
         self.assertEqual(booking.TRAINING_HOURS['SP-A'], 6)
         self.assertEqual(booking.TRAINING_HOURS['GM-A'], 4)
+
+
+class Testメールアドレスの確認(unittest.TestCase):
+    """申込は「メール確認待ち」で受け、リンクを押して初めて確定する。
+
+    2026-08-17 社長ご指摘「GAの9月2日で申し込んだら、いきなり確定してしまった」。
+    誤入力・いたずらのアドレスでも席が埋まり、講師には担当依頼が飛び、
+    こちらは請求書の宛先も受講案内の届け先も持たない状態になっていた。
+    """
+
+    def setUp(self):
+        _clear()
+        app.logger.disabled = True
+        self.c = app.test_client()
+        i, _ = booking.register_instructor('山田', 'y@example.com', '', ['SP-A'],
+                                           '', _days_all())
+        booking.verify_email(i['鍵'])
+        booking.set_state(i['id'], '承認')
+        antispam._RECENT.clear()
+        self.day = _far_day()
+
+    def _payload(self, **kw):
+        d = {'course': 'SP-A', 'day': self.day, 'name': '鈴木 花子',
+             'email': 's@example.com', 'company': '', 'people': 1, 'message': '',
+             'pay': 'invoice',
+             antispam.HONEYPOT_FIELD: '',
+             'ts': antispam.issue_token(now=time.time() - 6)}
+        d.update(kw)
+        return d
+
+    def _apply(self, **kw):
+        antispam._RECENT.clear()
+        r = self.c.post('/api/book', json=self._payload(**kw))
+        self.assertEqual(r.status_code, 200, r.get_data(as_text=True))
+        return r.get_json(), booking.bookings()[-1]
+
+    # ── 事故① いきなり確定する
+    def test_申込の直後は確認待ちで確定していない(self):
+        j, rec = self._apply()
+        self.assertEqual(rec['状態'], booking.PENDING_VERIFY)
+        self.assertTrue(j.get('確認待ち'))
+        # ⛔ 画面に「開催が確定」と読める材料を返さないこと
+        self.assertNotIn('合計人数', j)
+        self.assertNotIn('開催確定', j)
+
+    def test_確認鍵は推測できない長さを持つ(self):
+        _j, rec = self._apply()
+        self.assertGreaterEqual(len(rec.get('確認鍵') or ''), 24)
+
+    # ── 事故② 未確認のまま講師へ担当依頼が飛ぶ
+    def test_確認が済むまで講師と運営に通知しない(self):
+        sent = []
+        _stub_resend(sent)
+        try:
+            _j, rec = self._apply()
+            to = [t for p in sent for t in p.get('to', [])]
+            self.assertEqual(to, ['s@example.com'],
+                             '確認前に届いてよいのは申込者ご本人だけ')
+            self.assertNotIn('y@example.com', to)
+            self.assertIn('/book/confirm/' + rec['確認鍵'], sent[0]['text'])
+        finally:
+            _unstub_resend()
+
+    # ── 確定できる
+    def test_リンクを押すと確定し関係者に通知が飛ぶ(self):
+        _j, rec = self._apply()
+        sent = []
+        _stub_resend(sent)
+        try:
+            r = self.c.get('/book/confirm/' + rec['確認鍵'])
+            self.assertEqual(r.status_code, 200, r.get_data(as_text=True))
+        finally:
+            _unstub_resend()
+        self.assertEqual(booking.bookings()[-1]['状態'], '申込受付')
+        to = [t for p in sent for t in p.get('to', [])]
+        self.assertIn('s@example.com', to)
+        self.assertIn('y@example.com', to)
+
+    # ── 事故③ 二度押しで通知が二重に飛ぶ
+    def test_二度押しはエラーにせず通知も繰り返さない(self):
+        _j, rec = self._apply()
+        self.c.get('/book/confirm/' + rec['確認鍵'])
+        sent = []
+        _stub_resend(sent)
+        try:
+            r = self.c.get('/book/confirm/' + rec['確認鍵'])
+        finally:
+            _unstub_resend()
+        self.assertEqual(r.status_code, 200)
+        self.assertNotIn('Internal Server Error', r.get_data(as_text=True))
+        self.assertEqual(sent, [], '2回目で講師にもう一度依頼が飛んではいけない')
+
+    def test_でたらめなリンクは確定しない(self):
+        _j, _rec = self._apply()
+        r = self.c.get('/book/confirm/でたらめな鍵')
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(booking.bookings()[-1]['状態'], booking.PENDING_VERIFY)
+
+    def test_取り消した申込は確定できない(self):
+        _j, rec = self._apply()
+        booking.cancel_booking(rec['id'], 'テスト')
+        r = self.c.get('/book/confirm/' + rec['確認鍵'])
+        self.assertEqual(r.status_code, 400)
+
+    # ── 期限
+    def _age_out(self):
+        rows = booking.bookings()
+        rows[-1]['申込日時'] = (
+            booking.now_jst()
+            - timedelta(hours=booking.VERIFY_TTL_HOURS + 5)
+        ).strftime('%Y-%m-%d %H:%M')
+        booking._save('bookings.json', rows)
+
+    def test_期限が切れても空きがあれば通す(self):
+        _j, rec = self._apply()
+        self._age_out()
+        got, err = booking.confirm_booking(rec['確認鍵'])
+        self.assertIsNone(err, '時間ぴったりで断るのはこちらの都合')
+        self.assertEqual(got['状態'], '申込受付')
+
+    def test_期限が切れて満席なら断る(self):
+        _j, rec = self._apply()
+        self._age_out()
+        cap = booking.COURSE_BY_CODE['SP-A']['capacity']
+        booking.add_booking('SP-A', self.day, '別の方', 'x@example.com', '',
+                            cap, '', pay='invoice')
+        got, err = booking.confirm_booking(rec['確認鍵'])
+        self.assertIsNone(got)
+        self.assertIn('満席', err)
+
+    # ── 事故④ 未確認の申込が席を食わない＝定員を超える
+    def test_確認待ちの申込も席を押さえている(self):
+        self._apply(people=1)
+        info = {d['日付']: d for d in booking.open_days('SP-A')}[self.day]
+        cap = booking.COURSE_BY_CODE['SP-A']['capacity']
+        self.assertEqual(info['残り'], cap - 1)
+
+    def test_期限を過ぎた確認待ちは席を返す(self):
+        self._apply(people=1)
+        self._age_out()
+        info = {d['日付']: d for d in booking.open_days('SP-A')}[self.day]
+        self.assertEqual(info['残り'],
+                         booking.COURSE_BY_CODE['SP-A']['capacity'])
+
+    def test_運営は確認待ちの申込を一覧で見られる(self):
+        _j, rec = self._apply()
+        self.assertIn(rec['id'],
+                      [b['id'] for b in booking.unverified_bookings()])
+        self.c.get('/book/confirm/' + rec['確認鍵'])
+        self.assertEqual(booking.unverified_bookings(), [])
+
+    def test_完了の画面で確定したと言わない(self):
+        html = self.c.get('/book/SP-A').get_data(as_text=True)
+        i = html.find('id="bkDone"')
+        self.assertGreater(i, 0)
+        near = html[i:i + 300]
+        self.assertNotIn('お申し込みを承りました', near)
+        self.assertIn('メールのご確認', near)
+
+
+class Test残席の表示(unittest.TestCase):
+    """社長ご指摘 2026-08-17「空きとだけ表示せず、残席数を表示したほうがいい」。"""
+
+    def setUp(self):
+        _clear()
+        app.logger.disabled = True
+        self.c = app.test_client()
+        i, _ = booking.register_instructor('山田', 'y@example.com', '', ['SP-A'],
+                                           '', _days_all())
+        booking.verify_email(i['鍵'])
+        booking.set_state(i['id'], '承認')
+        self.day = _far_day()
+
+    def _tpl(self):
+        return io.open(os.path.join(os.path.dirname(HERE), 'templates',
+                                    'course_book.html'), encoding='utf-8').read()
+
+    def test_カレンダーに残席が出る(self):
+        cap = booking.COURSE_BY_CODE['SP-A']['capacity']
+        html = self.c.get('/book/SP-A').get_data(as_text=True)
+        self.assertIn('残{}'.format(cap), html)
+
+    def test_申込が入ると残席が減る(self):
+        cap = booking.COURSE_BY_CODE['SP-A']['capacity']
+        booking.add_booking('SP-A', self.day, '鈴木', 's@example.com', '', 2, '',
+                            pay='invoice')
+        html = self.c.get('/book/SP-A').get_data(as_text=True)
+        self.assertIn('残{}'.format(cap - 2), html)
+
+    def test_残席は画面で数え直さない(self):
+        tpl = self._tpl()
+        self.assertIn("info['残り']", tpl)
+        self.assertNotIn("capacity'] -", tpl)
+
+    def test_スマホで残席を隠さない(self):
+        tpl = self._tpl()
+        css = tpl[tpl.find('@media (max-width:560px)'):][:200]
+        self.assertNotIn('small{display:none', css.replace(' ', ''))
+
+
+class Test画面のブロック名(unittest.TestCase):
+    """テンプレートのブロック名が base.html に実在すること。
+
+    2026-08-17 実測：course_done.html と booking_confirmed.html が
+    `{% block head %}` と書いていたが base.html にその名前は無く、
+    Jinja は知らないブロックを**黙って捨てる**。結果、カードの
+    CSS が1行も出ず、**白背景の上に白文字**で本番に載っていた
+    （エラーにもならず、HTMLの文字列は正しいので検査でも見つからない）。
+    ⛔ 目視だけに頸らないこと。ブロック名の突き合わせは機械でできる。
+    """
+
+    def setUp(self):
+        self.dir = os.path.join(os.path.dirname(HERE), 'templates')
+        base = io.open(os.path.join(self.dir, 'base.html'),
+                       encoding='utf-8').read()
+        self.known = set(re.findall(r'\{%-?\s*block\s+(\w+)', base))
+
+    def test_baseに無いブロック名を使わない(self):
+        bad = []
+        for name in sorted(os.listdir(self.dir)):
+            if not name.endswith('.html') or name == 'base.html':
+                continue
+            body = io.open(os.path.join(self.dir, name), encoding='utf-8').read()
+            if 'extends "base.html"' not in body:
+                continue
+            for b in re.findall(r'\{%-?\s*block\s+(\w+)', body):
+                if b not in self.known:
+                    bad.append('{}: {{% block {} %}}'.format(name, b))
+        self.assertEqual(bad, [],
+                         'base.html に無いブロック名は黙って捨てられます')
+
+    def test_見出しのブロック名を知っている(self):
+        # ⛔ 検査側が空の集合を見て「全部合格」にならないこと
+        self.assertIn('extra_head', self.known)
+        self.assertIn('content', self.known)
+        self.assertNotIn('head', self.known)
 
 
 if __name__ == '__main__':

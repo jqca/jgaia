@@ -409,6 +409,8 @@ def register_booking_routes(app):
                                unit_price=booking.unit_price_of(code),
                                series_note=booking.series_note(code),
                                lead_days=booking.LEAD_DAYS,
+                               # ⛔ 時間を画面に手打ちしないこと（実装と別の数字になる）
+                               verify_ttl=booking.VERIFY_TTL_HOURS,
                                session_note=booking.session_day_note(),
                                cancel_policy=booking.CANCEL_POLICY,
                                pay_note=(booking.PAY_NOTE if payments.enabled()
@@ -459,6 +461,11 @@ def register_booking_routes(app):
                 (data.get('company') or '').strip(),
                 data.get('people') or 1, (data.get('message') or '').strip(),
                 pending=want_card, pay=pay,
+                # ⛔ いきなり確定させないこと（社長ご指摘 2026-08-17）。
+                #    誤入力のアドレスだと、お客様は申し込んだつもりでこちらは
+                #    連絡が取れず、請求書も受講案内も届かない。
+                #    カード決済は支払いが確認そのものなので verify は要らない。
+                verify=not want_card,
                 # ⛔ ここで丸めないこと。booking.normalize_sessions が
                 #    1〜全研修数に必ず収める（金額の出どころを1か所にする）
                 sessions=data.get('sessions'))
@@ -489,10 +496,37 @@ def register_booking_routes(app):
             # ⛔ ここでは受講者にメールを送らないこと。まだ払っていない
             return {'ok': True, '決済へ': url}
 
-        _notify_booking(app, rec, inst)
-        return {'ok': True,
-                '開催確定': rec['_開催確定'],
-                '合計人数': rec['_合計人数']}
+        # ⛔ ここで運営・講師へ通知しないこと。まだメールの確認が済んでいない
+        #    ＝存在しないアドレスの申込で講師に「担当をお願いします」が飛ぶ
+        mailed = _send_verify_mail(app, rec)
+        return {'ok': True, '確認待ち': True, 'メール送信': mailed,
+                '宛先': rec['連絡先']}
+
+    @app.route('/book/confirm/<token>')
+    def book_confirm(token):
+        """受講者がメールの確認リンクを開いたとき。ここで初めて申込が成立する。
+
+        ⛔ 二度押しをエラーにしないこと（お客様は不安になってもう一度押す）。
+        ⛔ 通知は「いま確定した回」だけ送ること（_確定した で判定）。
+        """
+        rec, err = booking.confirm_booking(token)
+        if err:
+            return render_template('booking_confirmed.html', error=err), 400
+        course = booking.COURSE_BY_CODE.get(rec.get('コース')) or {}
+        if rec.get('_確定した'):
+            inst = {}
+            for i in booking.instructors():
+                if i.get('id') == rec.get('担当講師id'):
+                    inst = i
+            _notify_booking(app, rec, inst)
+            app.logger.info('[book] メール確認 → 申込確定: %s %s %s',
+                            rec.get('コース'), rec.get('希望日'), rec.get('氏名'))
+        return render_template('booking_confirmed.html', rec=rec, c=course,
+                               again=not rec.get('_確定した'),
+                               seller=booking.SELLER,
+                               cancel_policy=booking.CANCEL_POLICY,
+                               pay=booking.PAY_METHODS.get(
+                                   rec.get('支払方法') or 'invoice') or {})
 
     @app.route('/api/bookings')
     def api_bookings():
@@ -770,6 +804,47 @@ def _notify_registered(app, rec, token):
     #    届いたのに運営には届かない（または逆）が静かに起きる
     return _send(app, [_instructor_mail(rec, token, '仮登録'), admin],
                  'instructor_register', rec['氏名'])
+
+
+def _send_verify_mail(app, rec):
+    """申込を受けた直後に、ご本人のアドレスだけへ確認リンクを送る。
+
+    ⛔ ここで運営・講師に送らないこと。まだ「そのアドレスに届く」ことが
+       確かめられていない（存在しないアドレスの申込で講師の予定が埋まる）。
+    ⛔ 金額の確定した案内をここに書かないこと。確定はリンクを押したあと。
+    ⛔ 送れなくても申込の行は保存済み。例外を投げないこと。
+    """
+    from mail_targets import FROM_EMAIL
+    url = url_for('book_confirm', token=rec.get('確認鍵'), _external=True)
+    日程 = '・'.join(rec.get('開催日') or [rec['希望日']])
+    text = (
+        f"{rec['氏名']} 様\n\n"
+        "お申し込みありがとうございます。\n"
+        "恐れ入りますが、下のリンクを押してメールアドレスのご確認を"
+        "お願いいたします。\n"
+        "押していただいた時点でお申し込みが確定します。\n\n"
+        "▼ こちらを押すとお申し込みが確定します\n"
+        f"{url}\n\n"
+        f"（このリンクは {booking.VERIFY_TTL_HOURS} 時間で期限切れになります。"
+        "期限を過ぎた場合は、お手数ですがもう一度お申し込みください）\n\n"
+        "■ お申し込みの内容\n"
+        f"　コース: {rec['コース']} {rec['コース名']}\n"
+        f"　開催日: {日程}\n"
+        f"　人数: {rec['人数']}名\n"
+        + (f"　研修数: 全{rec['全研修数']}研修のうち {rec['研修数']}研修\n"
+           if int(rec.get('全研修数') or 1) > 1 else '')
+        + f"　受講料: {rec['受講料_円']:,}円（税込）\n"
+        + f"　お支払い: {booking.pay_label(rec.get('支払方法') or 'invoice')}\n\n"
+        + f"※ お席は {booking.VERIFY_TTL_HOURS} 時間だけお取り置きしています。"
+        "それを過ぎると他の方のご申し込みで埋まることがあります。\n"
+        "※ お心当たりのない場合は、このメールを破棄してください。"
+        "リンクを押さなければ何も起こりません。\n\n"
+        + booking.seller_footer())
+    return _send(app, [{'from': f'JGAIA <{FROM_EMAIL}>', 'to': [rec['連絡先']],
+                        'subject': ('【JGAIA】お申し込みの確認をお願いします'
+                                    f"（{rec['コース名']}）"),
+                        'text': text}],
+                 'book_verify', rec['氏名'])
 
 
 def _notify_booking(app, rec, inst):

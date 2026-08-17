@@ -2,7 +2,9 @@
 {% block title %}お申し込みを承りました | {{ c['name'] }}{% endblock %}
 {% block description %}お申し込みとお支払いを承りました。{% endblock %}
 
-{% block head %}
+{# ⛔ base.html に無いブロック名を使わないこと。Jinjaは黙って捨てるので
+   CSSが1行も出ず、白いカードの上に白文字で本番に載る（2026-08-17 実測） #}
+{% block extra_head %}
 <style>
   .dn-wrap{max-width:720px;margin:0 auto;padding:0 20px 64px}
   .dn-card{background:#fff;border:1px solid #e4e7ec;border-radius:14px;

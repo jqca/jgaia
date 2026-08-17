@@ -27,9 +27,14 @@
        justify-content:center; font-size:14px; font-weight:700; color:#334155;
        cursor:default; }
 .day.empty{border:none;background:none;}
-.day small { font-size:9px; font-weight:400; opacity:.85; }
-.day.open { background:#10b981; color:#fff; border-color:#10b981; cursor:pointer; }
-.day.open:hover { background:#059669; }
+/* ⛔ 残席を読めない大きさにしないこと。日付と並べて置くので小さくは
+   するが、9px・不透明度.85 だと実測でコントラスト比 2.5 しか無かった */
+.day small { font-size:11px; font-weight:600; opacity:1; line-height:1.2; }
+/* ⛔ この緑を #10b981 に戻さないこと。白文字との比が 2.54 で
+   WCAGの基準(4.5)を割る。#047857 なら 5.48（2026-08-17 実測）。
+   ⛔ 凡例の色見本（下の i タグ）も同時に直すこと */
+.day.open { background:#047857; color:#fff; border-color:#047857; cursor:pointer; }
+.day.open:hover { background:#065f46; }
 .day.closed { background:#e5e7eb; color:#9ca3af; border-color:#e5e7eb; }
 /* 「開催まで日数が足りない日」は斜線。
    ⛔ 予約締切(#e5e7eb)と同系のグレーだけにしないこと（目で区別できない）。
@@ -38,8 +43,9 @@
 .day.past { background:none; border-color:transparent; color:#e2e8f0; }
 /* ⛔ 開催日でない日を「予約締切」と同じ見た目にしないこと（締切だらけに見える） */
 /* ⛔ 薄くしすぎないこと。開催日でない日は全体の約7割あり、
-   読めないとカレンダーが空白に見える。押せる日（緑＋白文字＝比2.54）
-   と同等の濃さにし、押せないことは破線の枠で示す（2026-08-15 実測） */
+   読めないとカレンダーが空白に見える。押せる日（緑＋白文字）と同等の
+   濃さにし、押せないことは破線の枠で示す（2026-08-15 実測）。
+   ⛔ 緑の比は 2026-08-17 に 2.54→5.48 へ直した（下の .day.open） */
 .day.off { background:#fafafa; border-style:dashed; color:#94a3b8; }
 .day.lead { color:#cbd5e1;
             background:repeating-linear-gradient(45deg,#f8fafc 0 5px,#eef2f7 5px 10px); }
@@ -85,7 +91,9 @@
 .bk-done p { color:#065f46;line-height:1.9;font-size:14px; }
 .bk-err { background:#fef2f2;border:1px solid #fecaca;color:#991b1b;border-radius:8px;
           padding:13px 16px;font-size:14px;margin-top:14px;display:none; }
-@media (max-width:560px){ .day{font-size:13px;} .day small{display:none;} }
+{# ⛔ スマホで残席を隠さないこと。申し込むかどうかの判断材料そのもので、
+   しかもお客様の多くはスマホから開く（旧実装は display:none だった） #}
+@media (max-width:560px){ .day{font-size:12px;} .day small{font-size:10px;} }
 </style>
 {% endblock %}
 
@@ -135,7 +143,7 @@
       </div>
     {% else %}
       <div class="legend">
-        <span><i style="background:#10b981"></i>お申し込みできる</span>
+        <span><i style="background:#047857"></i>お申し込みできる（数字は残席）</span>
         <span><i style="background:#e5e7eb"></i>予約締切（講師の都合）</span>
         <span><i style="background:repeating-linear-gradient(45deg,#f8fafc 0 4px,#eef2f7 4px 8px);border:1px solid #e2e8f0"></i>{{ lead_days }}日以内</span>
         <span><i style="background:#fafafa;border:1px dashed #cbd5e1"></i>開催日ではない</span>
@@ -159,9 +167,12 @@
                 {% set st = info['状態'] if info else '終了' %}
                 <div class="day {% if st == '予約可' %}open{% elif st == '準備期間' %}lead{% elif st == '非開催日' %}off{% elif st == '終了' %}past{% else %}closed{% endif %}"
                      {% if st == '予約可' %}data-day="{{ d }}"{% endif %}
-                     title="{% if st == '予約可' %}お申し込みできます（担当できる講師 {{ info['講師数'] }}名）{% elif st == '準備期間' %}{{ lead_days }}日以内のため受付対象外です{% elif st == '非開催日' %}開催日ではありません{% elif st == '終了' %}過ぎた日です{% else %}予約締切です{% endif %}">
+                     title="{% if st == '予約可' %}お申し込みできます（残り {{ info['残り'] }}席／定員 {{ c['capacity'] }}名・担当できる講師 {{ info['講師数'] }}名）{% elif st == '準備期間' %}{{ lead_days }}日以内のため受付対象外です{% elif st == '非開催日' %}開催日ではありません{% elif st == '終了' %}過ぎた日です{% else %}予約締切です{% endif %}">
                   {{ d[8:]|int }}
-                  {% if st == '予約可' %}<small>空き</small>{% endif %}
+                  {# ⛔ 「空き」とだけ出さないこと（社長ご指摘 2026-08-17）。
+                     あと何席かが分からないと、申し込むかどうかを決められない。
+                     残席は open_days() が返している（画面で数え直さない）。 #}
+                  {% if st == '予約可' %}<small>残{{ info['残り'] }}</small>{% endif %}
                 </div>
               {% endif %}
             {% endfor %}
@@ -236,7 +247,7 @@
   </div>
 
   <div class="bk-done" id="bkDone">
-    <h2>お申し込みを承りました</h2>
+    <h2>メールのご確認をお願いします</h2>
     <p id="bkDoneMsg"></p>
   </div>
   {% endif %}
@@ -254,7 +265,11 @@
       {# ⛔ 「人数が集まらない場合は次回へお振替」を戻さないこと。最少催行は
          撤廃済みで、この一文は1人目の申込者に必ず届き、いちばん申込を止める #}
       <strong>開催の確定</strong>：<strong>お一人からでも開催します。</strong>
-      お申し込みの時点で開催が確定します。<br>
+      {# ⛔ 「お申し込みの時点で確定」と書かないこと（2026-08-17）。確定するのは
+         確認メールのリンクを押していただいたときで、画面の説明と実装が
+         食い違うと、届かなかった方が確定したと思って当日いらっしゃる #}
+      お申し込みのあと、確認のメールをお送りします。そのリンクを押していただいた
+      時点で開催が確定します（お席は{{ verify_ttl }}時間お取り置きします）。<br>
       {# ⛔ 開催方法と諸経費を書かないまま決済させないこと。受講者は
          どこへ行くのか・追加費用が出るのかを知らないまま払うことになる #}
       <strong>開催方法</strong>：<strong>オンライン（Zoom）</strong>が既定です。
@@ -353,10 +368,16 @@
       if (j['決済へ']) { window.location.href = j['決済へ']; return; }
       document.getElementById('pickCard').style.display = 'none';
       document.getElementById('formCard').style.display = 'none';
-      // ⛔ 「最少催行に達し次第ご連絡します」を戻さないこと（撤廃済み）
+      // ⛔ ここで「開催が確定しました」と出さないこと（社長ご指摘 2026-08-17）。
+      //    確定するのは、お客様が確認メールのリンクを押したとき
       document.getElementById('bkDoneMsg').textContent =
-        'この日程で開催が確定しました（現在 ' + j['合計人数'] + '名）。'
-        + '当日のご案内をメールでお送りします。';
+        (j['宛先'] || 'ご入力のメールアドレス') + ' に確認のメールをお送りしました。'
+        + 'メール内のリンクを押していただくと、お申し込みが確定します。'
+        + (j['メール送信'] === false
+           ? '（※ 送信に失敗した可能性があります。届かない場合は'
+             + ' info@jgaia.org までご連絡ください）'
+           : '（24時間以内にお願いいたします。届かない場合は迷惑メール'
+             + 'フォルダもご確認ください）');
       var done = document.getElementById('bkDone');
       done.style.display = 'block';
       done.scrollIntoView({behavior: 'smooth', block: 'center'});

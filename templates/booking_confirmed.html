@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{# ⛔ 題名を片方に固定しないこと。断った画面のタブに「確定しました」と出る #}
+{% block title %}{% if error %}お申し込みを確定できませんでした{% else %}お申し込みが確定しました{% endif %} | JGAIA{% endblock %}
+{% block description %}メールアドレスのご確認ありがとうございます。{% endblock %}
+
+{# ⛔ base.html に無いブロック名を使わないこと。Jinjaは黙って捨てるので
+   CSSが1行も出ず、白いカードの上に白文字で本番に載る（2026-08-17 実測） #}
+{% block extra_head %}
+<style>
+  {# ⛔ 文字色を指定すること。白いカードに親の白文字が継がれると読めない #}
+  .bc-wrap{max-width:720px;margin:0 auto;padding:0 20px 64px}
+  .bc-card{background:#fff;border:1px solid #e4e7ec;border-radius:14px;
+           padding:28px;color:#1f2430}
+  .bc-card h1{font-size:1.5rem;color:#041f4e;margin:0 0 14px}
+  .bc-card p{line-height:1.9;margin:0 0 12px;color:#1f2430}
+  .bc-sum{background:#f6f8fc;border-radius:10px;padding:16px;margin:18px 0}
+  .bc-sum div{margin:4px 0;color:#1f2430}
+  .bc-note{font-size:.9rem;color:#5b6472;line-height:1.8;margin-top:18px}
+  .bc-acts{margin-top:22px}
+  .bc-acts a{display:inline-block;padding:12px 22px;border-radius:8px;
+             background:#041f4e;color:#fff;text-decoration:none;font-weight:600}
+  .bc-err{border-left:4px solid #b45309;background:#fffbeb;padding:14px 16px;
+          border-radius:8px;color:#7c2d12;line-height:1.8}
+</style>
+{% endblock %}
+
+{% block content %}
+<main class="content">
+<div class="page-hero">
+  <h1>{% if error %}Sorry{% else %}Thank you{% endif %}</h1>
+  <div class="page-hero__sub">
+    {% if error %}お申し込みを確定できませんでした{% else %}お申し込みが確定しました{% endif %}
+  </div>
+</div>
+
+<div class="page-section">
+  <div class="bc-wrap">
+    <div class="bc-card">
+      {% if error %}
+      <h1>お申し込みを確定できませんでした</h1>
+      <div class="bc-err">{{ error }}</div>
+      {# ⛔ 連絡先を二重に書かないこと（理由文にも入っている）。
+         行き先は1つ＝もう一度お申し込みいただく道を必ず出す #}
+      <p style="margin-top:16px">
+        お手数ですが、講座の一覧からもう一度お申し込みください。
+        お急ぎの場合や、同じ表示が続く場合はご連絡いただければ
+        こちらで状況をお調べいたします。
+      </p>
+      <div class="bc-acts">
+        <a href="{{ url_for('vibe_coding') }}">講座の一覧へ戻る</a>
+      </div>
+
+      {% else %}
+      {# ⛔ 二度押しを「エラー」に見せないこと。同じ内容を落ち着いて返す #}
+      <h1>
+        {% if again %}このお申し込みは、すでに確定しています{% else %}お申し込みが確定しました{% endif %}
+      </h1>
+      <p>
+        {{ rec['氏名'] }} 様、メールアドレスのご確認をいただきありがとうございます。<br>
+        <strong>お一人からでも開催いたします。</strong>下記の日程で開催が確定しました。
+      </p>
+
+      <div class="bc-sum">
+        <div>■ コース：{{ rec['コース'] }}　{{ rec['コース名'] }}</div>
+        <div>■ 開催日：{{ (rec['開催日'] or [rec['希望日']]) | join('・') }}</div>
+        <div>■ 人数：{{ rec['人数'] }}名</div>
+        {% if (rec['全研修数'] or 1) | int > 1 %}
+        <div>■ 研修数：全{{ rec['全研修数'] }}研修のうち {{ rec['研修数'] }}研修</div>
+        {% endif %}
+        <div>■ 受講料：¥{{ '{:,}'.format(rec['受講料_円']) }}（税込）</div>
+        {% if c.get('exam_note') %}
+        <div>■ 認定試験：{{ c['exam_name'] }}（受験料は受講料に含まれます）</div>
+        {% endif %}
+        <div>■ お支払い：{{ pay.get('label', '') }}</div>
+      </div>
+
+      <p>
+        受講のご案内{% if rec['支払方法'] != 'card' %}と請求書{% endif %}を、
+        {{ rec['連絡先'] }} 宛にお送りします。数分たっても届かない場合は、
+        迷惑メールフォルダをご確認のうえ
+        <a href="mailto:info@jgaia.org">info@jgaia.org</a> までご連絡ください。
+      </p>
+
+      <div class="bc-note">
+        <strong>キャンセルについて</strong>：{{ cancel_policy }}<br>
+        <strong>販売事業者</strong>：{{ seller['name'] }}
+        （{{ seller['brand'] }} 認定講座）—
+        <a href="{{ url_for('tokutei') }}">特定商取引法に基づく表記</a>
+      </div>
+
+      <div class="bc-acts">
+        <a href="{{ url_for('solo_ceo') if rec['コース'].startswith('SP-') else url_for('vibe_coding') }}">講座の一覧へ戻る</a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+</main>
+{% endblock %}
