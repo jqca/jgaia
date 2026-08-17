@@ -523,17 +523,34 @@
 <!-- INQUIRY -->
 <section class="kids-section inquiry" id="inquiry">
   <div class="sec-inner">
+    {# ⛔ 開催日があるときに、このフォームが「お申し込み」を名乗らないこと
+       （2026-08-17 社長ご指摘：「無料相談はこちら」を押すと申込もこちらから、
+       という誘導になっている）。ここはメールを送るだけで**予約台帳には入らない**
+       ＝席も押さえられず、講師も割り当たらず、請求書も受講証明書も出ない。
+       申し込んだつもりの方をこのフォームで受けてしまうのがいちばん重い事故。
+       ⛔ 開催日が無いときに予約画面へ送らないこと（行き止まりになる）。
+       判断は booking.open_slots() の1か所（各コースのボタンと同じ材料）。 #}
+    {% set has_days = slots['GK1']['件数'] or slots['GK2']['件数'] or slots['GK3']['件数'] %}
     <div class="text-center">
       <div class="sec-label">Contact</div>
+      {% if has_days %}
+      <h2 class="sec-title">お問い合わせ・ご相談</h2>
+      <p class="sec-desc">
+        お申し込みは各コースの<a href="#courses" style="color:var(--accent-l);text-decoration:underline;font-weight:700">「開催日を見て申し込む」</a>からお願いします（このフォームは席の確保にはなりません）。<br>
+        コース選びや日程のご相談は、こちらからお気軽にどうぞ。担当者が丁寧にご案内します。
+      </p>
+      {% else %}
       <h2 class="sec-title">無料相談・お申し込み</h2>
       <p class="sec-desc">ご不明な点はお気軽にご相談ください。担当者が丁寧にご案内します。</p>
+      {% endif %}
     </div>
     <div class="form-wrap">
       <div class="form-group"><label>保護者名<span class="req">*</span></label><input type="text" id="parent-name" placeholder="例：高野 秀隆"></div>
       <div class="form-group"><label>お子さまの年齢<span class="req">*</span></label><select id="child-age"><option value="">選択してください</option><option>8歳（小学3年生）</option><option>9歳（小学4年生）</option><option>10歳（小学5年生）</option><option>11歳（小学6年生）</option><option>12歳（中学1年生）</option><option>13歳（中学2年生）</option><option>14歳（中学3年生）</option></select></div>
       <div class="form-group"><label>メールアドレス<span class="req">*</span></label><input type="email" id="email" placeholder="例：example@email.com"></div>
       <div class="form-group"><label>電話番号</label><input type="tel" id="phone" placeholder="例：090-1234-5678"></div>
-      <div class="form-group"><label>希望コース<span class="req">*</span></label><select id="course"><option value="">選択してください</option><option>GK1：キッズ体験（半日・3時間）¥{{ '{:,}'.format(kids['GK1']) }}/組</option><option>GK2：ジュニア入門（1日・6時間）¥{{ '{:,}'.format(kids['GK2']) }}</option><option>GK3：親子ペアコース（1日・6時間）¥{{ '{:,}'.format(kids['GK3']) }}/組</option><option>まだ決めていない・相談したい</option></select></div>
+      {# ⛔ 「希望コース」と書かないこと＝申込票に見える。ここは相談の入口 #}
+      <div class="form-group"><label>ご相談したいコース<span class="req">*</span></label><select id="course"><option value="">選択してください</option><option>GK1：キッズ体験（半日・3時間）¥{{ '{:,}'.format(kids['GK1']) }}/組</option><option>GK2：ジュニア入門（1日・6時間）¥{{ '{:,}'.format(kids['GK2']) }}</option><option>GK3：親子ペアコース（1日・6時間）¥{{ '{:,}'.format(kids['GK3']) }}/組</option><option>まだ決めていない・相談したい</option></select></div>
       <div class="form-group"><label>メッセージ</label><textarea id="message" placeholder="ご質問・ご要望などお気軽にどうぞ（兄弟参加・日程のご希望など）"></textarea></div>
       <button class="form-submit" id="submit-btn" onclick="submitKidsInquiry()">送信する</button>
       <div id="form-msg"></div>

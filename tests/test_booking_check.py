@@ -189,5 +189,52 @@ class Test画面(unittest.TestCase):
             self.assertEqual(c.get('/book/%s' % code).status_code, 200, code)
 
 
+class Test相談フォームが申込を名乗らない(unittest.TestCase):
+    """⛔ 2026-08-17 社長ご指摘の事故の型。
+
+    「無料相談はこちら」を押した先が『無料相談・お申し込み』で、申し込みも
+    そこからするように見えていた。あのフォームはメールを送るだけで**予約台帳に
+    入らない**＝席も押さえられず、講師も割り当たらず、請求書も受講証明書も
+    出ない。申し込んだつもりの方をあそこで受けるのがいちばん重い事故。
+    """
+
+    def setUp(self):
+        _seed_full_instructor()
+
+    def tearDown(self):
+        _clear()
+
+    def _get(self, path):
+        r = app.test_client().get(path)
+        self.assertEqual(r.status_code, 200, path)
+        return r.get_data(as_text=True)
+
+    def test_子ども向けは開催日があるとき申込を名乗らない(self):
+        html = self._get('/vibe-coding/kids')
+        self.assertNotIn('無料相談・お申し込み', html)
+        self.assertIn('席の確保にはなりません', html)
+
+    def test_業種別5ページは開催日があるとき申込を名乗らない(self):
+        for slug in ('manufacturing', 'healthcare', 'finance',
+                     'logistics', 'construction'):
+            html = self._get('/vibe-coding/' + slug)
+            self.assertNotIn('無料相談・お申し込み', html, slug)
+            self.assertIn('席の確保にはなりません', html, slug)
+
+    def test_講座のLPの問い合わせ欄は申込を名乗らない(self):
+        # ⛔ LP は各コースの詳細（→開催日）へ送る。ここで申込を受けない
+        html = self._get('/vibe-coding')
+        self.assertNotIn('お問い合わせ・<br>お申し込み', html)
+        self.assertIn('席の確保にはなりません', html)
+        # ⛔ 押しても席が押さえられない「申し込む」欄を復活させないこと
+        self.assertNotIn('function toggleApply(', html)
+
+    def test_開催日が無いときは相談から申込まで受ける(self):
+        # ⛔ 日程が無いのに予約画面へ送らないこと（行き止まりになる）
+        _clear()
+        html = self._get('/vibe-coding/kids')
+        self.assertIn('無料相談・お申し込み', html)
+
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)

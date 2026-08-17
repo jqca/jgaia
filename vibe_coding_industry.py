@@ -727,6 +727,9 @@ def _render_industry_page(ind):
 
     # ---------- コースカード HTML ----------
     course_cards_html = ""
+    # 講座ごとの開催状況。⛔ 下の問い合わせ欄でもう一度 open_slots を呼ばないこと
+    #    （同じ問いに2回答えさせると、片方だけ古い判断になる）
+    slots_by_code = {}
     for i, course in enumerate(c["courses"]):
         p = palette[i]
         # ⛔ 「Aコースだけ対象」と決め打ちしないこと（2026-08-17 社長ご指摘で全コース対象化）。
@@ -808,6 +811,7 @@ def _render_industry_page(ind):
         #    予約ボタンを出さないこと＝押した先が行き止まりに見える。
         #    判断は booking.open_slots() の1か所。
         _slot = _booking.open_slots(course["code"])
+        slots_by_code[course["code"]] = _slot
         _btn = ('display:block;text-align:center;padding:14px;border-radius:14px;'
                 'font-weight:800;font-size:0.92rem;text-decoration:none;color:#fff;'
                 f'background:{p["btn_grad"]};transition:opacity 0.2s;')
@@ -920,6 +924,30 @@ def _render_industry_page(ind):
             color:#4a5568;line-height:1.85;">{faq["a"]}</div>
         </div>
         """
+
+    # ---------- 問い合わせ欄の見出し ----------
+    # ⛔ 開催日があるときに、このフォームが「お申し込み」を名乗らないこと
+    #    （2026-08-17 社長ご指摘：「無料相談はこちら」を押すと申込もこちらから、
+    #    という誘導になっている）。ここはメールを送るだけで**予約台帳には入らない**
+    #    ＝席も押さえられず、講師も割り当たらず、請求書も受講証明書も出ない。
+    #    申し込んだつもりの方をこのフォームで受けてしまうのがいちばん重い事故。
+    # ⛔ 開催日が無いときに予約画面へ送らないこと（行き止まりになる）。
+    #    判断は booking.open_slots() の1か所（コースカードのボタンと同じ材料）。
+    if any(slots_by_code.get(cs["code"], {}).get("件数") for cs in c["courses"]):
+        inquiry_head_html = (
+            '<h2 class="section-title">お問い合わせ・ご相談</h2>'
+            '<p class="section-lead">'
+            'お申し込みは各コースの<a href="#courses" style="color:'
+            f'{brand};text-decoration:underline;font-weight:700;">'
+            '「開催日を見て申し込む」</a>からお願いします'
+            '（このフォームは席の確保にはなりません）。<br>'
+            'コース選びや法人研修のご相談は、こちらからお気軽にどうぞ。'
+            '通常2営業日以内にご返信します。</p>')
+    else:
+        inquiry_head_html = (
+            '<h2 class="section-title">無料相談・お申し込み</h2>'
+            '<p class="section-lead">コース選択・法人研修・日程等、'
+            'お気軽にお問い合わせください。通常2営業日以内にご返信します。</p>')
 
     # ---------- コース選択 options ----------
     course_opts_html = "".join(
@@ -1205,8 +1233,7 @@ def _render_industry_page(ind):
   <div class="section-inner">
     <div class="text-center">
       <span class="section-label">INQUIRY</span>
-      <h2 class="section-title">無料相談・お申し込み</h2>
-      <p class="section-lead">コース選択・法人研修・日程等、お気軽にお問い合わせください。通常2営業日以内にご返信します。</p>
+      {inquiry_head_html}
     </div>
     <div style="max-width:600px;margin:48px auto 0;background:#ffffff;
       border:1px solid #e2e8f0;border-radius:24px;padding:40px;">

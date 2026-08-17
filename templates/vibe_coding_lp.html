@@ -745,8 +745,15 @@
     <div class="cta-inner">
       <div>
         <div class="sec-label">CONTACT</div>
-        <h2 class="sec-title" style="margin-bottom:12px">お問い合わせ・<br>お申し込み</h2>
-        <p style="font-size:15px;color:#4a5568;line-height:1.8;margin-bottom:28px">ご質問・お申し込み・法人研修のご相談など、お気軽にどうぞ。2営業日以内にご連絡いたします。</p>
+        {# ⛔ このフォームが「お申し込み」を名乗らないこと（2026-08-17 社長ご指摘）。
+           ここはメールを送るだけで**予約台帳には入らない**＝席も押さえられず、
+           講師も割り当たらず、請求書も受講証明書も出ない。申し込んだつもりの方を
+           ここで受けてしまうのがいちばん重い事故。お申し込みは各コースの詳細
+           ページ（開催日を選ぶ画面）へ送る。 #}
+        <h2 class="sec-title" style="margin-bottom:12px">お問い合わせ・<br>ご相談</h2>
+        <p style="font-size:15px;color:#4a5568;line-height:1.8;margin-bottom:28px">
+          お申し込みは各コースの<a href="#courses" style="color:#1d4ed8;text-decoration:underline;font-weight:700">「コース詳細を見る」</a>から、開催日を選んでお進みください（このフォームは席の確保にはなりません）。<br>
+          ご質問・法人研修のご相談などは、こちらからお気軽にどうぞ。2営業日以内にご連絡いたします。</p>
         <form id="main-form" onsubmit="return submitForm(event, this)">
           <div class="form-group"><label>お名前 *</label><input type="text" name="name" required></div>
           <div class="form-group"><label>メールアドレス *</label><input type="email" name="email" required></div>
@@ -770,13 +777,15 @@
 </div><!-- /.lp-body -->
 
 <!-- Mobile CTA -->
-<div class="mobile-cta"><a href="#inquiry-section">¥{{ '{:,}'.format(prices['GA']) }}〜 お問い合わせ・お申し込み →</a></div>
+{# ⛔ 下端のボタンから「お申し込み」を名乗って問い合わせ欄へ送らないこと。
+   申し込みたい方はコース一覧（→詳細→開催日）へ送る #}
+<div class="mobile-cta"><a href="#courses">¥{{ '{:,}'.format(prices['GA']) }}〜 コースを見る・お申し込み →</a></div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
 function toggleCurriculum(btn){var c=btn.nextElementSibling;c.classList.toggle('open');btn.textContent=c.classList.contains('open')?'カリキュラムを閉じる ×':'カリキュラムを見る →'}
-function toggleApply(btn){var w=btn.nextElementSibling;if(w.classList.contains('open')){w.classList.remove('open');return}w.classList.add('open');if(w.querySelector('form'))return;var c=w.dataset.course;w.innerHTML='<form onsubmit="return submitForm(event,this)"><div class="form-group"><label>お名前 *</label><input type="text" name="name" required></div><div class="form-group"><label>メールアドレス *</label><input type="email" name="email" required></div><div class="form-group"><label>会社名</label><input type="text" name="company"></div><input type="hidden" name="course" value="'+c+'"><div class="form-group"><label>備考</label><textarea name="message" placeholder="ご質問があればお書きください"></textarea></div><button type="submit" class="btn-submit">申し込む →</button><div class="form-status"></div></form>'}
+// ⛔ ここにあった toggleApply（カード内に「申し込む →」の欄を開く関数）は2026-08-17 に削除した。どこからも呼ばれておらず、押しても席は押さえられない（/api/inquiry にメールを送るだけ）＝申し込んだつもりの方を受けてしまう。お申し込みは各コース詳細の「開催日を見て申し込む」から。⛔ 復活させないこと。
 async function submitForm(e,form){e.preventDefault();var st=form.querySelector('.form-status'),btn=form.querySelector('button[type="submit"]'),d=Object.fromEntries(new FormData(form));btn.disabled=true;btn.textContent='送信中...';st.className='form-status';st.textContent='';try{var r=await fetch('/api/inquiry',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)});var j=await r.json();if(r.ok){st.className='form-status ok';st.textContent='送信しました。2営業日以内にご連絡いたします。';form.reset()}else throw new Error(j.error||'エラーが発生しました')}catch(err){st.className='form-status err';st.textContent=err.message}btn.disabled=false;btn.textContent=form.querySelector('[name="course"][type="hidden"]')?'申し込む →':'送信する →';return false}
 function toggleFaq(el){el.classList.toggle('open');el.nextElementSibling.classList.toggle('open')}
 var qs={};
