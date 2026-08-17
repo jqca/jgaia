@@ -185,6 +185,12 @@ def _subsidy_globals():
     return {"prices": {c["code"]: c["price"] for c in booking.COURSES},
             "subsidy_of": {c["code"]: booking.subsidy_for(c["code"])
                            for c in booking.COURSES},
+            # ⛔ 単位（/名）と「1研修あたり」を各画面に手打ちしないこと。
+            #    出どころは booking.PRICE_UNIT / unit_price_note() の1か所
+            "price_unit": booking.PRICE_UNIT,
+            "price_suffix": booking.PRICE_SUFFIX,
+            "unit_notes": {c["code"]: booking.unit_price_note(c["code"])
+                           for c in booking.COURSES},
             "subsidy_net_typical": s["net"],
             "subsidy_grant_typical": s["grant"],
             "subsidy_cap_person": booking.SUBSIDY["cap_per_person"],

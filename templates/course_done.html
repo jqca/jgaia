@@ -37,7 +37,7 @@
       </p>
 
       <div class="dn-sum">
-        <div>■ 受講料：¥{{ '{:,}'.format(c['price']) }}（税込）</div>
+        <div>■ 受講料：¥{{ '{:,}'.format(c['price']) }}{{ price_unit }}{{ price_suffix }}</div>
         {% if c.get('exam_note') %}
         <div>■ 認定試験：{{ c['exam_name'] }}（受験料は受講料に含まれます）</div>
         {% endif %}

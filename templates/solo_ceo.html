@@ -664,7 +664,7 @@ main { padding: 0 !important; margin-top: 0 !important; min-height: 0 !important
                            ⛔ 手打ちの日付を混ぜないこと（講師が変えても古い日付が残る） #}
                         <span class="meta-tag">開催日 {{ slots[c.id]['表示'] }}</span>
                     </div>
-                    <div class="card-price">¥{{ c.price }}<small>（税込）</small></div>
+                    <div class="card-price">¥{{ c.price }}<small>{{ c.price_unit }}{{ c.price_suffix }}</small></div>
                 </div>
                 {% if slots[c.id]['件数'] %}
                 <a href="{{ url_for('book_course', code=c.code) }}" class="card-link"

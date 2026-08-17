@@ -370,7 +370,13 @@
     </div>
 
     <div class="cd-price-block">
-        <div class="cd-price">¥{{ c.price }}<small>（税込）</small></div>
+        <div class="cd-price">¥{{ c.price }}<small>{{ c.price_unit }}{{ c.price_suffix }}</small></div>
+        {# ⛔ 分割掲載の講座は「1研修あたりいくら」を必ず出すこと。助成の要件2＝
+           受講案内に受講者1人1研修単位の経費。⛔ 2026-08-17 まで一人会社ページ
+           には1件も出ておらず、SP-B/SP-C はこの要件を満たしていなかった #}
+        {% if c.unit_note %}
+        <div style="margin-top:8px;font-size:13px;color:rgba(255,255,255,.82);font-weight:600">{{ c.unit_note }}</div>
+        {% endif %}
         {% if c.subsidy %}
         <div class="cd-subsidy-tag">{{ c.subsidy_text }}</div>
         {% endif %}
@@ -469,7 +475,7 @@
             <a href="/solo-ceo/course-{{ oc.id }}" class="cd-other-card">
                 <div class="oc-code" style="color:{{ oc.accent }};">{{ oc.code }}</div>
                 <h3>{{ oc.title }}</h3>
-                <div class="oc-price">¥{{ oc.price }}（税込）/ {{ oc.duration }}</div>
+                <div class="oc-price">¥{{ oc.price }}{{ oc.price_unit }}{{ oc.price_suffix }} / {{ oc.duration }}</div>
             </a>
             {% endif %}
             {% endfor %}

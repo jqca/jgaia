@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block title %}{{ c.title }} | JGAIA バイブコーディング講座{% endblock %}
-{% block description %}{{ c.subtitle }}。受講料¥{{ c.price }}（税込）。{{ c.target }}向け。{% endblock %}
+{% block description %}{{ c.subtitle }}。受講料¥{{ c.price }}{{ c.price_unit }}{{ c.price_suffix }}。{{ c.target }}向け。{% endblock %}
 
 {% block extra_css %}
 /* ⛔ ヘッダー・フッターを上書きしないこと（2026-08-16 社長ご指摘）。
@@ -397,8 +397,14 @@
       <span class="course-hero-tag">{{ c.target }}</span>
     </div>
     <div class="course-hero-price">
-      &yen;{{ c.price }}<small>（税込）</small>
+      &yen;{{ c.price }}<small>{{ c.price_unit }}{{ c.price_suffix }}</small>
     </div>
+    {# ⛔ 分割掲載の講座は「1研修あたりいくら」を必ず出すこと。助成の要件2が
+       「受講案内に受講者1人1研修単位の経費が明記されていること」で、時間数だけ
+       では「経費」にならない。文言は booking.unit_price_note() の1か所 #}
+    {% if c.unit_note %}
+    <p style="margin-top:8px;font-size:13px;color:rgba(255,255,255,.8);font-weight:500">{{ c.unit_note }}</p>
+    {% endif %}
     {% if c.subsidy %}
     <p style="margin-top:10px;font-size:13px;color:{{ c.accent_light }};font-weight:500">{{ c.subsidy_text }}</p>
     {% endif %}
@@ -429,7 +435,7 @@
   </div>
   <div class="ov-card">
     <div class="ov-label">PRICE</div>
-    <div class="ov-val">&yen;{{ c.price }}<span class="sub">{% if c.subsidy %}法人研修なら実質 ¥{{ '{:,}'.format(c.subsidy_net) }}{% else %}法人請求書払い可{% endif %}</span></div>
+    <div class="ov-val">&yen;{{ c.price }}{{ c.price_unit }}<span class="sub">{% if c.subsidy %}法人研修なら実質 ¥{{ '{:,}'.format(c.subsidy_net) }}{% else %}法人請求書払い可{% endif %}</span></div>
   </div>
 </div>
 

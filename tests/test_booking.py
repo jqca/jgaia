@@ -3158,6 +3158,75 @@ class Test対象判定を画面に直書きしない(unittest.TestCase):
             self.assertNotIn('助成金対象外', html, path)
 
 
+class Test受講料の単位を出す(unittest.TestCase):
+    """社長ご提案 2026-08-17「¥xxxx より ¥xxxx/人 の方がいいのでは？」。
+
+    賛成した理由は見た目ではなく2つ。
+      ・当社は「1名あたり」の講座と「1回あたり」の出張研修（10名まで同額）を
+        同じサイトで併売している＝単位が無いと ¥330,000 を1開催まとめての額と
+        読まれうる。金額が上がったぶん誤読の実害が大きい。
+      ・DXリスキリング助成金の要件2＝「一般に公開された受講案内に**受講者
+        1人1研修単位の経費**が明記されていること」。
+
+    固定している事故の型:
+      ・単位が一部のページにしか無い（2026-08-17 実測＝業種別だけ「/名」）
+      ・分割掲載の講座に「1研修あたりいくら」が出ていない（時間数だけでは
+        「経費」にならない。一人会社ページには1件も出ていなかった）
+      ・子ども向けの「1組」に「/名」を当ててしまう（GK1・GK3 は親子1組の額）
+    """
+
+    def setUp(self):
+        _clear()
+        self.c = app.test_client()
+
+    def test_大人向けの講座ページに単位が出る(self):
+        for p in ('/vibe-coding', '/vibe-coding/course-ga', '/solo-ceo',
+                  '/solo-ceo/course-spa', '/vibe-coding/manufacturing'):
+            h = self.c.get(p).get_data(as_text=True)
+            self.assertIn(booking.PRICE_UNIT, h, p)
+
+    def test_分割掲載の講座は1研修あたりの金額を出す(self):
+        # ⛔ 助成の要件2。⛔ 時間数だけでは「経費」にならない
+        for p in ('/vibe-coding/course-gc', '/solo-ceo/course-spb',
+                  '/vibe-coding/manufacturing', '/vibe-coding'):
+            h = self.c.get(p).get_data(as_text=True)
+            self.assertIn('1研修 ¥', h, p)
+
+    def test_1研修あたりの金額は単価かける本数と合う(self):
+        for code, n in booking.SESSIONS.items():
+            note = booking.unit_price_note(code)
+            self.assertIn('{:,}'.format(booking.UNIT_PRICE), note, code)
+            self.assertIn('全{}研修'.format(n), note, code)
+            self.assertIn(booking.PRICE_UNIT, note, code)
+        # 1本の講座には出さない（「全1研修」は意味が無い）
+        self.assertEqual(booking.unit_price_note('GA'), '')
+
+    def test_子ども向けに名を当てない(self):
+        # ⛔ GK1・GK3 は親子1組の額。「/名」を当てると1人分に見える
+        h = self.c.get('/vibe-coding/kids').get_data(as_text=True)
+        self.assertNotIn(booking.PRICE_UNIT, h)
+        self.assertIn('1組', h)
+
+    def test_単位を画面に手打ちしない(self):
+        # ⛔ 出どころは booking.PRICE_UNIT の1か所。⛔ 子ども向けは単位が違うので
+        #    このページだけ自前の表記でよい（1組・お一人）
+        root = os.path.dirname(HERE)
+        bad = []
+        for d in (root, os.path.join(root, 'templates')):
+            for name in sorted(os.listdir(d)):
+                if not name.endswith(('.html', '.py')) or name in (
+                        'booking.py', 'vibe_coding_kids.html'):
+                    continue
+                body = io.open(os.path.join(d, name), encoding='utf-8').read()
+                body = re.sub(r'\{#.*?#\}', '', body, flags=re.S)
+                body = re.sub(r'^\s*#.*$', '', body, flags=re.M)
+                body = re.sub(r'/\*.*?\*/', '', body, flags=re.S)
+                for line in body.splitlines():
+                    if '/名（税込）' in line:
+                        bad.append('%s: %s' % (name, line.strip()[:70]))
+        self.assertEqual(bad, [], '単位が直書きされています: %s' % bad)
+
+
 class Test認定試験を受講料に組み込む(unittest.TestCase):
     """社長ご指示 2026-08-17「JGAIAが実施している資格受験料を組み込む講座にして」。
 

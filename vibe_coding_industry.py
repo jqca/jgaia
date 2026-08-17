@@ -48,7 +48,6 @@ INDUSTRIES = {
                 "duration": "4時間（13:00〜17:00）",
                 "capacity": "20名",
                 "price": "¥49,800",
-                "price_unit": "/名（税込）",
                 "features": [
                     "バイブコーディング基礎・AIツール操作",
                     "AI外観検査アプリ体験＆カスタマイズ",
@@ -69,7 +68,6 @@ INDUSTRIES = {
                 "duration": "全3回（毎週水曜 10:00〜17:00）",
                 "capacity": "15名",
                 "price": "¥128,000",
-                "price_unit": "/名（税込）",
                 "features": [
                     "主要AIコーディングツール 完全習得",
                     "設備予知保全AIアプリの開発",
@@ -90,7 +88,6 @@ INDUSTRIES = {
                 "duration": "全5回（毎週水曜 10:00〜17:00）",
                 "capacity": "10名",
                 "price": "¥228,000",
-                "price_unit": "/名（税込）",
                 "features": [
                     "デジタルツイン設計・構築実践",
                     "IoTセンサーデータ×生成AI連携",
@@ -174,7 +171,6 @@ INDUSTRIES = {
                 "duration": "4時間（13:00〜17:00）",
                 "capacity": "20名",
                 "price": "¥49,800",
-                "price_unit": "/名（税込）",
                 "features": [
                     "バイブコーディング基礎・AIツール操作",
                     "医療文書作成AI体験＆カスタマイズ",
@@ -195,7 +191,6 @@ INDUSTRIES = {
                 "duration": "全3回（毎週水曜 10:00〜17:00）",
                 "capacity": "15名",
                 "price": "¥128,000",
-                "price_unit": "/名（税込）",
                 "features": [
                     "主要AIコーディングツール 完全習得",
                     "電子カルテ連携AIアプリ開発",
@@ -216,7 +211,6 @@ INDUSTRIES = {
                 "duration": "全5回（毎週水曜 10:00〜17:00）",
                 "capacity": "10名",
                 "price": "¥228,000",
-                "price_unit": "/名（税込）",
                 "features": [
                     "病院DXシステム設計・アーキテクチャ",
                     "リモート患者モニタリングAI構築",
@@ -300,7 +294,6 @@ INDUSTRIES = {
                 "duration": "4時間（13:00〜17:00）",
                 "capacity": "20名",
                 "price": "¥49,800",
-                "price_unit": "/名（税込）",
                 "features": [
                     "バイブコーディング基礎・AIツール操作",
                     "市場レポート自動生成アプリ体験",
@@ -321,7 +314,6 @@ INDUSTRIES = {
                 "duration": "全3回（毎週水曜 10:00〜17:00）",
                 "capacity": "15名",
                 "price": "¥128,000",
-                "price_unit": "/名（税込）",
                 "features": [
                     "主要AIコーディングツール 完全習得",
                     "リスク分析ダッシュボード開発",
@@ -342,7 +334,6 @@ INDUSTRIES = {
                 "duration": "全5回（毎週水曜 10:00〜17:00）",
                 "capacity": "10名",
                 "price": "¥228,000",
-                "price_unit": "/名（税込）",
                 "features": [
                     "ALM最適化システム設計",
                     "信用スコアリングAIモデル構築",
@@ -426,7 +417,6 @@ INDUSTRIES = {
                 "duration": "4時間（13:00〜17:00）",
                 "capacity": "20名",
                 "price": "¥49,800",
-                "price_unit": "/名（税込）",
                 "features": [
                     "バイブコーディング基礎・AIツール操作",
                     "配送ルート最適化AIアプリ体験",
@@ -447,7 +437,6 @@ INDUSTRIES = {
                 "duration": "全3回（毎週水曜 10:00〜17:00）",
                 "capacity": "15名",
                 "price": "¥128,000",
-                "price_unit": "/名（税込）",
                 "features": [
                     "主要AIコーディングツール 完全習得",
                     "倉庫自動化AIシステム設計",
@@ -468,7 +457,6 @@ INDUSTRIES = {
                 "duration": "全5回（毎週水曜 10:00〜17:00）",
                 "capacity": "10名",
                 "price": "¥228,000",
-                "price_unit": "/名（税込）",
                 "features": [
                     "物流DXプラットフォーム設計・アーキテクチャ",
                     "IoTセンサー×AI統合管理システム構築",
@@ -552,7 +540,6 @@ INDUSTRIES = {
                 "duration": "4時間（13:00〜17:00）",
                 "capacity": "20名",
                 "price": "¥49,800",
-                "price_unit": "/名（税込）",
                 "features": [
                     "バイブコーディング基礎・AIツール操作",
                     "施工日報AI自動化アプリ体験",
@@ -573,7 +560,6 @@ INDUSTRIES = {
                 "duration": "全3回（毎週水曜 10:00〜17:00）",
                 "capacity": "15名",
                 "price": "¥128,000",
-                "price_unit": "/名（税込）",
                 "features": [
                     "主要AIコーディングツール 完全習得",
                     "BIM×AI連携アプリ開発",
@@ -594,7 +580,6 @@ INDUSTRIES = {
                 "duration": "全5回（毎週水曜 10:00〜17:00）",
                 "capacity": "10名",
                 "price": "¥228,000",
-                "price_unit": "/名（税込）",
                 "features": [
                     "建設DX統合プラットフォーム設計",
                     "ドローン×AI検査システム構築",
@@ -696,6 +681,9 @@ for _ind in INDUSTRIES.values():
     _prices = {c['code']: c['price_num'] for c in _cs if c.get('price_num')}
     if _prices and _ind.get('stats'):
         _ind['stats'][0]['num'] = '¥{:,}〜'.format(min(_prices.values()))
+        # ⛔ 見出しの数字にも単位を出すこと。ここだけ「受講料（税込）」だと、
+        #    1開催まとめての額と読まれる（出張研修は1回いくらで併売している）
+        _ind['stats'][0]['label'] = '受講料（お一人・税込）'
     _opts = []
     for _opt in (_ind.get('course_options') or []):
         _code = _opt.split('：')[0].strip()
@@ -763,11 +751,14 @@ def _render_industry_page(ind):
         # ⛔ 分割掲載する講座は「1研修あたりの受講料」を必ず画面に出すこと。
         #    助成の要件2が「一般に公開された受講案内に**受講者1人1研修単位の経費**が
         #    明記されていること」なので、これが無いと法人は交付申請できない。
+        # ⛔ 文面を書き起こさないこと。出どころは booking.unit_price_note() の1か所
+        #    （汎用ページ・一人会社ページと同じ文言でなければ、同じ制度の説明が
+        #     ページごとに違って見える）。
         unit_price_html = ""
-        if _sub.get("sessions", 1) > 1:
+        if course.get("unit_note"):
             unit_price_html = (
                 '<div style="margin:-2px 0 14px;font-size:0.8rem;color:#4a5568;line-height:1.6;">'
-                f'<b>1研修 &#165;{_sub["unit_price"]:,}</b>（税込）&times; 全{_sub["sessions"]}研修'
+                f'<b>{course["unit_note"]}</b>'
                 '<br><span style="color:#64748b;">各回が独立した研修です。'
                 '1研修ごとにお申し込み・助成金の申請ができます。</span></div>'
             )
@@ -830,7 +821,7 @@ def _render_industry_page(ind):
                  ⛔ apply_prices の側に ￥ を足して直さないこと＝既に ¥ を書いている6箇所が ¥¥ になる。 -->
             <div style="font-size:2rem;font-weight:900;color:{p['accent']};margin-bottom:4px;">
               &yen;{course["price"]}<span style="font-size:0.8rem;font-weight:400;color:#64748b;">
-              {course["price_unit"]}</span></div>
+              {course["price_unit"]}{course["price_suffix"]}</span></div>
             {unit_price_html}
             {exam_note_html}
             <ul style="list-style:none;margin:0 0 20px;padding:0;flex:1;">{feat_items}</ul>

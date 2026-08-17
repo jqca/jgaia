@@ -320,6 +320,12 @@ def apply_prices(courses, code_key='code'):
             continue
         c['price_num'] = live['price']
         c['price'] = '{:,}'.format(live['price'])
+        # ⛔ 単位と「1研修あたり」を掲載ページ側に手打ちしないこと。
+        #    2026-08-17 時点で単位は業種別ページにしか無く、1研修あたりの
+        #    金額に至っては一人会社ページに1件も出ていなかった（助成の要件2）。
+        c['price_unit'] = PRICE_UNIT
+        c['price_suffix'] = PRICE_SUFFIX
+        c['unit_note'] = unit_price_note(live['code'])
     return courses
 
 
@@ -455,6 +461,38 @@ for _c in COURSES:
     _fee = EXAMS[_key]['fee']
     if _c['price'] + _fee <= UNIT_PRICE:
         _c['price'] += _fee
+
+
+# ── 受講料の単位（社長ご提案 2026-08-17「¥xxxx/人 の方がいいのでは？」）
+# 賛成する理由は見た目ではなく2つ。
+#   ① 当社は「1名あたり」の講座と「1回あたり」の出張研修（10名まで同額）を
+#      同じサイトで併売している＝単位が無いと、¥330,000 を1開催まとめての額と
+#      読まれうる。金額が上がったぶん誤読の実害が大きい。
+#   ② DXリスキリング助成金の要件2が「一般に公開された受講案内に**受講者
+#      1人1研修単位の経費**が明記されていること」。単位の無い金額はこの要件に弱い。
+# 「人」ではなく「名」にしたのは、サイト内の他の表記（1名／2〜4名／5〜9名／
+# 10名以上／業種別カードの「/名（税込）」）が既に「名」で揃っているため。
+# ⛔ 各画面に「（税込）」や「/名」を手打ちしないこと。ここが唯一の出どころで、
+#    テンプレートには context_processor（app._subsidy_globals）から届く。
+PRICE_UNIT = '/名'
+PRICE_SUFFIX = '（税込）'
+
+
+def unit_price_note(course_code):
+    """分割掲載の講座に出す「1研修あたりいくら」。1本の講座なら空文字。
+
+    ⛔ これを出さないと、助成金の要件2（受講案内に受講者1人1研修単位の経費が
+       明記されていること）を満たさない。⛔ 時間数だけでは「経費」にならない
+       ＝2026-08-17 時点で、業種別ページにしか金額が出ていなかった。
+    """
+    n = SESSIONS.get(course_code)
+    if not n:
+        return ''
+    c = COURSE_BY_CODE.get(course_code)
+    if not c:
+        return ''
+    return '1研修 ¥{:,}{}{} × 全{}研修'.format(
+        c['price'] // n, PRICE_UNIT, PRICE_SUFFIX, n)
 
 
 def exam_for(course_code):
