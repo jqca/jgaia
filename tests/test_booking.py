@@ -1979,6 +1979,21 @@ class Test特商法の表記(unittest.TestCase):
         self.assertIn('株式会社ZebraQuantum', self.html)
         self.assertIn(booking.SELLER['officer'], self.html)
 
+    def test_協会が受講料を受け取ると読める記述を残さない(self):
+        # 社長ご判断 2026-08-17（A案）。協会サイトの「資金」欄が
+        # 「会費、検定受験料、研修受講料、その他事業収入」となっており、
+        # **協会が受講料を受け取る**と読めた。特商法の表記（販売業者＝
+        # ZebraQuantum）と食い違うと「どちらが売主か」を突かれ、法人の経理・
+        # 助成金の実績報告・収益事業判定のすべてで詰まる。
+        # ⛔ 検定受験料は協会の収入なので消さないこと。
+        t = _visible(self.c.get('/company-info').get_data(as_text=True))
+        self.assertIn('検定受験料', t)
+        self.assertNotIn('研修受講料', t)
+        # 売主は1か所（booking.SELLER）から出す。協会名を販売業者にしない
+        self.assertIn('株式会社ZebraQuantum', self.html)
+        self.assertNotIn('販売業者名</th>\n                    <td>一般社団法人',
+                         self.html)
+
     def test_講座にデジタルコンテンツの返金文言を使わない(self):
         # ⛔ 講座は開催日のある役務。動画教材の文言を流用しない
         self.assertNotIn('デジタルコンテンツのため', self.html)
