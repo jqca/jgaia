@@ -3403,6 +3403,20 @@ class Test請求書と入金(unittest.TestCase):
         s = sum(d * (1 if (i + 1) % 2 else 2) for i, d in enumerate(rev))
         self.assertEqual(int(body[0]), 9 - (s % 9), '検査用数字が合いません')
 
+    def test_設定できているかを外から確かめられる(self):
+        # ⛔ 「入ったかどうか」を推測で済ませないこと。振込先が未設定だと
+        #    請求書が1枚も出せないのに、申込は普通に入り続ける
+        #    ＝「請求書をお送りします」の約束だけが積み上がる。
+        # ⛔ 口座番号そのものを出さないこと。
+        import json
+        d = json.loads(self.c.get('/healthz').get_data(as_text=True))
+        self.assertEqual(d['seller_bank'], 'configured')
+        self.assertEqual(d['invoice_no'], 'configured')
+        self.assertNotIn('1234567', json.dumps(d, ensure_ascii=False))
+        booking.SELLER['bank'] = ''
+        d2 = json.loads(self.c.get('/healthz').get_data(as_text=True))
+        self.assertEqual(d2['seller_bank'], 'missing')
+
     def test_口座番号をリポジトリに置かない(self):
         # ⛔ jqca/jgaia は公開リポジトリ（匿名で読める）。口座番号を置くと
         #    「口座が変わりました」型の詐欺の材料になり、履歴からも消せない。

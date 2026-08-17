@@ -308,6 +308,9 @@ def healthz():
     """
     from flask import jsonify
     from inquiry_store import count_inquiries
+    # ⛔ この関数は他の import をすべて関数内で行っている。booking もここで
+    #    取ること（外にあると思い込むと NameError で /healthz ごと落ちる）
+    import booking
     # サイトから送れるのはHTTPのAPI（Resend）だけ。
     # ⛔ SMTPは書かない。Railwayが外向きSMTPを遮断しており必ず失敗する
     #    （2026-08-06実測）。送れなかったぶんは SoloOS が予備で拾う。
@@ -332,6 +335,14 @@ def healthz():
         "mail_last_error": mail_error,
         "mail_last_error_at": mail_error_at,
         "inquiries_saved": saved,
+        # ⛔ 「入ったかどうか」を推測で済ませないこと（2026-08-17）。振込先が
+        #    未設定だと請求書が1枚も出せず、しかも申込は普通に入り続ける
+        #    ＝気づかないまま「請求書をお送りします」と約束だけが積み上がる。
+        # ⛔ 口座番号そのものは出さないこと。設定できているかだけ返す。
+        "seller_bank": ("configured" if (booking.SELLER.get("bank") or "").strip()
+                        else "missing"),
+        "invoice_no": ("configured" if booking.SELLER.get("invoice_no")
+                       else "missing"),
         # スパムで遮断した累計。0のまま増えないなら対策が効いていない疑い。
         "spam_blocked": (lambda: __import__('antispam').counts())(),
         "captcha": "on" if os.environ.get("HCAPTCHA_SECRET") else "off",
