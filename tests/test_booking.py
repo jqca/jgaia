@@ -2287,6 +2287,67 @@ class Test助成金の判定(unittest.TestCase):
         self.assertNotIn('4分の3', t)
 
 
+class Testボタンの色が詳細度で捨てられない(unittest.TestCase):
+    """社長ご指摘 2026-08-17「法人研修のご相談ボタンが見づらい」。
+    ブラウザで実測したら**見づらいどころか見えていなかった**
+    （文字 #1a1a2e ／ 背景 #0d1b3e ／ コントラスト比 1.01）。
+
+    原因は `.lp-body a { color: inherit }` の詳細度。要素セレクタが混ざると
+    (0,1,1) になり、クラス1つの `.btn-corp` (0,1,0) に勝つ＝ボタンに書いた
+    color が黙って捨てられる。同じ理由で色が消えていたリンクは全部で5つ。
+
+    固定している事故の型:
+      ・リセットが要素セレクタ付きで、あとから足したボタンの色を毎回食う
+      ・白文字を薄い色の上に置く（バッジ）
+    """
+
+    def _ratio(self, a, b):
+        def lum(h):
+            h = h.lstrip('#')
+            rgb = [int(h[i:i + 2], 16) / 255 for i in (0, 2, 4)]
+            f = (lambda c: c / 12.92 if c <= 0.03928
+                 else ((c + 0.055) / 1.055) ** 2.4)
+            r, g, bl = (f(x) for x in rgb)
+            return 0.2126 * r + 0.7152 * g + 0.0722 * bl
+        l1, l2 = lum(a), lum(b)
+        return (max(l1, l2) + 0.05) / (min(l1, l2) + 0.05)
+
+    def test_リセットは詳細度ゼロで書く(self):
+        # ⛔ `.lp-body a { color: inherit }` に戻さないこと。:where() は
+        #    詳細度ゼロなので、リセットとしてだけ効きボタンの色に負ける
+        p = os.path.join(os.path.dirname(HERE), 'templates',
+                         'vibe_coding_lp.html')
+        src = io.open(p, encoding='utf-8').read()
+        src = re.sub(r'\{#.*?#\}', '', src, flags=re.S)
+        src = re.sub(r'/\*.*?\*/', '', src, flags=re.S)
+        self.assertNotIn('.lp-body a {', src)
+        self.assertIn('.lp-body :where(a)', src)
+
+    def test_白文字を薄い色の上に置かない(self):
+        # 実測で 2.15〜4.23 だったバッジの色。⛔ 薄い方へ戻さない
+        p = os.path.join(os.path.dirname(HERE), 'templates',
+                         'vibe_coding_lp.html')
+        src = io.open(p, encoding='utf-8').read()
+        src = re.sub(r'\{#.*?#\}', '', src, flags=re.S)
+        src = re.sub(r'/\*.*?\*/', '', src, flags=re.S)
+        bad = []
+        for m in re.finditer(r'course-step-tag[^;{]*\{?[^;{}]*background:\s*(#[0-9a-fA-F]{6})',
+                             src):
+            if self._ratio('#ffffff', m.group(1)) < 4.5:
+                bad.append(m.group(1))
+        for m in re.finditer(r'course-step-tag"\s+style="background:(#[0-9a-fA-F]{6})',
+                             src):
+            if self._ratio('#ffffff', m.group(1)) < 4.5:
+                bad.append(m.group(1))
+        self.assertEqual(bad, [], '白文字が乗るのに薄い背景色: %s' % bad)
+
+    def test_文字として使う色が基準を満たす(self):
+        # ⛔ 詳細度を直した副作用で、効くようになった色が薄いままだと
+        #    前より読みにくくなる（実際にそうなりかけた）
+        for col, need in (('#1d4ed8', 4.5), ('#047857', 4.5), ('#6d28d9', 4.5)):
+            self.assertGreaterEqual(self._ratio(col, '#ffffff'), need, col)
+
+
 class Test背景と同じ色の文字を置かない(unittest.TestCase):
     """2026-08-15 ブラウザで実測して発見。濃紺の帯（.iv-head など）に
     同じ濃紺の文字を置いており、リンクが1文字も見えていなかった。

@@ -626,7 +626,10 @@
     <!-- GE（5つ目のコース） -->
     <div style="margin-top:24px">
       <div class="course-card-lp" style="border-color:#8b5cf6" id="course-ge">
-        <div class="course-head"><span class="course-step-tag" style="background:#8b5cf6">COURSE GE</span><h3>AIクリエイティブデザイン</h3></div>
+        {# ⛔ #8b5cf6 に戻さないこと。白文字が乗ると比4.23で基準4.5に届かない
+           （他の4つは .c-a〜.c-d 側で濃くしたが、ここだけ直書きで残っていた）。
+           ⛔ 直書きは見落とす。色はクラス側に置くのが本来 #}
+        <div class="course-head"><span class="course-step-tag" style="background:#6d28d9">COURSE GE</span><h3>AIクリエイティブデザイン</h3></div>
         <div class="course-body-lp">
           <div class="course-meta-lp"><span>{{ icon('clock', 14) }} 1日（6時間）</span><span>{{ icon('user-round', 14) }} デザイン・マーケティング・広報担当</span><span>{{ icon('monitor', 14) }} 会場＋オンライン</span></div>
           <p class="course-desc-lp">画像生成AI（Midjourney / DALL-E / Stable Diffusion）、動画生成AI（Sora等）、音声AIを活用したクリエイティブワークフローを習得します。</p>
