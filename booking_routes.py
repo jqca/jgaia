@@ -414,6 +414,8 @@ def register_booking_routes(app):
                                pay_note=(booking.PAY_NOTE if payments.enabled()
                                          else booking.PAY_NOTE_INVOICE),
                                card_enabled=payments.enabled(),
+                               # ⛔ 支払方法の文言を画面に手打ちしないこと
+                               pay_methods=booking.PAY_METHODS,
                                seller=booking.SELLER,
                                extra_cost_note=booking.EXTRA_COST_NOTE,
                                subsidy=booking.subsidy_for(code),
@@ -444,14 +446,19 @@ def register_booking_routes(app):
         # ⛔ 支払い方法を画面の言い値で決め切らないこと。カードは鍵が
         #    設定されているときだけ。未設定なら請求書払いに落とす（画面も
         #    そう出しているので、利用者の見たものと実際が一致する）
-        want_card = (data.get('pay') or 'card') == 'card' and payments.enabled()
+        pay = (data.get('pay') or '').strip()
+        want_card = pay == 'card' and payments.enabled()
+        # ⛔ カードが使えない環境で 'card' を既定にしないこと。請求書と銀行振込の
+        #    2択になった以上、既定は請求書払い（2026-08-17 社長ご指示）
+        if not want_card and pay not in ('invoice', 'bank'):
+            pay = 'invoice'
 
         try:
             rec, inst = booking.add_booking(
                 data.get('course'), data.get('day'), name, email,
                 (data.get('company') or '').strip(),
                 data.get('people') or 1, (data.get('message') or '').strip(),
-                pending=want_card,
+                pending=want_card, pay=pay,
                 # ⛔ ここで丸めないこと。booking.normalize_sessions が
                 #    1〜全研修数に必ず収める（金額の出どころを1か所にする）
                 sessions=data.get('sessions'))
@@ -511,6 +518,45 @@ def register_booking_routes(app):
         # 新しいものを上に（運営が見るのは直近の申込）
         rows.sort(key=lambda r: r.get('申込日時') or '', reverse=True)
         return {'ok': True, '件数': len(rows), 'rows': rows}
+
+    @app.route('/admin/booking/<booking_id>/invoice')
+    def admin_invoice(booking_id):
+        """請求書（適格請求書）に転記する項目。
+
+        ⛔ 発行できない理由があるときに空の請求書を返さないこと。振込先が
+           未登録なら、お客様は払えない（黙って出すのがいちばん悪い）。
+        """
+        ok = _admin_ok()
+        if ok is None:
+            return {'error': 'disabled',
+                    'message': '管理用の合言葉が未設定のため無効です。'}, 503
+        if not ok:
+            return {'error': 'forbidden'}, 403
+        data, err = booking.invoice_data(booking_id)
+        if err:
+            return {'error': err}, 400
+        return data
+
+    @app.route('/api/booking/<booking_id>/paid', methods=['POST'])
+    def api_booking_paid(booking_id):
+        """お振込みの入金を記録する（運営が通帳を見て押す）。
+
+        ⛔ 自動で消し込まないこと。振込名義が申込者と違うのは普通にあり、
+           機械で当てると別の方の入金で確定してしまう。
+        """
+        ok = _admin_ok()
+        if ok is None:
+            return {'error': 'disabled',
+                    'message': '管理用の合言葉が未設定のため無効です。'}, 503
+        if not ok:
+            return {'error': 'forbidden'}, 403
+        d = request.get_json(silent=True) or {}
+        rec, err = booking.mark_transfer_paid(
+            booking_id, d.get('on') or '', d.get('note') or '')
+        if err:
+            return {'error': err}, 400
+        app.logger.info('[booking] 入金 %s', booking_id)
+        return {'ok': True, 'id': booking_id, '入金': rec.get('入金')}
 
     @app.route('/api/booking/<booking_id>/cancel', methods=['POST'])
     def api_booking_cancel(booking_id):
@@ -748,7 +794,19 @@ def _notify_booking(app, rec, inst):
             pay_note = ('お支払いは完了しております（クレジットカード）。'
                         '領収書が必要な場合は info@jgaia.org までご連絡ください。')
         else:
-            pay_note = booking.PAY_NOTE_INVOICE
+            # ⛔ 「請求書をお送りします」で一括りにしないこと。前払いの方には
+            #    いつまでに振り込めばよいかが要る（2026-08-17 社長ご指示）
+            m = booking.PAY_METHODS.get(rec.get('支払方法') or 'invoice') or {}
+            parts = ['【お支払い】' + m.get('label', ''), m.get('note', '')]
+            inv, _e = booking.invoice_data(rec['id'])
+            if inv:
+                parts.append('請求書番号: {} ／ お支払期日: {}'.format(
+                    inv['請求書番号'], inv['支払期日']))
+                parts.append('お振込先: ' + inv['振込先'])
+            else:
+                # ⛔ 発行できない理由を黙らないこと（振込先が未登録だと払えない）
+                parts.append('※ お振込先は別途ご連絡いたします。')
+            pay_note = '\n'.join([x for x in parts if x])
         body = '\n'.join([
             f"コース: {rec['コース']} {rec['コース名']}",
             f"開催希望日: {日程}",

@@ -209,16 +209,26 @@
     <textarea id="bk-message" placeholder="ご質問や、当日までに知りたいことをご記入ください"></textarea>
 
     {# ⛔ カード決済が未設定のときに選択肢を出さないこと。押した先で
-       「未設定です」と断ることになる（画面と実際を一致させる） #}
-    {% if card_enabled %}
+       「未設定です」と断ることになる（画面と実際を一致させる）。
+       ⛔ 請求書払いと銀行振込を1つにまとめないこと（社長ご指示 2026-08-17）。
+          振込先へお振込みいただく点は同じでも、お金をいただく順番が違う
+          （後払い／前払い）。文言は booking.PAY_METHODS の1か所から。 #}
     <label class="f">お支払い方法</label>
     <div class="pay">
+      {% if card_enabled %}
       <label><input type="radio" name="pay" value="card" checked>
-        <span>クレジットカード（この場でお支払い）</span></label>
-      <label><input type="radio" name="pay" value="invoice">
-        <span>請求書・銀行振込（法人の方）</span></label>
+        <span>{{ pay_methods['card']['label'] }}（この場でお支払い）</span></label>
+      {% endif %}
+      <label><input type="radio" name="pay" value="invoice"
+             {% if not card_enabled %}checked{% endif %}>
+        <span>{{ pay_methods['invoice']['label'] }}
+          <small style="display:block;font-weight:400;color:#64748b">
+            {{ pay_methods['invoice']['for'] }}／{{ pay_methods['invoice']['note'] }}</small></span></label>
+      <label><input type="radio" name="pay" value="bank">
+        <span>{{ pay_methods['bank']['label'] }}
+          <small style="display:block;font-weight:400;color:#64748b">
+            {{ pay_methods['bank']['for'] }}／{{ pay_methods['bank']['note'] }}</small></span></label>
     </div>
-    {% endif %}
 
     <button type="button" class="bk-submit" id="bkSubmit" disabled>お申し込みする</button>
     <div class="bk-err" id="bkErr"></div>

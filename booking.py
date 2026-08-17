@@ -902,6 +902,35 @@ PAY_NOTE = ('お支払いはクレジットカード決済です。'
 PAY_NOTE_INVOICE = ('お支払いは請求書（銀行振込）です。'
                     'お申し込み後に請求書をお送りします。')
 
+# ── お支払い方法（社長ご指示 2026-08-17「銀行振込も受け付けるように」）
+# ⛔ 「請求書払い」と「銀行振込」を同じものとして1つにまとめないこと。
+#    振込先へお振込みいただく点は同じでも、**お金をいただく順番が違う**＝
+#    invoice は受講後でも構わない後払い（法人の稟議・支払サイトに合わせる）、
+#    bank は開催前にお振込みいただく前払い（個人の方はこちらが自然）。
+#    請求書はどちらにも出す（前払いでも支払いの根拠が要る）。
+# ⛔ 未入金を理由に自動で申込を取り消さないこと。振込は反映まで時間差があり、
+#    払ってくださった方の席を消す事故になる。期限は運営が見て判断する。
+PAY_METHODS = {
+    'invoice': {'label': '請求書払い（お振込み・後払い）',
+                'note': 'お申し込み後に請求書をお送りします。'
+                        '記載の期日までにお振込みください。',
+                'for': '法人のお客様'},
+    'bank': {'label': '銀行振込（前払い）',
+             'note': 'お申し込み後にお振込先をご案内します。'
+                     '開催日の7日前までにお振込みください。',
+             'for': '個人のお客様'},
+    'card': {'label': 'クレジットカード', 'note': PAY_NOTE, 'for': ''},
+}
+# 前払いの入金期限（開催日の何日前まで）。⛔ この日を過ぎても自動では消さない
+TRANSFER_DUE_DAYS = 7
+# 後払いの支払期日（請求書の発行日から何日）
+INVOICE_DUE_DAYS = 30
+
+
+def pay_label(method):
+    """支払方法の表示名。⛔ 画面ごとに言い方を変えないこと。"""
+    return (PAY_METHODS.get(method) or {}).get('label', method or '')
+
 # ── 講座の販売事業者（2026-08-14 社長ご説明で確定）
 # 商流: 教材もシステムも ZebraQuantum が開発・提供し、JQCA／JGAIA の看板で販売する。
 # よって受講契約の相手方（＝特定商取引法の「販売業者」）は ZebraQuantum。
@@ -916,6 +945,15 @@ SELLER = {
     'address': '〒104-0061 東京都中央区銀座1丁目22番11号 銀座大竹ビジデンス2F',
     'email': 'info@jgaia.org',
     'brand': '一般社団法人日本生成AI協会（JGAIA）',
+    # ⛔ 空欄のまま請求書を出さないこと（お客様が払えない）。invoice_data() が
+    #    未記入を検出して発行を止め、画面に理由を出す。
+    # ⛔ ここに嘘の値を置かないこと（振込先の誤りは実害がいちばん大きい）。
+    'bank': '〔要記入：金融機関名・支店名・種別・口座番号・口座名義〕',
+    # 適格請求書発行事業者の登録番号（T＋13桁）。⛔ 未登録なら空のままにして、
+    #    請求書に「適格請求書ではありません」と正直に書く（買手の仕入税額控除の
+    #    扱いが変わるため、黙って出すのがいちばん悪い）。
+    'invoice_no': '',
+    'tel': '',
 }
 
 
@@ -2093,7 +2131,7 @@ def booked_days_for_instructor(instructor_id):
 
 
 def add_booking(course_code, day, name, email, company, people, message,
-                pending=False, sessions=None):
+                pending=False, sessions=None, pay='invoice'):
     """申込を1件受ける。戻り値: (申込, 割り当てた講師 or None)
 
     pending=True … カード決済の画面へ送る前に席を押さえる（状態＝お支払い待ち）。
@@ -2149,7 +2187,10 @@ def add_booking(course_code, day, name, email, company, people, message,
         '受講料_円': fee,
         '請求額_円': fee * want,
         '状態': PENDING if pending else '申込受付',
-        '支払方法': 'card' if pending else 'invoice',
+        # ⛔ 画面から来た値をそのまま入れないこと。知らない支払方法は
+        #    請求書も入金の記録も作れない（2026-08-17）。
+        '支払方法': ('card' if pending
+                     else (pay if pay in ('invoice', 'bank') else 'invoice')),
         '申込日時': now_jst().strftime('%Y-%m-%d %H:%M'),
     }
     rows.append(rec)
@@ -2265,6 +2306,127 @@ def subsidy_deadline_ok(day_iso):
     except (TypeError, ValueError):
         return None
     return d >= today_jst() + timedelta(days=SUBSIDY['lead_days'])
+
+
+def _find_booking(booking_id):
+    for b in bookings():
+        if b.get('id') == booking_id:
+            return b
+    return None
+
+
+def invoice_number(rec):
+    """請求書番号。同じ申込には何度出しても同じ番号を返す（⛔採番し直さない）。
+
+    連番にしていないのは、番号を採るたびに台帳を書き換える必要があり、
+    同時に2件出たときに重複するため。適格請求書に連番の定めは無い。
+    """
+    day = (rec.get('申込日時') or '')[:10].replace('-', '') or '00000000'
+    return 'JG-{}-{}'.format(day, str(rec.get('id') or '')[:6].upper())
+
+
+def invoice_data(booking_id):
+    """請求書（適格請求書）に載せる項目一式。発行できない理由があれば止める。
+
+    ⛔ 空欄のまま出さないこと。振込先が無ければお客様は払えず、登録番号を
+       黙って省くと買手の仕入税額控除の扱いが変わる（いちばん悪いのは黙ること）。
+    ⛔ 金額をここで計算し直さないこと。申込に保存済みの請求額を使う。
+    ⛔ 取り消した申込の請求書を出さないこと。
+    """
+    rec = _find_booking(booking_id)
+    if not rec:
+        return None, '申込が見つかりません'
+    if rec.get('状態') == '取消':
+        return None, 'この申込は取り消されています'
+    if '要記入' in (SELLER.get('bank') or ''):
+        return None, ('お振込先が未登録のため請求書を発行できません'
+                      '（booking.SELLER["bank"] にご記入ください）')
+    total = int(rec.get('請求額_円') or 0)
+    tax_rate = SUBSIDY['tax_rate']
+    # 税込から税抜と消費税を割り戻す。⛔ float で割らないこと（1円ずれる）
+    net = int((Decimal(total) / (Decimal(1) + Decimal(str(tax_rate)))
+               ).quantize(Decimal('1'), rounding=ROUND_DOWN))
+    n_all = int(rec.get('全研修数') or 1)
+    n_take = int(rec.get('研修数') or n_all)
+    name = '{} {}'.format(rec.get('コース'), rec.get('コース名'))
+    if n_all > 1:
+        name += '（全{}研修のうち{}研修）'.format(n_all, n_take)
+    method = rec.get('支払方法') or 'invoice'
+    issued = today_jst()
+    if method == 'bank':
+        first = (rec.get('開催日') or [rec.get('希望日')])[0]
+        due = (date.fromisoformat(first) - timedelta(days=TRANSFER_DUE_DAYS))
+        due = max(due, issued)          # ⛔ 過去の日を期日にしない
+    else:
+        due = issued + timedelta(days=INVOICE_DUE_DAYS)
+    return {
+        '請求書番号': invoice_number(rec),
+        '発行日': issued.isoformat(),
+        '支払期日': due.isoformat(),
+        '請求先': rec.get('会社名') or rec.get('氏名'),
+        '請求先担当者': rec.get('氏名'),
+        '請求先メール': rec.get('連絡先'),
+        '品名': name,
+        '開催日': rec.get('開催日') or [rec.get('希望日')],
+        '数量': int(rec.get('人数') or 1),
+        '単価_円': int(rec.get('受講料_円') or 0),
+        '小計_税抜_円': net,
+        '消費税_円': total - net,
+        '税率': '{}%'.format(int(tax_rate * 100)),
+        '合計_税込_円': total,
+        '支払方法': pay_label(method),
+        '振込先': SELLER['bank'],
+        '発行者': SELLER['name'],
+        '発行者代表': SELLER['officer'],
+        '発行者住所': SELLER['address'],
+        '発行者連絡先': SELLER['email'],
+        '看板': SELLER['brand'],
+        '登録番号': SELLER.get('invoice_no') or '',
+        # ⛔ 未登録なら黙らず、その旨を請求書に書く
+        '注記': ('' if SELLER.get('invoice_no') else
+                 'この請求書は適格請求書ではありません'
+                 '（適格請求書発行事業者の登録番号がないため）。'),
+        '入金': rec.get('入金'),
+    }, None
+
+
+def mark_transfer_paid(booking_id, on='', note=''):
+    """お振込みの入金を記録する（運営が通帳を見て押す）。
+
+    ⛔ 自動で消し込まないこと。振込名義が申込者と違うことは普通にあり、
+       機械で当てると別の方の入金で確定してしまう。
+    ⛔ 二重に記録しないこと（返金・過入金の判断が狂う）。
+    """
+    rows = bookings()
+    for r in rows:
+        if r.get('id') != booking_id:
+            continue
+        if r.get('状態') == '取消':
+            return None, 'この申込は取り消されています'
+        if r.get('入金'):
+            return None, 'すでに入金済みとして記録されています'
+        r['入金'] = {'日付': (on or today_jst().isoformat()),
+                     '金額_円': int(r.get('請求額_円') or 0),
+                     '備考': (note or '').strip(),
+                     '記録日時': now_jst().strftime('%Y-%m-%d %H:%M')}
+        _save('bookings.json', rows)
+        return r, None
+    return None, '申込が見つかりません'
+
+
+def unpaid_bookings():
+    """お振込みをお待ちしている申込（運営が見る）。
+
+    ⛔ カード決済は含めない（その場で払い終わっている）。
+    """
+    out = []
+    for b in bookings():
+        if not is_live(b) or b.get('入金'):
+            continue
+        if (b.get('支払方法') or 'invoice') == 'card':
+            continue
+        out.append(b)
+    return out
 
 
 def request_replacement(token, iso, reason=''):

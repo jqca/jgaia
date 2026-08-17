@@ -1840,12 +1840,20 @@ class Testカード決済(unittest.TestCase):
         os.environ.pop('STRIPE_SECRET_KEY', None)
         os.environ.pop('STRIPE_WEBHOOK_SECRET', None)
 
-    def test_鍵が無ければ請求書払いだけで動く(self):
+    def test_鍵が無ければカードを選ばせない(self):
+        # 2026-08-17 社長ご指示で「銀行振込（前払い）」を足したので、支払方法の
+        # 選択そのものは出る。⛔ ただしカードの選択肢は出さないこと（押した先で
+        # 「未設定です」と断ることになる）。
         import payments
         self.assertFalse(payments.enabled())
-        html = _visible(self.c.get('/book/SP-A').get_data(as_text=True))
-        self.assertNotIn('name="pay"', html)        # 選ばせない
-        self.assertIn('請求書', html)
+        html = self.c.get('/book/SP-A').get_data(as_text=True)
+        self.assertNotIn('value="card"', html)
+        self.assertIn('value="invoice"', html)
+        self.assertIn('value="bank"', html)
+        t = _visible(html)
+        self.assertIn('請求書払い', t)
+        self.assertIn('銀行振込', t)
+        self.assertNotIn('クレジットカード', t)
 
     def test_鍵が無いときにカードを指定されても請求書で受ける(self):
         # ⛔ 未設定の環境で「決済へ」を返さないこと（行き先が無い）
@@ -3314,6 +3322,148 @@ class Test講師が担当できなくなったとき(unittest.TestCase):
         self.assertIn('notify_payload', body)
         # 受講者の連絡先は「運営が連絡できるように本文へ載せる」だけ
         self.assertIn("b['連絡先']", body)
+
+
+class Test請求書と入金(unittest.TestCase):
+    """社長ご指示 2026-08-17「請求書の発行に着手して。銀行振込も受け付けるように」。
+    それまで受講者に「お申し込み後に請求書をお送りします」と約束しながら、
+    請求書を作る機能がどこにも無かった＝請求書払いの全件が手作業だった。
+
+    固定している事故の型:
+      ・振込先が空のまま請求書を出す（お客様が払えない）
+      ・登録番号が無いのに適格請求書のように見せる（買手の控除の扱いが変わる）
+      ・取り消した申込の請求書が出る
+      ・請求書番号が出すたびに変わる（同じ請求が二重に見える）
+      ・入金を二重に記録する／機械で自動に消し込む
+      ・請求書払いと銀行振込を1つにまとめ、前払いの方に期日を伝えない
+    """
+
+    def setUp(self):
+        _clear()
+        app.logger.disabled = True
+        self.c = app.test_client()
+        booking.register_instructor('山田', 'y@example.com', '', ['SP-A'], '',
+                                    _days_all())
+        i = booking.instructors()[0]
+        booking.set_state(i['id'], '承認')
+        booking.verify_email(i['鍵'])
+        self.day = _far_day()
+        self._bank = booking.SELLER['bank']
+        booking.SELLER['bank'] = 'テスト銀行 銀座支店 普通 1234567 ゼブラクオンタム(カ'
+
+    def tearDown(self):
+        booking.SELLER['bank'] = self._bank
+        booking.SELLER['invoice_no'] = ''
+
+    def _book(self, pay='invoice', people=1):
+        rec, _ = booking.add_booking('SP-A', self.day, '受講 太郎',
+                                     's@example.com', 'A社', people, '',
+                                     pay=pay)
+        return rec
+
+    def test_振込先が未登録なら発行しない(self):
+        # ⛔ 空のまま出すとお客様が払えない
+        booking.SELLER['bank'] = '〔要記入：金融機関名…〕'
+        rec = self._book()
+        data, err = booking.invoice_data(rec['id'])
+        self.assertIsNone(data)
+        self.assertIn('お振込先が未登録', err)
+
+    def test_請求書の中身(self):
+        rec = self._book(people=2)
+        d, err = booking.invoice_data(rec['id'])
+        self.assertIsNone(err)
+        self.assertEqual(d['合計_税込_円'], rec['請求額_円'])
+        # ⛔ 税は割り戻して出す（1円ずれない）
+        self.assertEqual(d['小計_税抜_円'] + d['消費税_円'], d['合計_税込_円'])
+        self.assertEqual(d['数量'], 2)
+        self.assertEqual(d['単価_円'], rec['受講料_円'])
+        self.assertIn('テスト銀行', d['振込先'])
+
+    def test_登録番号が無ければ適格請求書だと名乗らない(self):
+        rec = self._book()
+        d, _ = booking.invoice_data(rec['id'])
+        self.assertEqual(d['登録番号'], '')
+        self.assertIn('適格請求書ではありません', d['注記'])
+        booking.SELLER['invoice_no'] = 'T1234567890123'
+        d2, _ = booking.invoice_data(rec['id'])
+        self.assertEqual(d2['登録番号'], 'T1234567890123')
+        self.assertEqual(d2['注記'], '')
+
+    def test_番号は何度出しても同じ(self):
+        # ⛔ 出すたびに変わると、同じ請求が二重に見える
+        rec = self._book()
+        a, _ = booking.invoice_data(rec['id'])
+        b, _ = booking.invoice_data(rec['id'])
+        self.assertEqual(a['請求書番号'], b['請求書番号'])
+
+    def test_取消の請求書は出さない(self):
+        rec = self._book()
+        booking.cancel_booking(rec['id'], '動作確認のため')
+        d, err = booking.invoice_data(rec['id'])
+        self.assertIsNone(d)
+        self.assertIn('取り消され', err)
+
+    def test_前払いと後払いで期日が違う(self):
+        # ⛔ 1つにまとめないこと。お金をいただく順番が違う
+        inv, _ = booking.invoice_data(self._book('invoice')['id'])
+        _clear_bk = booking.bookings()
+        bank, _ = booking.invoice_data(self._book('bank')['id'])
+        self.assertIn('後払い', inv['支払方法'])
+        self.assertIn('前払い', bank['支払方法'])
+        # 前払いは開催日の7日前まで
+        first = self.day
+        want = (date.fromisoformat(first)
+                - timedelta(days=booking.TRANSFER_DUE_DAYS)).isoformat()
+        self.assertEqual(bank['支払期日'], want)
+        # 後払いは発行日から30日
+        self.assertEqual(inv['支払期日'],
+                         (booking.today_jst()
+                          + timedelta(days=booking.INVOICE_DUE_DAYS)).isoformat())
+
+    def test_知らない支払方法は請求書払いに寄せる(self):
+        # ⛔ 画面から来た値をそのまま入れない
+        rec = self._book(pay='paypay')
+        self.assertEqual(rec['支払方法'], 'invoice')
+
+    def test_入金を記録できる(self):
+        rec = self._book('bank')
+        self.assertEqual(len(booking.unpaid_bookings()), 1)
+        got, err = booking.mark_transfer_paid(rec['id'], note='テスト')
+        self.assertIsNone(err)
+        self.assertEqual(got['入金']['金額_円'], rec['請求額_円'])
+        self.assertEqual(booking.unpaid_bookings(), [])
+        # ⛔ 二重に記録しない
+        _g, err2 = booking.mark_transfer_paid(rec['id'])
+        self.assertIn('すでに入金済み', err2)
+
+    def test_APIは合言葉が要る(self):
+        rec = self._book()
+        self.assertEqual(self.c.get('/admin/booking/%s/invoice' % rec['id'])
+                         .status_code, 403)
+        self.assertEqual(self.c.post('/api/booking/%s/paid' % rec['id'],
+                                     json={}).status_code, 403)
+        r = self.c.get('/admin/booking/%s/invoice?token=test-admin' % rec['id'])
+        self.assertEqual(r.status_code, 200)
+        self.assertIn('請求書番号', r.get_json())
+
+    def test_申込画面で支払方法を選べる(self):
+        h = self.c.get('/book/SP-A').get_data(as_text=True)
+        self.assertIn('value="invoice"', h)
+        self.assertIn('value="bank"', h)
+        # ⛔ 文言を画面に手打ちしないこと
+        self.assertIn(booking.PAY_METHODS['bank']['label'], h)
+
+    def test_入金を機械で自動に消し込まない(self):
+        # ⛔ 振込名義が申込者と違うのは普通にある。機械で当てると
+        #    別の方の入金で確定してしまう
+        src = io.open(os.path.join(os.path.dirname(HERE), 'booking.py'),
+                      encoding='utf-8').read()
+        self.assertNotIn('def auto_reconcile', src)
+        routes = io.open(os.path.join(os.path.dirname(HERE),
+                                      'booking_routes.py'),
+                         encoding='utf-8').read()
+        self.assertEqual(routes.count('mark_transfer_paid'), 1)
 
 
 class Test申込を取り消せる(unittest.TestCase):
