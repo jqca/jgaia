@@ -141,6 +141,19 @@ class Test判定(unittest.TestCase):
         # ⛔ 「講師がいません」と出さないこと（居る。足りないのは日程）
         self.assertIn('講師は1名', rows['GA']['理由'])
 
+    def test_日程が無い講師を予約を受けられる講師として出さない(self):
+        # ⛔ 承認済み＝受けられる、ではない。日が無ければ1件も受けられないので、
+        #    担当者として並べると「誰かが受けてくれる」と読み違える
+        _clear()
+        rec, token = booking.register_instructor(
+            '日 なし', 'noday@example.com', '', ALL, '', days={},
+            fee_agreed=booking.FEE_TERMS_VERSION)
+        booking.verify_email(token)
+        booking.set_state(rec['id'], '承認')
+        rows = {r['code']: r for r in _rows()}
+        self.assertEqual(rows['GA']['講師'], [])
+        self.assertEqual(rows['GA']['日程待ちの講師'], ['日 なし'])
+
     def test_予約できないときは必ず理由がある(self):
         _clear()
         for r in _rows():

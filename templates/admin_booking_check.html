@@ -67,7 +67,7 @@
       <div class="scroll">
       <table class="tbl">
         <tr>
-          <th>講座</th><th>状態</th><th>予約できる日</th><th>担当できる講師</th><th>開いて確かめる</th>
+          <th>講座</th><th>状態</th><th>予約できる日</th><th>予約を受けられる講師</th><th>開いて確かめる</th>
         </tr>
         {% for r in items %}
         <tr>
@@ -91,6 +91,12 @@
           <td class="nm">
             {% if r['講師数'] %}{{ r['講師'] | join('、') }}
             {% else %}<span style="color:#b91c1c">0名</span>{% endif %}
+            {# ⛔ 承認済み＝受けられる、ではない。日程が無い方は0件しか受けられない #}
+            {% if r['日程待ちの講師'] %}
+              <small style="display:block;color:#92400e;font-size:11px;margin-top:4px">
+                日程待ち：{{ r['日程待ちの講師'] | join('、') }}
+              </small>
+            {% endif %}
           </td>
           <td>
             <a class="go book" href="{{ r['予約URL'] }}" target="_blank" rel="noopener">予約ページ</a>

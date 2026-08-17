@@ -55,7 +55,12 @@ def course_rows(logger=None):
     for c in booking.COURSES:
         code = c['code']
         slot = booking.open_slots(code, logger)
+        # ⛔ 「承認されている講師」を「予約を受けられる講師」として出さないこと。
+        #    承認済みでも日程が無ければ1件も受けられない（実測：社長の行は
+        #    登録日が締切内の1日だけなのに、全講座の担当者として並んでいた）。
         who = [i for i in people if code in booking.approved_courses(i)]
+        ready = sorted({n for d in booking.open_days(code)
+                        if d['状態'] == '予約可' for n in d['講師']})
         # ⛔ 「担当できる講師がいない」と「日が無い」を混ぜないこと。
         #    直す相手が違う（承認する／日程を入れてもらう）
         if slot['件数']:
@@ -78,8 +83,12 @@ def course_rows(logger=None):
             '件数': slot['件数'],
             '最短': slot['最短'],
             '表示': slot['表示'],
-            '講師数': len(who),
-            '講師': [i.get('氏名') for i in who],
+            '講師数': len(ready),
+            '講師': ready,
+            '承認済み講師数': len(who),
+            # 承認はされているのに、日程が無くて1件も受けられない方
+            '日程待ちの講師': [i.get('氏名') for i in who
+                               if i.get('氏名') not in ready],
             '理由': reason,
             '予約URL': url_for('book_course', code=code),
             '紹介URL': INTRO.get(code, ''),
