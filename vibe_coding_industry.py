@@ -937,8 +937,10 @@ def _render_industry_page(ind):
         inquiry_head_html = (
             '<h2 class="section-title">お問い合わせ・ご相談</h2>'
             '<p class="section-lead">'
+            # ⛔ 業界色（{brand}=#6366f1）をそのまま本文中のリンクに使わないこと。
+            #    白地で比4.45＝小さな文字の基準4.5に届かない（実測）。#4338ca は比7.9
             'お申し込みは各コースの<a href="#courses" style="color:'
-            f'{brand};text-decoration:underline;font-weight:700;">'
+            '#4338ca;text-decoration:underline;font-weight:700;">'
             '「開催日を見て申し込む」</a>からお願いします'
             '（このフォームは席の確保にはなりません）。<br>'
             'コース選びや法人研修のご相談は、こちらからお気軽にどうぞ。'
