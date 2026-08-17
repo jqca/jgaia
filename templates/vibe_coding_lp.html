@@ -581,7 +581,15 @@
           <div class="course-meta-lp"><span>{{ icon('clock', 14) }} 全5回（12.5時間）</span><span>{{ icon('user-round', 14) }} 働きながら学ぶ社会人</span><span>{{ icon('monitor', 14) }} オンライン（水19:00-21:30）</span></div>
           <p class="course-desc-lp">毎週水曜夜に受講。AI業務自動化スキルを体系的に習得し、受講中に自分の業務改善アプリを完成させます。</p>
           <div class="course-price"><span class="price-main">¥{{ '{:,}'.format(prices['GC']) }}</span><span class="price-sub">（税込）</span></div>
-          <div class="price-subsidy" style="color:#64748b">※ 助成金対象外（10時間超のため）</div>
+          {# ⛔ 対象／対象外を直書きしないこと（2026-08-17 実害）。回ごとに独立した
+             研修として掲載し直して対象になったのに、この行だけ「対象外」のまま
+             本番に出ていた。判定は booking.subsidy_for() が唯一の出どころ。 #}
+          {% if subsidy_of['GC']['eligible'] %}
+          <div class="price-subsidy" style="color:#10b981;font-weight:600">
+            法人研修なら実質 ¥{{ '{:,}'.format(subsidy_of['GC']['net']) }}（助成 ▲¥{{ '{:,}'.format(subsidy_of['GC']['grant']) }}）</div>
+          {% else %}
+          <div class="price-subsidy" style="color:#64748b">※ {{ subsidy_of['GC']['reason'] }}</div>
+          {% endif %}
           <a href="/vibe-coding/course-gc" class="toggle-btn" style="display:block;text-align:center;text-decoration:none">コース詳細を見る →</a>
         </div>
       </div>
@@ -656,7 +664,15 @@
         <tr><td>GB: バイブコーディング実践（6h）</td><td>¥{{ '{:,}'.format(prices['GB']) }}</td><td>▲¥{{ '{:,}'.format(subsidy_of['GB']['grant']) }}</td><td class="hi">実質 ¥{{ '{:,}'.format(subsidy_of['GB']['net']) }}</td></tr>
         <tr><td>GD: AIセキュリティ（6h）</td><td>¥{{ '{:,}'.format(prices['GD']) }}</td><td>▲¥{{ '{:,}'.format(subsidy_of['GD']['grant']) }}</td><td class="hi">実質 ¥{{ '{:,}'.format(subsidy_of['GD']['net']) }}</td></tr>
         <tr><td>GE: AIクリエイティブデザイン（6h）</td><td>¥{{ '{:,}'.format(prices['GE']) }}</td><td>▲¥{{ '{:,}'.format(subsidy_of['GE']['grant']) }}</td><td class="hi">実質 ¥{{ '{:,}'.format(subsidy_of['GE']['net']) }}</td></tr>
-        <tr><td>GC: AI業務自動化マスター（12.5h）</td><td>¥{{ '{:,}'.format(prices['GC']) }}</td><td colspan="2" style="color:#64748b">助成金対象外（10時間以上のため）</td></tr>
+        {# ⛔ ここも直書きしないこと。GC は 2026-08-17 に「1研修6.25時間 × 全2研修」
+           として掲載し直して対象になった。時間の表記も subsidy_for から出す。 #}
+        <tr><td>GC: AI業務自動化マスター（1研修 {{ '%g'|format(subsidy_of['GC']['hours']) }}h × 全{{ subsidy_of['GC']['sessions'] }}研修）</td><td>¥{{ '{:,}'.format(prices['GC']) }}</td>
+          {% if subsidy_of['GC']['eligible'] %}
+          <td>▲¥{{ '{:,}'.format(subsidy_of['GC']['grant']) }}</td><td class="hi">実質 ¥{{ '{:,}'.format(subsidy_of['GC']['net']) }}</td>
+          {% else %}
+          <td colspan="2" style="color:#64748b">{{ subsidy_of['GC']['reason'] }}</td>
+          {% endif %}
+        </tr>
       </tbody>
     </table>
     <p style="margin-top:20px;font-size:13px;color:#718096;line-height:1.8">※ 東京しごと財団 令和8年度DXリスキリング助成金。都内企業の<strong>従業員</strong>が対象で、<strong>代表者・個人事業主ご本人は対象外</strong>です。<br>※ 会社が受講料の全額を負担し、業務命令として労働時間内に実施することが要件です。<br>※ 助成上限: 1人1研修あたり¥{{ '{:,}'.format(subsidy_cap_person) }}（1社¥{{ '{:,}'.format(subsidy_cap_company) }}まで）。Jグランツで研修開始の1ヶ月前までの事前申請が必要です。<br>※ <a href="/subsidy" style="color:#10b981;font-weight:600;">申請の流れ・当社が発行する書類はこちら →</a></p>

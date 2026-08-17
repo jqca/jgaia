@@ -1059,12 +1059,13 @@ def _render_industry_page(ind):
           <div style="font-size:0.72rem;font-weight:800;letter-spacing:0.12em;color:#10b981;margin-bottom:6px;">
             東京しごと財団「DXリスキリング助成金」対象講座</div>
           <h3 style="font-size:1.05rem;font-weight:900;color:#1a1a2e;margin-bottom:6px;">
-            {c["name"]}入門コース（{c["courses"][0]["code"]}）の受講料が3/4助成されます</h3>
+            {c["name"]}の<strong>全コース</strong>の受講料が3/4助成されます</h3>
           <p style="font-size:0.87rem;color:#4a5568;line-height:1.8;">
             都内企業の従業員が対象（<strong>代表者・個人事業主ご本人は対象外</strong>）。
             会社が受講料を全額負担し、業務命令として実施する場合に適用されます。
             Jグランツで研修開始の1ヶ月前までに事前申請が必要です。
-            B・Cコースは受講時間が10時間以上のため本助成金の対象外となります。</p>
+            B・Cコースは<strong>各回が独立した研修</strong>として実施しますので、
+            1研修ごとに交付申請いただけます。</p>
         </div>
       </div>
       <div class="subsidy-cols" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:20px;">
@@ -1084,13 +1085,17 @@ def _render_industry_page(ind):
           <div style="font-size:0.7rem;color:#64748b;margin-top:4px;">
             ご本人のお支払いも対象外</div>
         </div>
-        <div style="background:#f8fafc;border-radius:12px;padding:16px 14px;text-align:center;">
-          <div style="font-size:0.7rem;font-weight:700;color:#94a3b8;letter-spacing:0.08em;margin-bottom:6px;">
+        <!-- ⛔ 「B・Cは対象」を直書きに戻さないこと（2026-08-17 実害）。回ごとに独立した
+             研修として掲載し直して対象になったのに、この枠だけ古い判定のまま出ていた。
+             判定・金額は booking.subsidy_for() が唯一の出どころ。
+             ⛔ ここは f-string の中なので Jinja コメント（波かっこ＋#）は使えない。 -->
+        <div style="background:rgba(16,185,129,0.12);border-radius:12px;padding:16px 14px;text-align:center;">
+          <div style="font-size:0.7rem;font-weight:700;color:#10b981;letter-spacing:0.08em;margin-bottom:6px;">
             B・Cコース</div>
-          <div style="font-size:1rem;font-weight:800;color:#94a3b8;line-height:1.4;">
-            {_icon("circle-x", 15)} 対象外</div>
+          <div style="font-size:1rem;font-weight:800;color:#059669;line-height:1.4;">
+            {_icon("check", 15)} 対象</div>
           <div style="font-size:0.7rem;color:#64748b;margin-top:4px;">
-            受講10時間以上のため</div>
+            1研修ごとに申請できます</div>
         </div>
       </div>
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">

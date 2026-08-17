@@ -3102,5 +3102,40 @@ class Test差し込んだJavaScriptをscriptで囲む(unittest.TestCase):
             '（実行されず、地の文として画面に出ます）: %s' % bad)
 
 
+class Test対象判定を画面に直書きしない(unittest.TestCase):
+    """2026-08-17 実害。GC を「1研修6.25時間 × 全2研修」として掲載し直して
+    助成の対象にしたのに、講座LPと業種別ページの5箇所が
+    「助成金対象外（10時間超のため）」と**固定文字列**で出し続けていた。
+    価格は自動で更新されるので、金額だけ新しく判定だけ古い、という
+    いちばん質の悪いズレになる（法人はそれを見て申請を諦める）。
+    ⛔ 対象／対象外は booking.subsidy_for() からしか出さないこと。
+    """
+
+    def test_対象外と固定文字列で書かない(self):
+        import glob
+        bad = []
+        targets = (glob.glob(os.path.join(os.path.dirname(HERE), 'templates', '*.html'))
+                   + glob.glob(os.path.join(os.path.dirname(HERE), 'vibe_coding*.py'))
+                   + [os.path.join(os.path.dirname(HERE), 'solo_ceo.py')])
+        for path in targets:
+            body = io.open(path, encoding='utf-8').read()
+            for ng in ('助成金対象外', '10時間超のため', '10時間以上のため'):
+                # ⛔ 注意書き（このルールを説明するコメント）は除く
+                for line in body.splitlines():
+                    if ng in line and '⛔' not in line and '書かない' not in line:
+                        bad.append('%s: %s' % (os.path.basename(path), line.strip()[:60]))
+        self.assertEqual(
+            bad, [],
+            '助成金の対象判定が画面に直書きされています'
+            '（構成を変えた日に、ここだけ古い判定を出し続けます）: %s' % bad)
+
+    def test_対象の講座を対象外と表示しない(self):
+        # 実際に描画して、対象の講座のページに「対象外」の断りが出ていないこと
+        c = app.test_client()
+        for path in ('/vibe-coding', '/vibe-coding/manufacturing'):
+            html = c.get(path).get_data(as_text=True)
+            self.assertNotIn('助成金対象外', html, path)
+
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)
