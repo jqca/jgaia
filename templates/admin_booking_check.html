@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}予約できるか（全講座）| JGAIA 運営{% endblock %}
+{% block description %}運営用。掲載している全講座について、いま受講者が予約できるかを一覧で確かめます。{% endblock %}
+
+{% block extra_head %}
+<style>
+/* ⛔ カードの中の文字色は必ず指定すること。サイト共通CSSが白文字を継承するため、
+   指定を省くと白背景に白文字で「読めるのに見えない」表になる（2026-08-09 実害）。 */
+.bc-wrap { max-width:1040px; margin:0 auto; padding:24px 16px 70px; color:#0f172a; }
+.bc-wrap h1 { font-size:22px; font-weight:800; color:#0d1b3e; margin:0 0 6px; }
+.bc-wrap .lead { font-size:13px; color:#475569; line-height:1.9; margin-bottom:18px; }
+.sum { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:18px; }
+.sum div { background:#fff; border:1px solid #e2e8f0; border-radius:8px;
+           padding:12px 18px; font-size:13px; color:#64748b; }
+.sum b { display:block; font-size:22px; color:#0d1b3e; }
+.sum div.warn { background:#fffbeb; border-color:#fde68a; color:#92400e; }
+.sum div.warn b { color:#92400e; }
+.grp { background:#fff; border:1px solid #e2e8f0; border-radius:10px;
+       padding:14px 16px 6px; margin-bottom:14px; }
+.grp h2 { font-size:15px; font-weight:800; color:#0d1b3e; margin:0 0 10px; }
+.tbl { width:100%; border-collapse:collapse; font-size:13px; color:#1e293b; }
+.tbl th { text-align:left; font-size:11px; font-weight:700; color:#64748b;
+          border-bottom:1px solid #e2e8f0; padding:6px 8px; white-space:nowrap; }
+.tbl td { border-bottom:1px solid #f1f5f9; padding:10px 8px; vertical-align:top;
+          color:#1e293b; }
+.tbl tr:last-child td { border-bottom:none; }
+.cd { font-weight:800; color:#0d1b3e; white-space:nowrap; }
+.nm { color:#334155; }
+.tag { font-size:11px; font-weight:700; border-radius:999px; padding:4px 10px;
+       color:#fff; white-space:nowrap; display:inline-block; }
+.tag.ok { background:#10b981; }
+.tag.ng { background:#ef4444; }
+.why { display:block; margin-top:5px; font-size:12px; color:#b91c1c; line-height:1.7; }
+.when { color:#334155; white-space:nowrap; }
+.when small { display:block; color:#64748b; font-size:11px; }
+.go { display:inline-block; font-size:12px; font-weight:700; text-decoration:none;
+      border-radius:7px; padding:7px 12px; margin:0 6px 4px 0; white-space:nowrap; }
+.go.book { background:#2563eb; color:#fff; }
+.go.intro { background:#fff; color:#0d1b3e; border:1px solid #cbd5e1; }
+.note { background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px;
+        padding:16px; font-size:13px; color:#475569; line-height:1.9; margin-top:18px; }
+.note a { color:#2563eb; }
+.scroll { overflow-x:auto; }
+</style>
+{% endblock %}
+
+{% block content %}
+<main class="content">
+<div class="bc-wrap">
+  <h1>予約できるか（全{{ total }}講座）</h1>
+  <div class="lead">
+    掲載している講座を1つずつ開いて確かめなくても、ここだけで
+    「いま受講者が申し込める講座はどれか」が分かります。<br>
+    判断は受講者に見えている画面と同じもの（開催日 −
+    {{ lead_days }}日前まで／担当できる承認済みの講師がいる日）を読んでいます。
+  </div>
+
+  <div class="sum">
+    <div><b>{{ live }}</b>予約できる講座</div>
+    <div{% if total - live %} class="warn"{% endif %}><b>{{ total - live }}</b>予約できない講座</div>
+    <div><b>{{ instructors | selectattr('状態','equalto','承認') | list | length }}</b>承認済みの講師</div>
+  </div>
+
+  {% for g, items in groups %}
+    <div class="grp">
+      <h2>{{ g }}</h2>
+      <div class="scroll">
+      <table class="tbl">
+        <tr>
+          <th>講座</th><th>状態</th><th>予約できる日</th><th>担当できる講師</th><th>開いて確かめる</th>
+        </tr>
+        {% for r in items %}
+        <tr>
+          <td>
+            <span class="cd">{{ r['code'] }}</span><br>
+            <span class="nm">{{ r['name'] }}</span><br>
+            <span class="nm" style="font-size:11px;color:#64748b">
+              ¥{{ '{:,}'.format(r['price']) }}／{{ r['hours'] }}{% if r['days'] > 1 %}／全{{ r['days'] }}回{% endif %}
+            </span>
+          </td>
+          <td>
+            {% if r['件数'] %}<span class="tag ok">予約できます</span>
+            {% else %}<span class="tag ng">予約できません</span>
+              <span class="why">{{ r['理由'] }}</span>
+            {% endif %}
+          </td>
+          <td class="when">
+            {% if r['件数'] %}{{ r['表示'] }}<small>{{ r['件数'] }}日ぶん</small>
+            {% else %}—{% endif %}
+          </td>
+          <td class="nm">
+            {% if r['講師数'] %}{{ r['講師'] | join('、') }}
+            {% else %}<span style="color:#b91c1c">0名</span>{% endif %}
+          </td>
+          <td>
+            <a class="go book" href="{{ r['予約URL'] }}" target="_blank" rel="noopener">予約ページ</a>
+            {% if r['紹介URL'] %}
+              <a class="go intro" href="{{ r['紹介URL'] }}" target="_blank" rel="noopener">紹介ページ</a>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </table>
+      </div>
+    </div>
+  {% endfor %}
+
+  <div class="note">
+    <b>予約できない講座があるときの直し方</b><br>
+    ① 担当できる講師が0名 → その講座を担当する講師を
+    <a href="/admin/instructors{% if token %}?token={{ token }}{% endif %}">講師の承認</a>
+    で承認する（本人が担当講座に選んでいる必要があります）。<br>
+    ② 講師はいるが日が無い → その講師の予定画面で、
+    <b>今日から{{ lead_days }}日より先</b>の開催日にその講座を登録してもらう。<br>
+    ③ 開催日は{{ session_note }}です。この日以外は登録できません。
+  </div>
+</div>
+</main>
+{% endblock %}

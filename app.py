@@ -51,6 +51,11 @@ register_booking_routes(app)
 register_vibe_coding_industry_routes(app)
 register_solo_ceo_routes(app)
 
+# 運営用：全講座について「いま予約できるか」を1枚で見る画面（/admin/booking-check）
+# ⛔ register_booking_routes より後に読むこと（url_for('book_course') を使う）
+from booking_check import register_booking_check_routes  # noqa: E402
+register_booking_check_routes(app)
+
 
 @app.route("/")
 def index():
