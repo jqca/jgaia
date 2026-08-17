@@ -3219,6 +3219,27 @@ class Test申込を取り消せる(unittest.TestCase):
         self.assertEqual(self._cancel().status_code, 200)
         self.assertEqual(self._cancel().status_code, 404)
 
+    def test_申込の一覧からidと証明書に辿れる(self):
+        # ⛔ id を出す口が無いと、受講証明書（助成金の実績報告に必須）を
+        #    事実上発行できない（2026-08-17 に本番でそうなっていた）
+        r = self.c.get('/api/bookings')
+        self.assertEqual(r.status_code, 403)          # 合言葉なしは拒否
+        r = self.c.get('/api/bookings', headers={'X-Admin-Token': 'test-admin'})
+        self.assertEqual(r.status_code, 200)
+        j = r.get_json()
+        self.assertEqual(j['件数'], 1)
+        row = j['rows'][0]
+        self.assertEqual(row['id'], self.rec['id'])
+        self.assertTrue(row['席を押さえている'])
+        r2 = self.c.get(row['証明書'] + '?token=test-admin')
+        self.assertEqual(r2.status_code, 200)
+        # 取り消しても一覧からは消さない（何件失ったかが残る）
+        self._cancel()
+        j2 = self.c.get('/api/bookings',
+                        headers={'X-Admin-Token': 'test-admin'}).get_json()
+        self.assertEqual(j2['件数'], 1)
+        self.assertFalse(j2['rows'][0]['席を押さえている'])
+
     def test_無い申込は404(self):
         r = self.c.post('/api/booking/nosuch/cancel',
                         json={'reason': '動作確認のため'},

@@ -450,6 +450,31 @@ def register_booking_routes(app):
                 '開催確定': rec['_開催確定'],
                 '合計人数': rec['_合計人数']}
 
+    @app.route('/api/bookings')
+    def api_bookings():
+        """申込の一覧（運営用）。⛔ 合言葉なしで開けないこと（氏名と連絡先を含む）。
+
+        ⛔ 2026-08-17 まで、申込の id をどこからも見られなかった。受講証明書は
+           /admin/booking/<id>/certificate でしか出せず、その id を出す画面が
+           1つも無かった＝助成金の実績報告に必要な書類を、事実上発行できない
+           状態だった（本番で動作確認をしていて気づいた）。
+        """
+        ok = _admin_ok()
+        if ok is None:
+            return {'error': 'disabled',
+                    'message': '管理用の合言葉が未設定のため無効です。'}, 503
+        if not ok:
+            return {'error': 'forbidden'}, 403
+        rows = []
+        for b in booking.bookings():
+            rows.append(dict(
+                b,
+                席を押さえている=booking.is_live(b),
+                証明書=url_for('admin_certificate', booking_id=b.get('id'))))
+        # 新しいものを上に（運営が見るのは直近の申込）
+        rows.sort(key=lambda r: r.get('申込日時') or '', reverse=True)
+        return {'ok': True, '件数': len(rows), 'rows': rows}
+
     @app.route('/api/booking/<booking_id>/cancel', methods=['POST'])
     def api_booking_cancel(booking_id):
         """運営が申込を取り消す（席を解放する）。
