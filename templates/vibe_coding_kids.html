@@ -369,7 +369,13 @@
             <li>作品発表タイム（15分）</li>
             <li>ふりかえり＋JGAIA認定修了証授与</li>
           </ul>
+          {# ⛔ 開催日があるときにフォームへ送らないこと。あちらはメールを送るだけで予約台帳に入らない #}
+          {% if slots['GK1']['件数'] %}
+          <a href="/book/GK1" class="btn-course">開催日を見て申し込む →</a>
+          <div style="text-align:center;margin-top:8px;font-size:12px;color:var(--text-m)">直近の開催：{{ slots['GK1']['表示'] }} ／ <a href="#inquiry" style="text-decoration:underline">まず相談する</a></div>
+          {% else %}
           <a href="#inquiry" class="btn-course">詳細・お申し込み</a>
+          {% endif %}
         </div>
       </div>
       <!-- GK2 -->
@@ -395,7 +401,13 @@
             <li>自分だけのAIアプリ制作（企画 → 開発 → テスト）</li>
             <li>作品プレゼンテーション＋JGAIA認定修了証授与</li>
           </ul>
+          {# ⛔ 開催日があるときにフォームへ送らないこと。あちらはメールを送るだけで予約台帳に入らない #}
+          {% if slots['GK2']['件数'] %}
+          <a href="/book/GK2" class="btn-course">開催日を見て申し込む →</a>
+          <div style="text-align:center;margin-top:8px;font-size:12px;color:var(--text-m)">直近の開催：{{ slots['GK2']['表示'] }} ／ <a href="#inquiry" style="text-decoration:underline">まず相談する</a></div>
+          {% else %}
           <a href="#inquiry" class="btn-course">詳細・お申し込み</a>
+          {% endif %}
         </div>
       </div>
       <!-- GK3 -->
@@ -421,7 +433,13 @@
             <li>家庭でのAI活用ルール作りワークショップ</li>
             <li>成果発表＋親子写真＋JGAIA認定修了証授与（2枚）</li>
           </ul>
+          {# ⛔ 開催日があるときにフォームへ送らないこと。あちらはメールを送るだけで予約台帳に入らない #}
+          {% if slots['GK3']['件数'] %}
+          <a href="/book/GK3" class="btn-course">開催日を見て申し込む →</a>
+          <div style="text-align:center;margin-top:8px;font-size:12px;color:var(--text-m)">直近の開催：{{ slots['GK3']['表示'] }} ／ <a href="#inquiry" style="text-decoration:underline">まず相談する</a></div>
+          {% else %}
           <a href="#inquiry" class="btn-course">詳細・お申し込み</a>
+          {% endif %}
         </div>
       </div>
     </div>

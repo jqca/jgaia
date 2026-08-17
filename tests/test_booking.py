@@ -3549,6 +3549,39 @@ class Test紹介ページから予約に行ける(unittest.TestCase):
         self.assertIn('open_slots', src)
         self.assertNotIn('open_days(', src)
 
+    def test_子ども向けも予約に行ける(self):
+        # ⛔ 「助成対象外だから予約導線も要らない」と読み替えないこと
+        #    （2026-08-17 に実際そう書いて、この3講座の欠陥を検査ごと飛ばした）。
+        #    助成の可否と、予約できるかどうかは別の話。
+        h = self.c.get('/vibe-coding/kids').get_data(as_text=True)
+        self.assertNotIn('/book/', h)               # 日程が無いうちは出さない
+        self.assertIn('詳細・お申し込み', h)
+        self._open('GK1')
+        h = self.c.get('/vibe-coding/kids').get_data(as_text=True)
+        self.assertIn('/book/GK1', h)
+        self.assertIn('開催日を見て申し込む', h)
+        # ⛔ 日程が入っていない他の2講座には出さない
+        self.assertNotIn('/book/GK2', h)
+        self.assertNotIn('/book/GK3', h)
+
+    def test_掲載している全講座に紹介ページがある(self):
+        # ⛔ 一覧に足した講座を、紹介ページの無いまま放置しないこと
+        #    （どこからも辿れない講座になる）
+        # ⛔ 全講座テストの一覧（tools/e2e_all_courses.INTRO）は業種別を
+        #    ループで組み立てるので、コード名の直書きを探すのでは足りない。
+        #    実際に読み込んで突き合わせる（⛔ 実行はしない＝副作用を出さない）。
+        import importlib.util
+        path = os.path.join(os.path.dirname(HERE), 'tools',
+                            'e2e_all_courses.py')
+        src = io.open(path, encoding='utf-8').read()
+        head = src[:src.index('def reset()')]        # 一覧の定義までで切る
+        ns = {'__name__': 'e2e_intro_only'}
+        exec(compile(head[head.index('INTRO = {'):], path, 'exec'), ns)
+        missing = [c['code'] for c in booking.COURSES
+                   if c['code'] not in ns['INTRO']]
+        self.assertEqual(missing, [],
+                         '紹介ページが決まっていない講座: %s' % missing)
+
     def test_一人会社の講座は元から切り替わっている(self):
         # ⛔ 直したついでに壊さないこと
         h = self.c.get('/solo-ceo/course-spa').get_data(as_text=True)

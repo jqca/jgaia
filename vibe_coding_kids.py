@@ -11,10 +11,14 @@ def register_vibe_coding_kids_routes(app):
         # ⛔ 価格をテンプレートに直書きしないこと。booking.COURSES が唯一の
         #    出どころで、ここがズレると紹介と申込で金額が食い違う
         import booking
+        # ⛔ 開催日があるのに「お申し込み」がフォームに落ちること（2026-08-17）。
+        #    子ども向けも予約できる（実測22日）のに、このページだけ導線が
+        #    無かった。判断は booking.open_slots() の1か所。
         return render_template(
             'vibe_coding_kids.html',
             kids={k: booking.COURSE_BY_CODE[k]['price']
-                  for k in ('GK1', 'GK2', 'GK3')})
+                  for k in ('GK1', 'GK2', 'GK3')},
+            slots={k: booking.open_slots(k) for k in ('GK1', 'GK2', 'GK3')})
 
     @app.route('/api/kids-inquiry', methods=['POST'])
     def kids_inquiry_api():
