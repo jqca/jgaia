@@ -9,6 +9,7 @@ Routes:
   POST /api/industry-inquiry       — お問い合わせ送信
 """
 import os
+import re
 from flask import render_template, request, jsonify
 
 RESEND_API_KEY = os.getenv('RESEND_API_KEY', '')
@@ -682,10 +683,27 @@ def _lighten(hex_color, lightness=0.74):
 
 
 for _ind in INDUSTRIES.values():
-    _booking.apply_subsidy_tags(_ind.get('courses') or [])
-    _booking.apply_delivery(_ind.get('courses') or [])
-    _booking.apply_prices(_ind.get('courses') or [])
+    _cs = _ind.get('courses') or []
+    _booking.apply_subsidy_tags(_cs)
+    _booking.apply_delivery(_cs)
+    _booking.apply_prices(_cs)
+    _booking.apply_exam(_cs)
     _ind['accent_light'] = _lighten(_ind['accent'])
+    # ⛔ 金額を掲載側に手打ちしないこと。ここは apply_prices が届かない2箇所＝
+    #    冒頭の見出し数字（stats）と申込フォームの選択肢（course_options）で、
+    #    2026-08-17 時点で ¥128,000／¥228,000（回ごとの分割掲載に切り替える前の額）
+    #    が残っており、実際に請求する額と食い違っていた。実価格から入れ直す。
+    _prices = {c['code']: c['price_num'] for c in _cs if c.get('price_num')}
+    if _prices and _ind.get('stats'):
+        _ind['stats'][0]['num'] = '¥{:,}〜'.format(min(_prices.values()))
+    _opts = []
+    for _opt in (_ind.get('course_options') or []):
+        _code = _opt.split('：')[0].strip()
+        if _code in _prices:
+            _opt = re.sub(r'[¥￥][\d,]+',
+                          '¥{:,}'.format(_prices[_code]), _opt)
+        _opts.append(_opt)
+    _ind['course_options'] = _opts
 
 
 # ─────────────────────────────────────────────────────────────
@@ -753,6 +771,15 @@ def _render_industry_page(ind):
                 '<br><span style="color:#64748b;">各回が独立した研修です。'
                 '1研修ごとにお申し込み・助成金の申請ができます。</span></div>'
             )
+        # ⛔ 試験名・受験料をここに書かないこと。出どころは booking.exam_note() の1か所。
+        #    ⛔ 白いカードの上なので文字色を必ず指定する（既定の色に頼らない）。
+        exam_note_html = ""
+        if course.get("exam_note"):
+            exam_note_html = (
+                '<div style="margin:-2px 0 14px;font-size:0.8rem;color:#4a5568;'
+                'line-height:1.6;">'
+                f'{_icon("check", 13)} {course["exam_note"]}</div>'
+            )
         feat_items = "".join(
             f'<li style="border-bottom:1px solid #e2e8f0;padding:7px 0;display:flex;'
             f'align-items:center;gap:8px;font-size:0.88rem;color:#1a1a2e;">'
@@ -805,6 +832,7 @@ def _render_industry_page(ind):
               &yen;{course["price"]}<span style="font-size:0.8rem;font-weight:400;color:#64748b;">
               {course["price_unit"]}</span></div>
             {unit_price_html}
+            {exam_note_html}
             <ul style="list-style:none;margin:0 0 20px;padding:0;flex:1;">{feat_items}</ul>
             <a href="#inquiry" style="display:block;text-align:center;padding:14px;border-radius:14px;
               font-weight:800;font-size:0.92rem;text-decoration:none;color:#fff;background:{p['btn_grad']};

@@ -390,6 +390,134 @@ for _c in COURSES:
         _c['price'] = UNIT_PRICE * _n
 
 
+# ── JGAIA が実施する認定試験を受講料に組み込む（社長ご指示 2026-08-17）
+# 出典: https://www.qai-zen.com/examinations （2026-08-17 実測。JGAIA実施は2試験）
+#
+# なぜ「組み込む」のか＝受験料のままでは、どの制度からも1円も出ないため。
+#   ・DXリスキリング助成金の助成対象経費は5つだけ（募集要項 p8「６ 助成対象経費」）＝
+#     受講料／教科書・教材代／研修に付随する登録料・管理料／ヒアリング料／会場費。
+#     **受験料という費目は存在しない**。⛔見積書に「受験料 ¥9,800」と単独で
+#     立てたら、その行は落ちる。
+#   ・さらに「資格試験（講習を受講しなくても単独で受験して資格を得られるもの）」は
+#     助成対象外の研修（同 p7「４（２）⑦」）。QAI-Zen は講座が無料・受験料だけ有料
+#     ＝この除外にそのまま当たる形だった。
+#   ・厚労省の人材開発支援助成金も同じ考え方（「資格試験の受験料単独で支給申請は
+#     できません。訓練と一体となったものであることが必要です」）。教育訓練給付金は
+#     検定試験の受験料を明文で対象外にしている。
+#   ・一方、要件3（同 p6）は「…知識・技能の習得・向上を目的とする研修
+#     **又は専門的な資格を取得するための研修**」＝資格取得を目的とした講座は
+#     明示的に対象。⛔「資格系だから対象外」と読み違えないこと。
+# → 認定試験は講座の修了認定として研修に含め、受講案内・見積書には
+#   **「受講料（認定試験の受験料を含む）」の1行**で1人1研修単位の金額を出す。
+# ⛔ 内訳を「受講料＋受験料」に割って書かないこと（割った瞬間に受験料分が対象外になる）。
+# ⛔ 総研修時間数（TRAINING_HOURS）を試験のぶん水増ししないこと。試験は受講後に
+#    オンラインで受ける。実際の研修時間と違う数字を申請書に書かせることになる。
+EXAMS = {
+    'generalist': {
+        'name': '生成AIジェネラリスト検定',
+        'fee': 9800,
+        'about': ('生成AIの基本概念から活用事例まで、ビジネスパーソンに'
+                  '必要な知識を体系的に評価する検定です。'),
+    },
+    'engineer': {
+        'name': '生成AIエンジニア認定',
+        'fee': 9800,
+        'about': ('プロンプトエンジニアリングから業務アプリの実装まで、'
+                  '生成AIの実装・応用スキルを評価する認定試験です。'),
+    },
+}
+EXAM_URL = 'https://www.qai-zen.com/examinations'
+
+# 講座 → 組み込む試験。
+# ⛔ 講座で教えない範囲の試験を割り当てないこと（受講者が落ちる＝受験料を
+#    含めたことが逆に信用を落とす）。実装・アプリ開発を扱う講座だけ engineer。
+# ⛔ 子ども向け（GK1〜3）には入れない。受験者にしないのが方針で、助成の対象でもない。
+EXAM_FOR = {
+    'SP-A': 'generalist', 'SP-B': 'generalist', 'SP-C': 'generalist',
+    'GA': 'generalist', 'GA-P': 'generalist',
+    'GD': 'generalist', 'GE': 'generalist',
+    'GB': 'engineer', 'GC': 'engineer',
+}
+for _s in ('GM', 'GH', 'GF', 'GL', 'GN'):
+    EXAM_FOR[f'{_s}-A'] = 'generalist'
+    EXAM_FOR[f'{_s}-B'] = 'engineer'
+    EXAM_FOR[f'{_s}-C'] = 'engineer'
+
+# 受験料を受講料に上乗せするのは「上乗せしても助成の枠に収まる講座」だけ。
+# ⛔ 1研修あたりが UNIT_PRICE（税抜10万円＝助成上限75,000円の点）を超えると
+#    助成は1円も増えず、上乗せ分がまるごと法人の持ち出しになる。分割掲載の講座は
+#    1研修が既に UNIT_PRICE ちょうど＝余地がゼロなので、価格を上げずに試験を含める。
+# ⛔ 上乗せ額を手打ちしないこと（試験の受験料を変えた日に片方だけ古くなる）。
+for _c in COURSES:
+    _key = EXAM_FOR.get(_c['code'])
+    if not _key or SESSIONS.get(_c['code']):
+        continue
+    _fee = EXAMS[_key]['fee']
+    if _c['price'] + _fee <= UNIT_PRICE:
+        _c['price'] += _fee
+
+
+def exam_for(course_code):
+    """その講座の受講料に含まれる認定試験。組み込んでいなければ None。"""
+    key = EXAM_FOR.get(course_code)
+    if not key:
+        return None
+    e = dict(EXAMS[key])
+    e['key'] = key
+    e['url'] = EXAM_URL
+    return e
+
+
+def exam_fee(course_code):
+    """その講座の受講料に含まれる受験料（円）。無ければ0。"""
+    e = exam_for(course_code)
+    return e['fee'] if e else 0
+
+
+def teaching_price(course_code):
+    """講師料の算定に使う受講料＝認定試験の受験料を除いた額。
+
+    ⛔ 受験料は協会が実施する試験の対価で、講師の仕事ではない。ここを分けないと
+       受験料を組み込んだ日に講師料が自動で上がる（2026-08-17）。
+    """
+    c = COURSE_BY_CODE.get(course_code)
+    if not c or not c.get('price'):
+        return None
+    return int(c['price']) - exam_fee(course_code)
+
+
+def exam_note(course_code):
+    """講座ページ・申込画面・メールに出す一言。組み込んでいなければ空文字。
+
+    ⛔ 金額や試験名を各画面に手打ちしないこと。受験料を変えた日に、直し忘れた
+       画面だけが古い額を出し続ける。
+    """
+    e = exam_for(course_code)
+    if not e:
+        return ''
+    return '受講料に「{}」の受験料（¥{:,}）を含みます'.format(e['name'], e['fee'])
+
+
+def apply_exam(courses, code_key='code'):
+    """掲載ページの講座dictに認定試験の情報を入れる（表示を1か所から作る）。"""
+    for c in courses:
+        code = c.get(code_key) or ''
+        e = exam_for(code)
+        c['exam'] = bool(e)
+        c['exam_name'] = e['name'] if e else ''
+        c['exam_fee'] = e['fee'] if e else 0
+        c['exam_about'] = e['about'] if e else ''
+        c['exam_note'] = exam_note(code)
+    return courses
+
+
+# ⛔ 申込画面・申込完了・メールが読むのは COURSE_BY_CODE（この COURSES と同じ dict）で、
+#    掲載ページ側の COURSES ではない。ここで入れておかないと、紹介ページには
+#    「受験料を含む」と出ているのに申込画面には出ない、という食い違いになる。
+#    apply_prices と違って新しい鍵を足すだけなので、price の計算には影響しない。
+apply_exam(COURSES)
+
+
 def sessions_of(course_code):
     """その講座を何本の研修として掲載しているか（分割していなければ1）。"""
     return SESSIONS.get(course_code, 1)
@@ -623,16 +751,19 @@ def instructor_fee(course_code):
 
     ⛔ 人数を掛けないこと。⛔ この式を画面やメールに書き写さないこと
        （率を変えた日に、直し忘れた場所が古い金額を出し続ける）。
+    ⛔ c['price'] を直接使わないこと。受講料には認定試験の受験料が入っており、
+       試験は協会が実施する＝講師の仕事ではない（2026-08-17）。
     """
-    c = COURSE_BY_CODE.get(course_code)
-    if not c or not c.get('price'):
+    base = teaching_price(course_code)
+    if base is None:
         return None
-    return int(round(int(c['price']) * FEE_RATE))
+    return int(round(base * FEE_RATE))
 
 
 def fee_terms_text():
     """講師登録画面とメールに出す、講師料の条件（1か所で作る）。"""
-    return ('講師料は、その講座の受講料の{}%を1開催あたりの定額でお支払いします。'
+    return ('講師料は、その講座の受講料（認定試験の受験料を除く）の{}%を'
+            '1開催あたりの定額でお支払いします。'
             '受講者が何名でも金額は変わりません（お一人でも開催します）。'
             'お支払いは開催月の翌月末までのお振込みです。'.format(
                 int(FEE_RATE * 100)))

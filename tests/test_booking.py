@@ -1721,10 +1721,13 @@ class Test最少催行を復活させない(unittest.TestCase):
     def test_講師料は定額で人数に比例しない(self):
         # ⛔ 40%を人数分にしないこと。10名でも1名でも同じ額
         # ⛔ 金額を写さないこと。単価の40%であることを確かめる
+        # ⛔ 受講料そのものではなく「認定試験の受験料を除いた額」の40%
+        #    （2026-08-17）。試験は協会が実施する＝講師の仕事ではないので、
+        #    受験料を組み込んだ日に講師料が自動で上がってはいけない。
         for code in ('SP-A', 'SP-B', 'SP-C', 'GA-P', 'GK2'):
-            price = booking.COURSE_BY_CODE[code]['price']
+            base = booking.teaching_price(code)
             self.assertEqual(booking.instructor_fee(code),
-                             int(round(price * booking.FEE_RATE)), code)
+                             int(round(base * booking.FEE_RATE)), code)
 
     def test_損益分岐は1名未満なので必ず黒字(self):
         # 講師料が定額 ⇒ 1名の受講料でまかなえること（全コース）
@@ -2046,11 +2049,15 @@ class Test助成金の判定(unittest.TestCase):
         self.assertIn('従業員', s['reason'])
 
     def test_消費税を助成対象に含めない(self):
-        # 税込49,800 → 税抜45,272 → その3/4 = 33,954
+        # 税込59,600（受講料49,800＋認定試験の受験料9,800）
+        #  → 税抜54,181 → その3/4 = 40,635
+        # ⛔ 受験料を別の費目として差し引かないこと。DXリスキリング助成金の
+        #    対象経費に「受験料」という費目は無く、受講料に含まれる1本の
+        #    金額として申請する（2026-08-17）。
         s = booking.subsidy_for('SP-A')
-        self.assertEqual(s['base'], 45272)
-        self.assertEqual(s['grant'], 33954)
-        self.assertEqual(s['net'], 49800 - 33954)
+        self.assertEqual(s['base'], 54181)
+        self.assertEqual(s['grant'], 40635)
+        self.assertEqual(s['net'], 59600 - 40635)
 
     def test_1研修あたりの上限を超えない(self):
         # ⛔ 上限は「1人1研修あたり」75,000円。分割掲載の講座は研修の本数だけ
@@ -2096,7 +2103,10 @@ class Test助成金の判定(unittest.TestCase):
     def test_条件を書かずに助成金対象と出さない(self):
         tag = booking.subsidy_tag('SP-A')
         self.assertIn('法人研修なら', tag)
-        self.assertIn('15,846', tag)
+        # 2026-08-17：認定試験の受験料（¥9,800）を受講料に組み込んだので
+        # ¥49,800 → ¥59,600、実質負担 ¥15,846 → ¥18,965。
+        # ⛔ 受験料そのものの ¥9,800 は法人のご負担ではない（3/4が助成される）
+        self.assertIn('18,965', tag)
         # ⛔ 例に SP-B を使わないこと＝2026-08-17 に対象になった。
         #    時間に関係なく対象外なのは子ども向けだけ。
         self.assertEqual(booking.subsidy_tag('GK1'), '')
@@ -2169,7 +2179,8 @@ class Test助成金の判定(unittest.TestCase):
         booking.set_state(booking.instructors()[0]['id'], '承認')
         booking.verify_email(booking.instructors()[0]['鍵'])
         t = _visible(self.c.get('/book/SP-A').get_data(as_text=True))
-        self.assertIn('15,846', t)
+        # 2026-08-17：認定試験の受験料を組み込み ¥15,846 → ¥18,965
+        self.assertIn('18,965', t)
         self.assertIn('代表者ご本人・個人事業主ご本人は対象外', t)
         self.assertIn('請求書払い', t)
         # ⛔ 期限は「何日前」ではなく実際の日付で出す
@@ -2614,9 +2625,19 @@ class Test赤字にしない(unittest.TestCase):
         self.assertLessEqual(s['net'], 35100)
 
     def test_個人向けの入口を廃止しない(self):
-        # ⛔ GA（¥49,800）を消さないこと。助成金を使えない方（代表者ご本人）は
-        #    こちらしか選べない
-        self.assertEqual(booking.COURSE_BY_CODE['GA']['price'], 49800)
+        # ⛔ GA を消さないこと。助成金を使えない方（代表者ご本人・個人事業主
+        #    ご本人）はこちらしか選べない。
+        # 2026-08-17：認定試験の受験料を組み込んだので ¥49,800 → ¥59,600。
+        #    ⛔ 値上げではない（同額の受験料が含まれるようになった）。
+        #    守るのは「個人が選べるいちばん安い入口が残っていること」であって
+        #    特定の金額ではない。⛔ 逆に、上乗せしてよいのは実際に提供する
+        #    受験料ぶんだけ（値上げの隠れ蓑にしない）。
+        ga = booking.COURSE_BY_CODE['GA']['price']
+        self.assertEqual(ga, 49800 + booking.exam_fee('GA'))
+        self.assertLess(ga, booking.COURSE_BY_CODE['GA-P']['price'])
+        # 大人向けでいちばん安い＝個人の入口として機能している
+        self.assertEqual(ga, min(c['price'] for c in booking.COURSES
+                                 if c['code'] not in booking._SUBSIDY_NEVER))
         self.assertIn('GA', booking.subsidy_courses())
 
     def test_法人出張は1回いくらで人数に比例しない(self):
@@ -3135,6 +3156,148 @@ class Test対象判定を画面に直書きしない(unittest.TestCase):
         for path in ('/vibe-coding', '/vibe-coding/manufacturing'):
             html = c.get(path).get_data(as_text=True)
             self.assertNotIn('助成金対象外', html, path)
+
+
+class Test認定試験を受講料に組み込む(unittest.TestCase):
+    """社長ご指示 2026-08-17「JGAIAが実施している資格受験料を組み込む講座にして」。
+
+    なぜ組み込むのか＝受験料のままでは、どの制度からも1円も出ないため。
+      ・DXリスキリング助成金の助成対象経費（募集要項 p8）に「受験料」という
+        費目は無い。⛔見積書に別行で立てたらその行は落ちる。
+      ・「資格試験（講習を受講しなくても単独で受験して資格を得られるもの）」は
+        助成対象外の研修（同 p7 ４（２）⑦）。QAI-Zen は講座が無料・受験料だけ
+        有料＝この除外にそのまま当たる形だった。
+
+    固定している事故の型:
+      ・受験料を上乗せしたのに助成の枠を超え、法人の持ち出しが増える
+      ・受講料に含めたのに講師料まで自動で上がる（試験は講師の仕事ではない）
+      ・紹介ページにだけ書いて、申込画面・確認メールに出ない
+      ・試験名や受験料を画面に手打ちし、変えた日にそこだけ古くなる
+      ・子ども向け講座に受験を組み込む
+    """
+
+    def setUp(self):
+        _clear()
+        self.c = app.test_client()
+
+    def test_子ども向けには組み込まない(self):
+        # ⛔ 受験者にしないのが方針。助成の対象でもない
+        for code in booking._SUBSIDY_NEVER:
+            self.assertIsNone(booking.exam_for(code), code)
+            self.assertEqual(booking.exam_note(code), '')
+
+    def test_大人向けは全講座に組み込まれている(self):
+        # ⛔ 1つでも抜けると、その講座だけ「受験料は別」になり案内が食い違う
+        for c in booking.COURSES:
+            if c['code'] in booking._SUBSIDY_NEVER:
+                continue
+            self.assertIsNotNone(booking.exam_for(c['code']), c['code'])
+
+    def test_上乗せしても助成の枠に収まる(self):
+        # ⛔ ここが本題。1研修あたりの税抜が10万円（＝助成上限75,000円の点）を
+        #    超えると、上乗せ分がまるごと法人の持ち出しになる。
+        for c in booking.COURSES:
+            unit = c['price'] // booking.sessions_of(c['code'])
+            self.assertLessEqual(unit, booking.UNIT_PRICE, c['code'])
+
+    def test_分割掲載の講座には上乗せしない(self):
+        # 1研修が既に上限ちょうど＝上乗せの余地がゼロ。据え置きで試験を含める
+        for code in booking.SESSIONS:
+            self.assertEqual(booking.COURSE_BY_CODE[code]['price'],
+                             booking.UNIT_PRICE * booking.SESSIONS[code], code)
+            self.assertIsNotNone(booking.exam_for(code), code)
+
+    def test_法人の負担増は受験料の3分の1にとどまる(self):
+        # これが本題＝受験料 ¥9,800 が、法人にとっては ¥3,119 になる。
+        # 内訳: 受験料は税込なので税抜 8,909 に落ち、その3/4（6,681）が助成
+        #       される。残り 9,800 − 6,681 = 3,119 が法人のご負担。
+        # ⛔ 消費税は助成対象外なので「4分の1になる」ではない（2026-08-17 に
+        #    実際に取り違えた）。率は SUBSIDY の値から導き、写さないこと。
+        rate = booking.SUBSIDY['rate']
+        tax = booking.SUBSIDY['tax_rate']
+        for code in ('SP-A', 'GA', 'GD', 'GE', 'GM-A'):
+            fee = booking.exam_fee(code)
+            self.assertEqual(booking.COURSE_BY_CODE[code]['price'], 49800 + fee)
+            self.assertEqual(booking.subsidy_for(code)['net'], 18965)
+            # 組み込む前の実質負担は 15,846 だった
+            grew = 18965 - 15846
+            self.assertEqual(grew, 3119, code)
+            self.assertLessEqual(grew, fee * (1 - rate / (1 + tax)) + 1, code)
+
+    def test_講師料に受験料を含めない(self):
+        # ⛔ 試験は協会が実施する＝講師の仕事ではない。受講料そのものの40%に
+        #    すると、受験料を組み込んだ日に講師料が自動で上がる
+        for c in booking.COURSES:
+            code = c['code']
+            self.assertEqual(booking.teaching_price(code),
+                             c['price'] - booking.exam_fee(code), code)
+            self.assertEqual(booking.instructor_fee(code),
+                             int(round(booking.teaching_price(code)
+                                       * booking.FEE_RATE)), code)
+
+    def test_申込画面と確認画面に出る(self):
+        # ⛔ 紹介ページだけに書かないこと。お申し込みの直前で「受験料は別では」と
+        #    迷わせる。⛔ 確認メールの本文も同じ理由で出す（別テストで固定）
+        booking.register_instructor('山田', 'y@example.com', '', ['SP-A'], '',
+                                    _days_all())
+        booking.set_state(booking.instructors()[0]['id'], '承認')
+        booking.verify_email(booking.instructors()[0]['鍵'])
+        t = _visible(self.c.get('/book/SP-A').get_data(as_text=True))
+        self.assertIn('生成AIジェネラリスト検定', t)
+        self.assertIn('受講料に', t)
+
+    def test_講座ページに出る(self):
+        for path, want in (('/vibe-coding/course-ga', '生成AIジェネラリスト検定'),
+                           ('/vibe-coding/course-gb', '生成AIエンジニア認定'),
+                           ('/solo-ceo/course-spa', '生成AIジェネラリスト検定'),
+                           ('/vibe-coding/manufacturing', '生成AIジェネラリスト検定')):
+            t = self.c.get(path).get_data(as_text=True)
+            self.assertIn(want, t, path)
+
+    def test_助成金のページに含まれる試験を出す(self):
+        t = _visible(self.c.get('/subsidy').get_data(as_text=True))
+        self.assertIn('生成AIジェネラリスト検定', t)
+        self.assertIn('受講料に含まれています', t)
+        # ⛔ 「受験料も助成されます」と書かないこと。助成されるのは受講料で、
+        #    認定試験はその受講料に含まれる修了認定という位置づけ
+        self.assertNotIn('受験料も助成', t)
+
+    def test_試験名と受験料を画面に直書きしない(self):
+        # ⛔ 出どころは booking.EXAMS の1か所。受験料を変えた日に、直し忘れた
+        #    画面だけが古い額を出し続ける（助成額の直書きと同じ事故の型）
+        names = [e['name'] for e in booking.EXAMS.values()]
+        fees = {'{:,}'.format(e['fee']) for e in booking.EXAMS.values()}
+        root = os.path.dirname(HERE)
+        bad = []
+        for d in (root, os.path.join(root, 'templates')):
+            for name in sorted(os.listdir(d)):
+                if not name.endswith(('.html', '.py')) or name == 'booking.py':
+                    continue
+                body = io.open(os.path.join(d, name), encoding='utf-8').read()
+                body = re.sub(r'\{#.*?#\}', '', body, flags=re.S)
+                body = re.sub(r'^\s*#.*$', '', body, flags=re.M)
+                body = re.sub(r'/\*.*?\*/', '', body, flags=re.S)
+                for line in body.splitlines():
+                    if any(n in line for n in names) and any(f in line for f in fees):
+                        bad.append('%s: %s' % (name, line.strip()[:70]))
+        self.assertEqual(bad, [],
+                         '試験名と受験料が画面に直書きされています: %s' % bad)
+
+    def test_実装を教える講座にはエンジニア認定を割り当てる(self):
+        # ⛔ 講座で教えない範囲の試験を割り当てないこと（受講者が落ちる＝
+        #    受験料を含めたことが逆に信用を落とす）
+        for code in ('GB', 'GC', 'GM-B', 'GM-C', 'GF-C'):
+            self.assertEqual(booking.exam_for(code)['name'],
+                             booking.EXAMS['engineer']['name'], code)
+        for code in ('SP-A', 'GA', 'GA-P', 'GD', 'GE', 'GM-A'):
+            self.assertEqual(booking.exam_for(code)['name'],
+                             booking.EXAMS['generalist']['name'], code)
+
+    def test_総研修時間数を試験のぶん水増ししない(self):
+        # ⛔ 試験は受講後にオンラインで受ける。実際の研修時間と違う数字を
+        #    申請書に書かせることになる
+        self.assertEqual(booking.TRAINING_HOURS['SP-A'], 6)
+        self.assertEqual(booking.TRAINING_HOURS['GM-A'], 4)
 
 
 if __name__ == '__main__':

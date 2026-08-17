@@ -402,6 +402,11 @@
     {% if c.subsidy %}
     <p style="margin-top:10px;font-size:13px;color:{{ c.accent_light }};font-weight:500">{{ c.subsidy_text }}</p>
     {% endif %}
+    {# ⛔ 試験名・受験料をここに直書きしないこと。出どころは booking.exam_note()
+       の1か所（受験料を変えた日に、直し忘れた画面だけが古い額を出し続ける）。 #}
+    {% if c.exam %}
+    <p style="margin-top:6px;font-size:13px;color:rgba(255,255,255,.8);font-weight:500">{{ c.exam_note }}</p>
+    {% endif %}
   </div>
 </section>
 

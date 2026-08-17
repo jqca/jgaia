@@ -192,6 +192,7 @@ import booking as _booking  # noqa: E402
 _booking.apply_subsidy_tags(COURSES.values())
 _booking.apply_delivery(COURSES.values())
 _booking.apply_prices(COURSES.values())
+_booking.apply_exam(COURSES.values())
 
 
 def booking_summary(code, logger=None):

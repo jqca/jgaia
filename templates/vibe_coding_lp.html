@@ -738,7 +738,7 @@
         </form>
       </div>
       <div class="cta-right">
-        <div class="cta-item"><div class="cta-item-num">01</div><h4>¥49,800から</h4><p>1日6時間の集中コースで即戦力スキルを習得</p></div>
+        <div class="cta-item"><div class="cta-item-num">01</div><h4>¥{{ '{:,}'.format(prices['GA']) }}から</h4><p>1日6時間の集中コースで即戦力スキルを習得（認定試験の受験料込み）</p></div>
         <div class="cta-item"><div class="cta-item-num">02</div><h4>助成金で半額以下</h4><p>東京しごと財団の助成金で、法人研修なら実質¥{{ '{:,}'.format(subsidy_net_typical) }}</p></div>
         <div class="cta-item"><div class="cta-item-num">03</div><h4>JGAIA認定修了証</h4><p>各コース修了時に認定証を発行</p></div>
         <div class="cta-item"><div class="cta-item-num">04</div><h4>法人カスタマイズ</h4><p>御社の業種・課題に合わせた研修設計</p></div>
@@ -750,7 +750,7 @@
 </div><!-- /.lp-body -->
 
 <!-- Mobile CTA -->
-<div class="mobile-cta"><a href="#inquiry-section">¥49,800〜 お問い合わせ・お申し込み →</a></div>
+<div class="mobile-cta"><a href="#inquiry-section">¥{{ '{:,}'.format(prices['GA']) }}〜 お問い合わせ・お申し込み →</a></div>
 {% endblock %}
 
 {% block extra_js %}
@@ -762,7 +762,10 @@ function toggleFaq(el){el.classList.toggle('open');el.nextElementSibling.classLi
 var qs={};
 function quizAnswer(q,v,el){qs['q'+q]=v;el.parentElement.querySelectorAll('.quiz-opt').forEach(function(o){o.classList.remove('sel')});el.classList.add('sel');if(q===1)document.getElementById('q2').style.display='';if(q===2)document.getElementById('q3').style.display='';if(q===3)showQuizResult()}
 var SUBSIDY_NET='{{ '{:,}'.format(subsidy_net_typical) }}';
-function showQuizResult(){var rec,desc;if(qs.q2==='team'){rec='コースGC: AI業務自動化マスター';desc='組織の業務改善をお考えなら、全5回夜間で体系的にAI業務自動化を学べるマスターコースが最適です。'}else if(qs.q3==='high'){rec='コースGD: AIセキュリティ・ガバナンス';desc='セキュリティ・ガバナンスへの関心が高い方に。社内ガイドライン策定まで実践します。'}else if(qs.q1==='none'||qs.q2==='try'){rec='コースGA: 生成AI入門1日';desc='まずは1日6時間で主要AI3ツールを使いこなせるように。¥49,800、法人研修なら助成金で実質¥'+SUBSIDY_NET+'。'}else{rec='コースGB: バイブコーディング実践1日';desc='経験をお持ちの方に。1日6時間で業務アプリを企画→実装→デプロイまで完成させます。'}var el=document.getElementById('quiz-result');el.innerHTML='<h4>おすすめ: '+rec+'</h4><p>'+desc+'</p>';el.classList.add('show')}
+/* ⛔ 受講料をこの下の文面に直書きしないこと。金額を動かした日に、診断結果の
+   吹き出しだけが古い額を出し続ける（2026-08-17 に実際に残っていた）。 */
+var PRICE_GA='{{ '{:,}'.format(prices['GA']) }}';
+function showQuizResult(){var rec,desc;if(qs.q2==='team'){rec='コースGC: AI業務自動化マスター';desc='組織の業務改善をお考えなら、全5回夜間で体系的にAI業務自動化を学べるマスターコースが最適です。'}else if(qs.q3==='high'){rec='コースGD: AIセキュリティ・ガバナンス';desc='セキュリティ・ガバナンスへの関心が高い方に。社内ガイドライン策定まで実践します。'}else if(qs.q1==='none'||qs.q2==='try'){rec='コースGA: 生成AI入門1日';desc='まずは1日6時間で主要AI3ツールを使いこなせるように。¥'+PRICE_GA+'（認定試験の受験料込み）、法人研修なら助成金で実質¥'+SUBSIDY_NET+'。'}else{rec='コースGB: バイブコーディング実践1日';desc='経験をお持ちの方に。1日6時間で業務アプリを企画→実装→デプロイまで完成させます。'}var el=document.getElementById('quiz-result');el.innerHTML='<h4>おすすめ: '+rec+'</h4><p>'+desc+'</p>';el.classList.add('show')}
 var io=new IntersectionObserver(function(entries){entries.forEach(function(e){if(e.isIntersecting){e.target.style.opacity='1';e.target.style.transform='none';io.unobserve(e.target)}})},{threshold:.12,rootMargin:'0px 0px -40px 0px'});
 document.querySelectorAll('.problem-card,.step-card,.course-card-lp,.corp-item,.cta-item,.faq-item').forEach(function(el,i){el.style.cssText+='opacity:0;transform:translateY(20px);transition:opacity .5s '+i*.05+'s ease,transform .5s '+i*.05+'s ease;';io.observe(el)});
 </script>

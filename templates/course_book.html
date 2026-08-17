@@ -103,6 +103,11 @@
       <span>お一人から開催</span>
     </div>
     <div class="bk-price">¥{{ '{:,}'.format(c['price']) }}<small>（税込）</small></div>
+    {# ⛔ 申込画面にも必ず出すこと。紹介ページだけに書くと、お申し込みの直前で
+       「受験料は別なのでは」と迷わせる。出どころは booking.exam_note() の1か所。 #}
+    {% if c.get('exam_note') %}
+    <div style="margin-top:8px;font-size:13px;opacity:.85">{{ c['exam_note'] }}</div>
+    {% endif %}
   </div>
 
   <div class="bk-card" id="pickCard">

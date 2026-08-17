@@ -206,6 +206,8 @@ def subsidy():
         rows.append(dict(code=c["code"], name=c["name"], price=c["price"],
                          hours=s["hours"], grant=s["grant"], net=s["net"],
                          eligible=s["eligible"], reason=s["reason"],
+                         # ⛔ 試験名を画面に手打ちしないこと（講座ごとに違う）
+                         exam=(booking.exam_for(c["code"]) or {}).get("name", ""),
                          dx=booking.dx_skills(c["code"])))
     corp = booking.CORPORATE
     return render_template(
