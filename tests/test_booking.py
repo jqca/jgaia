@@ -3348,12 +3348,13 @@ class Test請求書と入金(unittest.TestCase):
         booking.set_state(i['id'], '承認')
         booking.verify_email(i['鍵'])
         self.day = _far_day()
-        self._bank = booking.SELLER['bank']
+        # ⛔ 元の値を決め打ちで戻さないこと。2026-08-17 に登録番号が実在の
+        #    値になり、'' に戻す書き方だと以後のテストへ汚染が漏れる
+        self._seller = dict(booking.SELLER)
         booking.SELLER['bank'] = 'テスト銀行 銀座支店 普通 1234567 ゼブラクオンタム(カ'
 
     def tearDown(self):
-        booking.SELLER['bank'] = self._bank
-        booking.SELLER['invoice_no'] = ''
+        booking.SELLER.update(self._seller)
 
     def _book(self, pay='invoice', people=1):
         rec, _ = booking.add_booking('SP-A', self.day, '受講 太郎',
@@ -3382,13 +3383,39 @@ class Test請求書と入金(unittest.TestCase):
 
     def test_登録番号が無ければ適格請求書だと名乗らない(self):
         rec = self._book()
+        booking.SELLER['invoice_no'] = ''
         d, _ = booking.invoice_data(rec['id'])
         self.assertEqual(d['登録番号'], '')
         self.assertIn('適格請求書ではありません', d['注記'])
-        booking.SELLER['invoice_no'] = 'T1234567890123'
+        booking.SELLER['invoice_no'] = 'T2010001240988'
         d2, _ = booking.invoice_data(rec['id'])
-        self.assertEqual(d2['登録番号'], 'T1234567890123')
+        self.assertEqual(d2['登録番号'], 'T2010001240988')
         self.assertEqual(d2['注記'], '')
+
+    def test_登録番号は実在の法人番号(self):
+        # 2026-08-17 国税庁の法人番号公表サイトで照合済み
+        #   2010001240988 = 株式会社ＺｅｂｒａＱｕａｎｔｕｍ（所在地も一致）
+        # ⛔ 検査用数字が合わない番号を置かないこと（請求書が無効になる）
+        no = self._seller['invoice_no']
+        self.assertTrue(no.startswith('T') and len(no) == 14, no)
+        body = no[1:]
+        rev = [int(x) for x in body[1:][::-1]]
+        s = sum(d * (1 if (i + 1) % 2 else 2) for i, d in enumerate(rev))
+        self.assertEqual(int(body[0]), 9 - (s % 9), '検査用数字が合いません')
+
+    def test_口座番号をリポジトリに置かない(self):
+        # ⛔ jqca/jgaia は公開リポジトリ（匿名で読める）。口座番号を置くと
+        #    「口座が変わりました」型の詐欺の材料になり、履歴からも消せない。
+        #    値は環境変数 SELLER_BANK で渡す。
+        root = os.path.dirname(HERE)
+        src = io.open(os.path.join(root, 'booking.py'), encoding='utf-8').read()
+        self.assertIn("os.environ.get('SELLER_BANK'", src)
+        for d in (root, os.path.join(root, 'templates')):
+            for name in sorted(os.listdir(d)):
+                if not name.endswith(('.py', '.html')):
+                    continue
+                body = io.open(os.path.join(d, name), encoding='utf-8').read()
+                self.assertNotIn('2313611', body, '%s に口座番号がある' % name)
 
     def test_番号は何度出しても同じ(self):
         # ⛔ 出すたびに変わると、同じ請求が二重に見える
