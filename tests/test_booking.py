@@ -1975,6 +1975,25 @@ class Test特商法の表記(unittest.TestCase):
         # ⛔ 講座は開催日のある役務。動画教材の文言を流用しない
         self.assertNotIn('デジタルコンテンツのため', self.html)
 
+    def test_提供していない支払方法を書かない(self):
+        # 2026-08-17 実害。Stripe の鍵が入っていないのに、この法定表示だけが
+        # 「クレジットカード決済（VISA、MasterCard、JCB…）」を掲げていた
+        # ＝提供していない支払方法を表示していた。⛔決済手段を直書きしないこと。
+        #   出どころは payments.enabled()（申込画面の選択肢と同じ判定）。
+        import payments
+        t = _visible(self.html)
+        book = _visible(self.c.get('/book/SP-A').get_data(as_text=True))
+        sub = _visible(self.c.get('/subsidy').get_data(as_text=True))
+        if payments.enabled():
+            self.assertIn('クレジットカード', t)
+        else:
+            for page, name in ((t, '特商法'), (book, '申込画面'), (sub, '助成金')):
+                self.assertNotIn('クレジットカード', page, name)
+                self.assertNotIn('カード払い', page, name)
+            self.assertIn('請求書・銀行振込のみ', t)
+        # ⛔ どちらの設定でも銀行振込は必ず載っていること
+        self.assertIn('銀行振込', t)
+
     def test_キャンセル規定は1か所から出す(self):
         self.assertIn('13〜7日前', self.html)
         self.assertIn(booking.CANCEL_POLICY.split('／')[0].strip(), self.html)

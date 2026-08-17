@@ -216,8 +216,14 @@ def subsidy():
                          exam=(booking.exam_for(c["code"]) or {}).get("name", ""),
                          dx=booking.dx_skills(c["code"])))
     corp = booking.CORPORATE
+    # ⛔ 「カード払いは助成の対象外」を、カードを提供していない日にも出さないこと。
+    #    選べない支払方法の注意書きは読み手を迷わせる（2026-08-17）。
+    #    ⛔ 渡し忘れるとJinjaが未定義を偽として扱い、Stripeを入れた日に
+    #       「カードは対象外」の注意が消えたままになる＝必ず明示的に渡す。
+    import payments as _pay
     return render_template(
         "subsidy.html", s=booking.subsidy_for("SP-A"), corp=corp,
+        card_enabled=_pay.enabled(),
         q1=booking.corporate_quote(1, corp["included"])[0],
         q2=booking.corporate_quote(1, 20)[0],
         q3=booking.corporate_quote(3, corp["included"])[0],
@@ -239,10 +245,15 @@ def tokutei():
     # ⛔ 価格帯も直書きしないこと（2026-08-17 に ¥228,000 が残っていた）。実価格から出す。
     _p = [c['price'] for c in booking.COURSES]
     price_range = '¥{:,}〜¥{:,}'.format(min(_p), max(_p))
+    # ⛔ 決済手段を直書きしないこと（2026-08-17 実害）。カードの鍵が入っていないのに
+    #    法定表示だけが「クレジットカード決済（VISA…）」と掲げていた＝提供していない
+    #    支払方法を表示していた。実際の設定（payments.enabled）から出す。
+    import payments
     return render_template("tokutei.html", seller=booking.SELLER,
                            cancel_policy=booking.CANCEL_POLICY,
                            extra_cost_note=booking.EXTRA_COST_NOTE,
                            price_range=price_range,
+                           card_enabled=payments.enabled(),
                            delivery_note=booking.DELIVERY_NOTE)
 
 
