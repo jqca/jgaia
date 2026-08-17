@@ -102,7 +102,12 @@
     font-family: 'Noto Sans JP', sans-serif;
     line-height: 1.7;
 }
-.lp-body a { color: inherit; text-decoration: none; }
+/* ⛔ `.lp-body a` と書かないこと（社長ご指摘 2026-08-17）。要素セレクタが
+   混ざるとクラス1つ（.btn-corp など）より詳細度が高くなり、ボタンに書いた
+   色が黙って捨てられる。実測では「法人研修のご相談」が #1a1a2e on #0d1b3e＝
+   コントラスト比 1.01（ほぼ見えない）、コース詳細ボタン4つも青が消えていた。
+   :where() は詳細度ゼロなので、リセットとしてだけ効きボタンの色に負ける。 */
+.lp-body :where(a) { color: inherit; text-decoration: none; }
 .lp-body img { display: block; max-width: 100%; }
 .lp-body button { cursor: pointer; border: none; background: none; font-family: inherit; }
 .wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
@@ -132,7 +137,8 @@
     font-weight: 700;
     letter-spacing: .2em;
     text-transform: uppercase;
-    color: #3b82f6;
+    /* ⛔ #3b82f6 は白地で比3.68＝小さな文字の基準4.5に届かない */
+    color: #1d4ed8;
     margin-bottom: 12px;
 }
 .sec-title {
@@ -170,7 +176,7 @@
     box-shadow: 0 4px 16px rgba(59,130,246,.1);
     transform: translateY(-2px);
 }
-.problem-num { font-size: 11px; font-weight: 700; letter-spacing: .15em; color: #3b82f6; margin-bottom: 12px; }
+.problem-num { font-size: 11px; font-weight: 700; letter-spacing: .15em; color: #1d4ed8; margin-bottom: 12px; }
 /* アイコンは Lucide（icons.py）。色は指定せず currentColor を継ぐので、
    ここで色を決めると中のSVGにそのまま効く */
 .problem-icon { color: #3b82f6; line-height: 0; margin-bottom: 12px; }
@@ -223,10 +229,10 @@
     border-radius: 3px;
     white-space: nowrap;
 }
-.c-a .course-step-tag { background: #3b82f6; }
-.c-b .course-step-tag { background: #10b981; }
-.c-c .course-step-tag { background: #f59e0b; }
-.c-d .course-step-tag { background: #8b5cf6; }
+.c-a .course-step-tag { background: #1d4ed8; }
+.c-b .course-step-tag { background: #047857; }
+.c-c .course-step-tag { background: #b45309; }
+.c-d .course-step-tag { background: #6d28d9; }
 .course-card-lp h3 { font-size: 18px; font-weight: 700; color: #0d1b3e; }
 .course-body-lp { padding: 16px 28px 28px; }
 .course-meta-lp { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; font-size: 12.5px; color: #64748b; }
@@ -235,11 +241,16 @@
 .course-price { display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px; }
 .price-main { font-size: 28px; font-weight: 900; color: #0d1b3e; letter-spacing: -.02em; }
 .price-sub { font-size: 12px; color: #64748b; }
-.price-subsidy { font-size: 12px; color: #10b981; font-weight: 600; margin-bottom: 16px; }
+/* ⛔ #10b981 は白地で比2.54。緑のまま濃くする（色相は保つ） */
+.price-subsidy { font-size: 12px; color: #047857; font-weight: 600; margin-bottom: 16px; }
 .toggle-btn {
     font-size: 13px;
     font-weight: 500;
-    color: #3b82f6;
+    /* ⛔ #3b82f6 に戻さないこと。白地で比3.68＝小さな文字の基準4.5に届かない。
+       2026-08-17 まで詳細度の問題でこの色は効いておらず（濃紺で描かれていた）、
+       詳細度を直した瞬間に薄い青になって前より読みにくくなるところだった。
+       枠線は #3b82f6 のままでよい（コントラストの基準は文字にかかる）。 */
+    color: #1d4ed8;
     padding: 10px 20px;
     border-radius: 4px;
     border: 1px solid #3b82f6;
@@ -621,7 +632,7 @@
           <p class="course-desc-lp">画像生成AI（Midjourney / DALL-E / Stable Diffusion）、動画生成AI（Sora等）、音声AIを活用したクリエイティブワークフローを習得します。</p>
           <div class="course-price"><span class="price-main">¥{{ '{:,}'.format(prices['GE']) }}</span><span class="price-sub">{{ price_unit }}{{ price_suffix }}</span></div>
           <div class="price-subsidy">{{ icon('banknote', 15, stroke=1.8) }} 法人研修なら助成金対象 — 実質 ¥{{ '{:,}'.format(subsidy_net_typical) }}</div>
-          <a href="/vibe-coding/course-ge" class="toggle-btn" style="display:block;text-align:center;text-decoration:none;border-color:#8b5cf6;color:#8b5cf6">コース詳細を見る →</a>
+          <a href="/vibe-coding/course-ge" class="toggle-btn" style="display:block;text-align:center;text-decoration:none;border-color:#6d28d9;color:#6d28d9">コース詳細を見る →</a>
         </div>
       </div>
     </div>
