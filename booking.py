@@ -2058,7 +2058,7 @@ def booked_summary(instructor_id):
        分からないと、講師は自分がその日に何をするのか確かめられない
        （2026-08-13 社長ご質問）。
     """
-    per, dates = {}, {}
+    per, dates, wait = {}, {}, {}
     for b in bookings():
         if b.get('担当講師id') != instructor_id or not is_live(b):
             continue
@@ -2066,12 +2066,17 @@ def booked_summary(instructor_id):
         per[key] = per.get(key, 0) + int(b.get('人数') or 1)
         dates[key] = (b.get('開催日')
                       or course_dates(b.get('コース'), b.get('希望日')))
+        # ⛔ 申告済みかどうかを画面に出すこと。出さないと、講師は届いたのか
+        #    分からず何度も押す（2026-08-17 新設）
+        if b.get('担当交代待ち'):
+            wait[key] = b['担当交代待ち']
     out = {}
     for (code, start), people in sorted(per.items()):
         row = {'コース': code,
                'コース名': (COURSE_BY_CODE.get(code) or {}).get('name', ''),
                '開始日': start, '人数': people,
-               '日程': dates[(code, start)]}
+               '日程': dates[(code, start)],
+               '担当交代待ち': wait.get((code, start))}
         for iso in dates[(code, start)]:
             out.setdefault(iso, []).append(row)
     return out
@@ -2260,6 +2265,49 @@ def subsidy_deadline_ok(day_iso):
     except (TypeError, ValueError):
         return None
     return d >= today_jst() + timedelta(days=SUBSIDY['lead_days'])
+
+
+def request_replacement(token, iso, reason=''):
+    """講師が「その日は担当できなくなった」と申告する（社長ご質問 2026-08-17）。
+
+    ⛔ 2026-08-17 まで、この口がどこにも無かった。講師への依頼メールは
+       「ご都合が変わった場合はご自身の予定画面からその日を『不可』にしてください」
+       と案内しているのに、set_day_courses は予約の入った日を拒否する＝
+       **できない操作を案内していた**。行き先は info@jgaia.org へのメールだけで、
+       そこから先は運営が手で追うしかなかった。
+
+    ⛔ 予約そのものを取り消さないこと。受講者との約束であって、講師の都合で
+       消してよいものではない（別の講師を立てられるなら開催できる）。
+    ⛔ 受講者へ自動で連絡しないこと。代わりが立つかどうかを確かめてから、
+       人が伝える（「中止」と誤って伝わるのがいちばん重い）。
+    戻り値: (印を付けた申込のリスト, エラー文 or None)
+    """
+    inst = find_instructor(token)
+    if not inst:
+        return [], 'リンクが正しくありません'
+    reason = (reason or '').strip()
+    if len(reason) < 4:
+        return [], '理由を書いてください（4文字以上）'
+    rows = bookings()
+    hit = []
+    for b in rows:
+        if b.get('担当講師id') != inst.get('id') or not is_live(b):
+            continue
+        if iso not in (b.get('開催日') or [b.get('希望日')]):
+            continue
+        b['担当交代待ち'] = {'申告日時': now_jst().strftime('%Y-%m-%d %H:%M'),
+                             '理由': reason, '対象日': iso,
+                             '元の講師': inst.get('氏名')}
+        hit.append(b)
+    if not hit:
+        return [], 'その日には、あなたが担当する申込がありません'
+    _save('bookings.json', rows)
+    return hit, None
+
+
+def replacement_waiting():
+    """代わりの講師を立てる必要がある申込（運営が見る）。"""
+    return [b for b in bookings() if b.get('担当交代待ち') and is_live(b)]
 
 
 def cancel_booking(booking_id, reason=''):

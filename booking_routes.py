@@ -185,6 +185,43 @@ def register_booking_routes(app):
                                earliest=(booking.today_jst()
                                          + timedelta(days=booking.LEAD_DAYS)).isoformat())
 
+    @app.route('/api/instructor/unavailable', methods=['POST'])
+    def api_instructor_unavailable():
+        """講師が「その日は担当できなくなった」と申告する（社長ご質問 2026-08-17）。
+
+        ⛔ 予約は取り消さないこと（受講者との約束。別の講師を立てれば開催できる）。
+        ⛔ 受講者へ自動で連絡しないこと。代わりが立つか確かめてから人が伝える
+           （「中止」と誤って伝わるのがいちばん重い）。
+        ⛔ 合言葉ではなく本人の鍵で判定する（この操作をするのは講師本人）。
+        """
+        d = request.get_json(silent=True) or {}
+        rows, err = booking.request_replacement(
+            d.get('token'), d.get('iso'), d.get('reason'))
+        if err:
+            return {'error': err}, 400
+        # ⛔ 運営に届かないと、講師は申告したのに誰も気づかない
+        # ⛔ notify_payload はこのファイルの外（mail_targets）にある。
+        #    import を忘れると NameError で500になり、印は付いたのに
+        #    画面には「お知らせできませんでした」と出る（2026-08-17 実際に踏んだ）
+        from mail_targets import notify_payload
+        inst = booking.find_instructor(d.get('token')) or {}
+        lines = ['講師の方から「担当できなくなった」とのご連絡です。',
+                 '代わりの講師を立てるか、受講者へご連絡ください。', '',
+                 '講師: {}（{}）'.format(inst.get('氏名'), inst.get('連絡先')),
+                 '対象日: {}'.format(d.get('iso')),
+                 '理由: {}'.format(d.get('reason') or ''), '']
+        for b in rows:
+            lines.append('・{} {} {}名（{}） 申込者 {} 様 <{}>'.format(
+                b['コース'], b['コース名'], b['人数'],
+                '・'.join(b.get('開催日') or [b['希望日']]),
+                b['氏名'], b['連絡先']))
+        sent = _send(app, [notify_payload(
+            '【要対応】{} の担当ができなくなりました（{}）'.format(
+                d.get('iso'), inst.get('氏名')),
+            reply_to=inst.get('連絡先'), text='\n'.join(lines))],
+            'instructor_unavailable', inst.get('氏名'))
+        return {'ok': True, '件数': len(rows), '運営へ通知': bool(sent)}
+
     # ─────────────── 1日ぶんの登録（選ぶ → 確認 → 保存）
     @app.route('/instructor/schedule/<token>/day/<iso>',
                methods=['GET', 'POST'])
@@ -774,8 +811,14 @@ def _notify_booking(app, rec, inst):
                          #    読まれる）。定額であることを明記する
                          f"■ 講師料: {booking.instructor_fee(rec['コース']):,}円"
                          f"（1開催あたりの定額・人数によって変わりません）\n\n"
-                         f"ご都合が変わった場合は、ご自身の予定画面から"
-                         f"その日を「不可」にしてください。\n"
+                         # ⛔ 「予定画面でその日を不可にしてください」と書かない
+                         #    こと（2026-08-17 修正）。予約の入った日は
+                         #    set_day_courses が拒否する＝できない操作を案内して
+                         #    いた。実際に押せる道（申告ボタン）を案内する。
+                         f"ご都合が変わった場合は、下記の予定画面で\n"
+                         f"その日の「担当できなくなった」からお知らせください"
+                         f"（運営が代わりの講師を立てます）。\n"
+                         f"{url_for('instructor_schedule', token=inst['鍵'], _external=True)}\n"
                          + booking.seller_footer())})
     except Exception:
         app.logger.exception('[book] 通知メールに失敗。申込は保存済み: %s', rec['氏名'])

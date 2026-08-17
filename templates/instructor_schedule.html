@@ -241,6 +241,76 @@
     </ul>
   </div>
 
+  {# ── お申し込みが入っている日（社長ご質問 2026-08-17）
+     ⛔ カレンダーの青い日を見せるだけにしないこと。2026-08-17 まで、講師には
+        「担当できなくなった」ときの押せる道が1つも無く、依頼メールは
+        「予定画面でその日を不可にしてください」と、システムが拒否する操作を
+        案内していた。行き先は info@jgaia.org へのメールだけだった。
+     ⛔ ここから予約を取り消せるようにしないこと（受講者との約束）。
+        運営に伝えるだけ＝代わりの講師を立てられれば開催できる。 #}
+  {% if booked_info %}
+  <div class="card">
+    <h2>お申し込みが入っている日</h2>
+    <p class="lead">ご都合が変わった場合は、その日の「担当できなくなった」を押してください。
+      運営が代わりの講師を立てます。<strong>受講者の方へは運営からご連絡します</strong>ので、
+      この操作でお申し込みが取り消されることはありません。</p>
+    <ul class="cov-list" id="bookedList">
+      {% for iso, rows in booked_info.items() | sort %}
+      <li class="cov-item" data-iso="{{ iso }}">
+        <span class="cov-name">{{ iso }}</span>
+        <span class="cov-h">
+          {%- for b in rows %}{{ b['コース'] }} {{ b['コース名'] }} {{ b['人数'] }}名
+          {%- if not loop.last %} ／ {% endif %}{% endfor %}</span>
+        {% if rows[0].get('担当交代待ち') %}
+          <span class="cov-badge no">運営に連絡済み</span>
+        {% else %}
+          <button type="button" class="cov-badge no" data-unavail
+                  style="cursor:pointer;border:none;">担当できなくなった</button>
+        {% endif %}
+        <span class="ins-msg" style="font-size:13px;font-weight:700;"></span>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
 </div>
 </main>
+<script>
+(function () {
+  var TOKEN = {{ token | tojson }};
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest ? e.target.closest('[data-unavail]') : null;
+    if (!b) { return; }
+    var li = b.closest('.cov-item');
+    var msg = li.querySelector('.ins-msg');
+    // ⛔ 理由を必須にする（運営が代わりを立てる判断に要る）
+    var reason = prompt(li.dataset.iso + ' の担当ができなくなったことを運営にお知らせします。
+'
+                        + '差し支えなければ理由をご記入ください（4文字以上）。');
+    if (reason === null) { return; }
+    if (reason.trim().length < 4) {
+      msg.style.color = '#dc2626'; msg.textContent = '4文字以上でご記入ください';
+      return;
+    }
+    b.disabled = true; msg.style.color = ''; msg.textContent = '送信中…';
+    fetch('/api/instructor/unavailable', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({token: TOKEN, iso: li.dataset.iso, reason: reason})
+    }).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (j) {
+        if (!r.ok || !j.ok) { throw new Error(j.error || 'お知らせできませんでした'); }
+        return j;
+      });
+    }).then(function () {
+      msg.style.color = '#059669';
+      msg.textContent = '運営にお知らせしました';
+      b.remove();
+    }).catch(function (err) {
+      msg.style.color = '#dc2626'; msg.textContent = err.message;
+      b.disabled = false;
+    });
+  });
+})();
+</script>
 {% endblock %}

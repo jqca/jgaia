@@ -3224,6 +3224,98 @@ class Test対象判定を画面に直書きしない(unittest.TestCase):
             self.assertNotIn('助成金対象外', html, path)
 
 
+class Test講師が担当できなくなったとき(unittest.TestCase):
+    """社長ご質問 2026-08-17「予約が入ったら講師に知らせたり、本人に受け付けさせ
+    たり、間に入る管理者の手間が減るように作り込んでいるの？」
+    → 通知は出ていたが、**講師が辞退する口が1つも無かった**。しかも依頼メールは
+      「ご自身の予定画面からその日を『不可』にしてください」と案内しているのに、
+      set_day_courses は予約の入った日を拒否する＝**できない操作を案内していた**。
+      行き先は info@jgaia.org へのメールだけで、そこから先は運営が手で追っていた。
+
+    固定している事故の型:
+      ・講師の都合で受講者の予約が消える
+      ・受講者へ自動で「中止」が届く（代わりを立てれば開催できるのに）
+      ・理由なしで申告できる（運営が代わりを立てる判断ができない）
+      ・申告したのに画面が変わらず、講師が何度も押す
+      ・できない操作をメールで案内する
+    """
+
+    def setUp(self):
+        _clear()
+        app.logger.disabled = True
+        self.c = app.test_client()
+        booking.register_instructor('山田', 'y@example.com', '', ['SP-A'], '',
+                                    _days_all())
+        self.inst = booking.instructors()[0]
+        booking.set_state(self.inst['id'], '承認')
+        booking.verify_email(self.inst['鍵'])
+        self.token = self.inst['鍵']
+        self.day = _far_day()
+        self.rec, _ = booking.add_booking('SP-A', self.day, '受講 太郎',
+                                          's@example.com', 'A社', 2, '')
+
+    def _say(self, **kw):
+        body = {'token': self.token, 'iso': self.day, 'reason': '急な出張のため'}
+        body.update(kw)
+        return self.c.post('/api/instructor/unavailable', json=body)
+
+    def test_申告できる(self):
+        r = self._say()
+        self.assertEqual(r.status_code, 200, r.get_data(as_text=True))
+        self.assertEqual(len(booking.replacement_waiting()), 1)
+
+    def test_予約は取り消さない(self):
+        # ⛔ 受講者との約束。別の講師を立てられれば開催できる
+        self._say()
+        rec = booking.bookings()[0]
+        self.assertEqual(rec['状態'], '申込受付')
+        self.assertTrue(booking.is_live(rec))
+
+    def test_理由がなければ断る(self):
+        for bad in ('', '   ', 'あ'):
+            self.assertEqual(self._say(reason=bad).status_code, 400)
+        self.assertEqual(booking.replacement_waiting(), [])
+
+    def test_本人の鍵でなければ断る(self):
+        self.assertEqual(self._say(token='nosuch').status_code, 400)
+        self.assertEqual(self._say(iso='2030-01-01').status_code, 400)
+        self.assertEqual(booking.replacement_waiting(), [])
+
+    def test_申告済みは画面に出る(self):
+        # ⛔ 届いたか分からないと、講師は何度も押す
+        h = self.c.get('/instructor/schedule/%s' % self.token).get_data(as_text=True)
+        self.assertIn('担当できなくなった', h)
+        self.assertNotIn('運営に連絡済み', h)
+        self._say()
+        h = self.c.get('/instructor/schedule/%s' % self.token).get_data(as_text=True)
+        self.assertIn('運営に連絡済み', h)
+
+    def test_できない操作をメールで案内しない(self):
+        # ⛔ 予約の入った日は set_day_courses が拒否する。その操作を案内しない
+        src = io.open(os.path.join(os.path.dirname(HERE), 'booking_routes.py'),
+                      encoding='utf-8').read()
+        src = re.sub(r'^\s*#.*$', '', src, flags=re.M)
+        self.assertNotIn('その日を「不可」にしてください', src)
+        # 予約の入った日は、いまも本人には変更させない（受講者が待っている）
+        got, err = booking.set_day_courses(self.token, self.day, [])
+        self.assertIsNone(got)
+        self.assertIn('予約が入っている', err)
+
+    def test_受講者に自動で連絡しない(self):
+        # ⛔ 代わりが立つか確かめる前に「中止」と伝わるのがいちばん重い
+        src = io.open(os.path.join(os.path.dirname(HERE), 'booking_routes.py'),
+                      encoding='utf-8').read()
+        i = src.index('def api_instructor_unavailable')
+        body = src[i:src.index('@app.route', i + 10)]
+        # ⛔ 受講者へ直接メールを出す口を使わないこと。運営あて（notify_payload）
+        #    だけを通す。⛔ 'to=' で探さないこと＝reply_to= に当たる（雑な検査）
+        self.assertNotIn('resend.Emails.send', body)
+        self.assertNotIn("'to':", body)
+        self.assertIn('notify_payload', body)
+        # 受講者の連絡先は「運営が連絡できるように本文へ載せる」だけ
+        self.assertIn("b['連絡先']", body)
+
+
 class Test申込を取り消せる(unittest.TestCase):
     """2026-08-17 発見。画面にキャンセルポリシーを出しているのに、運営が申込を
     取り消す口がどこにも無かった＝間違った申込・試験の申込が台帳に残り続け、
