@@ -3158,6 +3158,74 @@ class Test対象判定を画面に直書きしない(unittest.TestCase):
             self.assertNotIn('助成金対象外', html, path)
 
 
+class Test申込を取り消せる(unittest.TestCase):
+    """2026-08-17 発見。画面にキャンセルポリシーを出しているのに、運営が申込を
+    取り消す口がどこにも無かった＝間違った申込・試験の申込が台帳に残り続け、
+    定員と講師の枠を食う（本番で動作確認をしようとして気づいた）。
+
+    固定している事故の型:
+      ・合言葉なしで取り消せる（誰でも他人の申込を消せる）
+      ・理由なしで取り消せる（後から誰も判断できない）
+      ・行ごと消す（何件失ったかが残らない）
+      ・取り消したのに席が空かない
+    """
+
+    def setUp(self):
+        _clear()
+        app.logger.disabled = True
+        self.c = app.test_client()
+        booking.register_instructor('山田', 'y@example.com', '', ['SP-A'], '',
+                                    _days_all())
+        i = booking.instructors()[0]
+        booking.set_state(i['id'], '承認')
+        booking.verify_email(i['鍵'])
+        self.day = _far_day()
+        self.rec, _ = booking.add_booking('SP-A', self.day, 'A', 'a@example.com',
+                                          '', 1, '')
+
+    def _cancel(self, **kw):
+        body = {'reason': '動作確認のため'}
+        body.update(kw)
+        return self.c.post('/api/booking/%s/cancel' % self.rec['id'],
+                           json=body, headers={'X-Admin-Token': 'test-admin'})
+
+    def test_合言葉が無いと取り消せない(self):
+        r = self.c.post('/api/booking/%s/cancel' % self.rec['id'],
+                        json={'reason': '動作確認のため'})
+        self.assertEqual(r.status_code, 403)
+        self.assertEqual(booking.bookings()[0]['状態'], '申込受付')
+
+    def test_理由が無いと取り消せない(self):
+        self.assertEqual(self._cancel(reason='').status_code, 400)
+        self.assertEqual(self._cancel(reason='は').status_code, 400)
+        self.assertEqual(booking.bookings()[0]['状態'], '申込受付')
+
+    def test_取り消すと席が空く(self):
+        before = [d for d in booking.open_days('SP-A', months=4)
+                  if d['日付'] == self.day][0]
+        r = self._cancel()
+        self.assertEqual(r.status_code, 200, r.get_data(as_text=True))
+        rows = booking.bookings()
+        # ⛔ 行は消さない（何件失ったかが残る）
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]['状態'], '取消')
+        self.assertEqual(rows[0]['取消理由'], '動作確認のため')
+        self.assertFalse(booking.is_live(rows[0]))
+        after = [d for d in booking.open_days('SP-A', months=4)
+                 if d['日付'] == self.day][0]
+        self.assertGreater(after['残り'], before['残り'])
+
+    def test_二重に取り消さない(self):
+        self.assertEqual(self._cancel().status_code, 200)
+        self.assertEqual(self._cancel().status_code, 404)
+
+    def test_無い申込は404(self):
+        r = self.c.post('/api/booking/nosuch/cancel',
+                        json={'reason': '動作確認のため'},
+                        headers={'X-Admin-Token': 'test-admin'})
+        self.assertEqual(r.status_code, 404)
+
+
 class Test研修ごとに申し込める(unittest.TestCase):
     """社長ご指示 2026-08-17「20万円未満だと現場の担当者の決裁権限の内側」。
 

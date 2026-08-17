@@ -450,6 +450,35 @@ def register_booking_routes(app):
                 '開催確定': rec['_開催確定'],
                 '合計人数': rec['_合計人数']}
 
+    @app.route('/api/booking/<booking_id>/cancel', methods=['POST'])
+    def api_booking_cancel(booking_id):
+        """運営が申込を取り消す（席を解放する）。
+
+        ⛔ 2026-08-17 まで、この口がどこにも無かった。画面にキャンセルポリシーを
+           出しているのに、運営が取り消す手段が1つも無く、間違った申込・試験の
+           申込が台帳に残り続けて定員と講師の枠を食っていた。
+        ⛔ 行は消さないこと（cancel_booking が状態を「取消」にする）。何件失ったかが
+           分からなくなる。⛔ 理由を必須にすること（後から誰も判断できなくなる）。
+        ⛔ 受講者へのお詫び・返金はここでは出さない。取り消しの記録だけを残し、
+           連絡は人が確かめてから行う（自動で外に出さない）。
+        """
+        ok = _admin_ok()
+        if ok is None:
+            return {'error': 'disabled',
+                    'message': '管理用の合言葉が未設定のため無効です。'}, 503
+        if not ok:
+            return {'error': 'forbidden'}, 403
+        data = request.get_json(silent=True) or {}
+        reason = (data.get('reason') or '').strip()
+        if len(reason) < 4:
+            return {'error': '取り消す理由を書いてください（4文字以上）'}, 400
+        rec = booking.cancel_booking(booking_id, reason)
+        if not rec:
+            return {'error': 'その申込が見つからないか、すでに取消済みです'}, 404
+        app.logger.info('[booking] 取消 %s: %s', booking_id, reason)
+        return {'ok': True, 'id': booking_id, '状態': rec.get('状態'),
+                'コース': rec.get('コース'), '希望日': rec.get('希望日')}
+
     @app.route('/admin/booking/<booking_id>/certificate')
     def admin_certificate(booking_id):
         """受講証明書（参考様式2）に転記する項目を出す。
