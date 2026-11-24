@@ -29,6 +29,19 @@ for _k in ('RESEND_API_KEY', 'HCAPTCHA_SECRET', 'SMTP_PASSWORD'):
     os.environ.pop(_k, None)
 
 import booking  # noqa: E402
+
+
+def setUpModule():
+    """このファイルの試験が始まる直前に、保存先を自分の一時フォルダへ戻す。
+
+    ⛔ 上のモジュール冒頭の設定だけに頼らないこと。pytest は全ファイルを
+       先に読み込むので、後から読まれた試験ファイルが INQUIRY_LOG_DIR を
+       自分のフォルダに書き換える。booking は保存先を呼ぶたびに環境変数から
+       引くため、そのままだとこのファイルの試験は他人のフォルダに書き、
+       _clear() は自分のフォルダを消す＝前の試験の講師・予約が残り続けて
+       114件が連鎖して落ちた（2026-11-24 実測。単体で流すと通る）。
+    """
+    os.environ['INQUIRY_LOG_DIR'] = _TMP
 import antispam  # noqa: E402
 from app import app  # noqa: E402
 from solo_ceo import booking_summary as solo_ceo_summary  # noqa: E402
@@ -79,16 +92,20 @@ def _weekly_all_days():
     return [{'曜日': i, '開始': '10:00', '終了': '17:00'} for i in range(7)]
 
 
-def _far_day(offset=30):
+def _far_day(offset=30, courses=()):
     """offset日後 以降の、いちばん近い『開催日』。
 
     ⛔ ただの offset 日後を返さないこと（2026-08-15）。開催日は運営が決めた
        曜日（毎週水＋第2・第4土）だけで、それ以外は講師も登録できない。
        固定の日数を返すと、テストが「その年その月の曜日」に依存して落ちる。
+    courses を渡すと、その講座がすべて開ける曜日の日だけを返す。
+    ⛔ 曜日の決まった講座（SP-B は毎週水曜）を混ぜる試験で省略しないこと。
+       今日+30日の次の開催日が土曜に当たる日だけ落ちていた（2026-11-24 実測）。
     """
     d = date.today() + timedelta(days=offset)
-    for _ in range(14):
-        if booking.is_session_day(d):
+    for _ in range(28):
+        if booking.is_session_day(d) and all(
+                booking.course_open_on(c, d) for c in courses):
             return d.isoformat()
         d += timedelta(days=1)
     raise AssertionError('開催日が見つかりません')
@@ -845,7 +862,7 @@ class Test担当できる日(unittest.TestCase):
         codes = ['SP-A', 'SP-B', 'GA', 'GB', 'GD', 'GE']
         self.assertEqual({booking.course_hours(c) for c in codes},
                          {('10:00', '17:00')})
-        day = _far_day()
+        day = _far_day(courses=codes)
         inst, token = self._reg(courses=tuple(codes))
         # SP-B は3日間なので、続く日も登録しておく（開始日として成立させる）
         for iso in booking.course_dates('SP-B', day)[1:]:

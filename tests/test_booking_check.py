@@ -27,6 +27,19 @@ for _k in ('RESEND_API_KEY', 'HCAPTCHA_SECRET', 'SMTP_PASSWORD'):
     os.environ.pop(_k, None)
 
 import booking          # noqa: E402
+
+
+def setUpModule():
+    """このファイルの試験が始まる直前に、保存先を自分の一時フォルダへ戻す。
+
+    ⛔ 上のモジュール冒頭の設定だけに頼らないこと。pytest は全ファイルを
+       先に読み込むので、後から読まれた試験ファイルが INQUIRY_LOG_DIR を
+       自分のフォルダに書き換える。booking は保存先を呼ぶたびに環境変数から
+       引くため、そのままだとこのファイルの試験は他人のフォルダに書き、
+       _clear() は自分のフォルダを消す＝前の試験の講師・予約が残り続けて
+       114件が連鎖して落ちた（2026-11-24 実測。単体で流すと通る）。
+    """
+    os.environ['INQUIRY_LOG_DIR'] = _TMP
 import booking_check    # noqa: E402
 from app import app     # noqa: E402
 
