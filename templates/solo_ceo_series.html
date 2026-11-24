@@ -1,0 +1,338 @@
+{% extends "base.html" %}
+
+{% block title %}一人会社AI経営講座 部門別編{% endblock %}
+{% block description %}一人会社AI経営講座の部門別編。バックオフィス編・発信編・開発編・営業編で、部門ごとにAI社員を1人ずつ自社に置いていく講座シリーズ。先行申込受付中。JGAIA認定。{% endblock %}
+
+{% block extra_head %}
+<meta property="og:title" content="一人会社AI経営講座 部門別編 | JGAIA 日本生成AI協会">
+<meta property="og:description" content="部門ごとにAI社員を1人ずつ。バックオフィス編・発信編・開発編・営業編の先行申込を受け付けています。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://www.jgaia.org/solo-ceo/series">
+<link rel="canonical" href="https://www.jgaia.org/solo-ceo/series">
+{% endblock %}
+
+{% block extra_css %}
+{% include "_solo_ceo_css.html" %}
+/* ── 部門別編 ── */
+.sr-flow {
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px;
+    max-width: 980px; margin: 0 auto;
+}
+.sr-flow .step {
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
+    padding: 16px 12px; text-align: center; font-size: 14px; line-height: 1.6; color: #334155;
+}
+.sr-flow .step b { display: block; font-size: 15px; color: #0f172a; margin-bottom: 4px; }
+.sr-flow .step.base { background: #eff6ff; border-color: #bfdbfe; }
+.sr-list { display: grid; gap: 28px; max-width: 980px; margin: 0 auto; }
+.sr-card {
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden;
+}
+.sr-card .sr-head { padding: 22px 26px; color: #fff; }
+.sr-card .sr-head .sr-no { font-size: 12px; letter-spacing: .16em; opacity: .8; }
+.sr-card .sr-head h3 { font-size: 22px; margin: 4px 0 6px; color: #fff; }
+.sr-card .sr-head .sr-lead { font-size: 15px; opacity: .92; }
+.sr-card .sr-status {
+    display: inline-block; margin-top: 10px; font-size: 12px; font-weight: 600;
+    padding: 4px 12px; border-radius: 20px; background: rgba(255,255,255,.18);
+}
+.sr-card .sr-body { padding: 22px 26px 26px; color: #334155; }
+.sr-card .sr-body > p { line-height: 1.85; margin: 0 0 16px; }
+.sr-points { list-style: none; padding: 0; margin: 0 0 16px; display: grid; gap: 10px; }
+.sr-points li { border-left: 3px solid #cbd5e1; padding: 2px 0 2px 14px; line-height: 1.7; font-size: 15px; }
+.sr-points li b { color: #0f172a; margin-right: 6px; }
+.sr-take {
+    background: #f8fafc; border-radius: 10px; padding: 12px 16px; font-size: 14px; line-height: 1.75;
+}
+.sr-take b { color: #0f172a; }
+.sr-card .sr-apply {
+    display: inline-block; margin-top: 16px; font-weight: 600; font-size: 14px;
+    color: #2563eb !important; text-decoration: none;
+}
+.sr-checks { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; margin: 6px 0 14px; }
+.sr-checks label {
+    display: flex !important; align-items: center; gap: 8px; margin: 0 !important;
+    font-weight: 500; cursor: pointer;
+}
+.sc-form-wrap .sr-checks input { width: auto !important; margin: 0 !important; }
+.sr-radio { display: flex; flex-wrap: wrap; gap: 8px 20px; margin: 6px 0 14px; }
+.sr-radio label { display: flex !important; align-items: center; gap: 8px; margin: 0 !important; font-weight: 500; cursor: pointer; }
+.sc-form-wrap .sr-radio input { width: auto !important; margin: 0 !important; }
+.sr-err { color: #fca5a5; font-size: 13px; margin: -6px 0 12px; display: none; }
+@media (max-width: 768px) {
+    .sr-flow { grid-template-columns: 1fr; }
+    .sr-checks { grid-template-columns: 1fr; }
+    .sr-card .sr-head, .sr-card .sr-body { padding-left: 18px; padding-right: 18px; }
+}
+{% endblock %}
+
+
+
+{% block content %}
+{% set colors = {
+    'backoffice': 'linear-gradient(135deg, #1e3a5f, #2563eb)',
+    'outreach':   'linear-gradient(135deg, #7c2d12, #ea580c)',
+    'dev':        'linear-gradient(135deg, #312e81, #4f46e5)',
+    'sales':      'linear-gradient(135deg, #0f766e, #0d9488)',
+} %}
+<main>
+<section class="sc-hero">
+    <div class="hero-eyebrow">一人会社AI経営講座 部門別編</div>
+    <h1>部門ごとに、<br><em>AI社員</em>を1人ずつ。</h1>
+    <p class="hero-sub">
+        総論で全体像をつかんだら、次は部門ごとの実装へ。<br>
+        1編受けるごとに、あなたの会社でAI社員が1人動き出す講座シリーズです。
+    </p>
+    <div class="hero-actions">
+        <a href="#inquiry" class="sc-btn-primary">先行申込をする →</a>
+        <a href="#series" class="sc-btn-outline">4つの編を見る</a>
+    </div>
+</section>
+</main>
+
+<div class="sc-body">
+
+<section class="sc-section" id="concept">
+    <div class="sc-wrap">
+        <div class="sc-section-head">
+            <div class="sec-eyebrow">CONCEPT</div>
+            <h2>総論から、部門別の実装へ</h2>
+            <p>編を重ねるほど、あなたの会社ができあがっていきます。どの編からでも受講できます。</p>
+        </div>
+        <div class="sr-flow">
+            <div class="step base"><b>総論</b>一人会社AI経営の全体像（入門・実践・夜間）</div>
+            <div class="step"><b>バックオフィス編</b>AI事務局を置く</div>
+            <div class="step"><b>発信編</b>発信を仕組みにする</div>
+            <div class="step"><b>開発編</b>業務アプリを作る</div>
+            <div class="step"><b>営業編</b>商談と追客を任せる</div>
+        </div>
+        <div class="sc-pain-grid" style="margin-top:36px;">
+            <div class="sc-pain-card">
+                <h3>知識ではなく、動く仕組みを持ち帰る</h3>
+                <p>各編の最後に、受講者の会社でその部門のAI社員が実際に仕事を1つ終えるところまで進めることを目指します。</p>
+            </div>
+            <div class="sc-pain-card">
+                <h3>失敗を前提にした作り方</h3>
+                <p>AIは間違えます。だから「確かめてから外に出す」関所を最初から組み込みます。任せても事故を起こさない作り方が、このシリーズの芯です。</p>
+            </div>
+            <div class="sc-pain-card">
+                <h3>実際に回している経営が教材</h3>
+                <p>講座の内容は、AI社員と日々の経営を回している現場の実例がもとです。机上の一般論ではありません。</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="sc-section sc-alt" id="series">
+    <div class="sc-wrap">
+        <div class="sc-section-head">
+            <div class="sec-eyebrow">SERIES</div>
+            <h2>4つの編</h2>
+            <p>開講日・受講料・形式は、決まり次第、先行申込の方から順にご案内します。</p>
+        </div>
+        <div class="sr-list">
+            {% for s in series %}
+            <article class="sr-card" id="sr-{{ s.id }}">
+                <div class="sr-head" style="background:{{ colors[s.id] }}">
+                    <div class="sr-no">PART {{ loop.index }}</div>
+                    <h3>{{ s.label }}</h3>
+                    <div class="sr-lead">{{ s.lead }}</div>
+                    <div class="sr-status">{{ s.status }}</div>
+                </div>
+                <div class="sr-body">
+                    <p>{{ s.summary }}</p>
+                    <ul class="sr-points">
+                        {% for t, d in s.points %}
+                        <li><b>{{ t }}</b>{{ d }}</li>
+                        {% endfor %}
+                    </ul>
+                    <div class="sr-take"><b>持ち帰れるもの：</b>{{ s.takeaway }}</div>
+                    <a href="#inquiry" class="sr-apply" data-pick="{{ s.label }}">{{ s.label }}に先行申込する →</a>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+        <div style="text-align:center;margin-top:36px;">
+            <a href="/solo-ceo" class="sc-btn-primary" style="background:#2563eb;color:#fff;">総論（入門・実践・夜間）を見る →</a>
+        </div>
+    </div>
+</section>
+
+<section class="sc-section" id="faq">
+    <div class="sc-wrap">
+        <div class="sc-section-head">
+            <div class="sec-eyebrow">FAQ</div>
+            <h2>よくあるご質問</h2>
+        </div>
+        <div class="sc-faq-list">
+            <details class="sc-faq-item">
+                <summary>総論を受けていなくても受講できますか？</summary>
+                <div class="faq-answer">はい、どの編からでも受講できます。全体像を先につかみたい方には、総論（入門1日）を先に受けることをおすすめしています。</div>
+            </details>
+            <details class="sc-faq-item">
+                <summary>先行申込をすると、受講が確定しますか？</summary>
+                <div class="faq-answer">いいえ。先行申込の方に、開講日・受講料・形式を先にご案内します。内容をご確認いただいてから、正式にお申し込みいただきます。お支払いはその時点まで発生しません。</div>
+            </details>
+            <details class="sc-faq-item">
+                <summary>プログラミングの経験は要りますか？</summary>
+                <div class="faq-answer">要りません。開発編も、コードを書かずにAIへの指示で作る講座です。</div>
+            </details>
+            <details class="sc-faq-item">
+                <summary>法人研修として実施できますか？</summary>
+                <div class="faq-answer">はい、編ごとに法人研修としても承ります。申込フォームで「法人研修として」を選んでください。お支払いは請求書（銀行振込）です。</div>
+            </details>
+        </div>
+    </div>
+</section>
+
+</div><!-- /.sc-body -->
+
+<section class="sc-cta-section" id="inquiry">
+    <h2>先行申込</h2>
+    <p>開講日・受講料が決まり次第、先行申込の方から順にご案内します。<br>営業電話は一切いたしません。</p>
+
+    <div class="sc-form-wrap" id="inquiryForm">
+        <form id="soloInquiryForm" onsubmit="return submitSeriesInquiry(event)">
+            <label for="fi-name">お名前 <span style="color:#f87171;">*</span></label>
+            <input type="text" id="fi-name" name="name" placeholder="山田 太郎" required>
+
+            <label for="fi-email">メールアドレス <span style="color:#f87171;">*</span></label>
+            <input type="email" id="fi-email" name="email" placeholder="taro@example.com" required>
+
+            <label>受講したい編 <span style="color:#f87171;">*</span>（複数選べます）</label>
+            <div class="sr-checks" id="fi-parts">
+                {% for s in series %}
+                <label><input type="checkbox" name="part" value="{{ s.label }}"> {{ s.label }}</label>
+                {% endfor %}
+            </div>
+            <div class="sr-err" id="partsErr">受講したい編を1つ以上選んでください。</div>
+
+            <label>受講の形</label>
+            <div class="sr-radio">
+                <label><input type="radio" name="style" value="個人で受講" checked> 個人で受講</label>
+                <label><input type="radio" name="style" value="法人研修として"> 法人研修として</label>
+            </div>
+
+            <label for="fi-company">会社名・屋号（任意）</label>
+            <input type="text" id="fi-company" name="company" placeholder="株式会社○○ / 個人事業主">
+
+            <label for="fi-message">ご質問・ご要望（任意）</label>
+            <textarea id="fi-message" name="message" rows="4"
+                      placeholder="特に学びたいこと、日程のご希望、人数などをご記入ください"></textarea>
+
+            <button type="submit" class="sc-submit" id="submitBtn">先行申込をする</button>
+            <div class="form-note">お支払いは正式なお申し込みの時点まで発生しません。</div>
+        </form>
+    </div>
+
+    <div class="sc-form-success" id="inquirySuccess" style="display:none;">
+        <div class="check-icon">{{ icon('circle-check', 48, stroke=1.5) }}</div>
+        <h3>先行申込を受け付けました</h3>
+        <p>開講日・受講料が決まり次第、ご登録のメールアドレスへご案内します。</p>
+        <p style="margin-top:18px;">
+            <a href="#inquiry" id="askAgain"
+               style="color:#93c5fd;text-decoration:underline;cursor:pointer;">
+               続けて申し込む（もう一度入力する）</a>
+        </p>
+    </div>
+</section>
+
+<div class="sc-sticky-cta">
+    <a href="#inquiry">先行申込をする →</a>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function seriesPicked() {
+    return Array.prototype.slice.call(
+        document.querySelectorAll('#fi-parts input[name="part"]:checked'))
+        .map(function (el) { return el.value; });
+}
+
+function submitSeriesInquiry(e) {
+    e.preventDefault();
+    var parts = seriesPicked();
+    var err = document.getElementById('partsErr');
+    if (!parts.length) { err.style.display = 'block'; return false; }
+    err.style.display = 'none';
+    var styleEl = document.querySelector('input[name="style"]:checked');
+    var btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.textContent = '送信中…';
+    var data = {
+        name: document.getElementById('fi-name').value.trim(),
+        email: document.getElementById('fi-email').value.trim(),
+        // 受け取り側（保存・通知）は総論と同じ口。何の申込かはここで分かるようにする
+        course: '部門別編 先行申込: ' + parts.join('・') + '（' + (styleEl ? styleEl.value : '個人で受講') + '）',
+        company: document.getElementById('fi-company').value || '',
+        message: document.getElementById('fi-message').value || '',
+    };
+    data = window.jgaiaAntispam ? window.jgaiaAntispam(data) : data;
+    fetch('/api/solo-inquiry', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+    })
+    // 受付できたときだけ成功を出す（サーバーのエラーを成功に見せない）
+    .then(function (r) {
+        return r.json().catch(function () { return {}; }).then(function (j) {
+            if (!r.ok || j.ok !== true) { throw new Error(j.message || 'failed'); }
+            return j;
+        });
+    })
+    .then(function (j) {
+        document.getElementById('inquiryForm').style.display = 'none';
+        var box = document.getElementById('inquirySuccess');
+        box.style.display = 'block';
+        var noteText = null;
+        if (j.mail_sent === false) {
+            noteText = '※自動の確認メールはお送りしておりません。お急ぎの場合は info@jgaia.org までご連絡ください。';
+        } else if (j.mail_sent === 'deferred') {
+            noteText = '※確認メールを数分以内にお送りします。届かない場合は info@jgaia.org までご連絡ください。';
+        }
+        if (noteText) {
+            var note = document.createElement('p');
+            note.style.cssText = 'margin-top:12px;font-size:14px;line-height:1.7;opacity:.85;';
+            note.textContent = noteText;
+            box.appendChild(note);
+        }
+    })
+    .catch(function (e) {
+        btn.disabled = false;
+        btn.textContent = '先行申込をする';
+        alert('送信に失敗しました。\nお手数ですが info@jgaia.org まで直接ご連絡ください。');
+    });
+    return false;
+}
+
+// 各編の「先行申込する」を押したら、その編にチェックを入れてフォームへ。
+// 送信後に押した場合は入力欄を出し直す（二度目の申込をできるようにする）。
+(function () {
+    function resetForm() {
+        var form = document.getElementById('inquiryForm');
+        var box = document.getElementById('inquirySuccess');
+        if (!box || box.style.display === 'none' || box.style.display === '') { return; }
+        box.style.display = 'none';
+        Array.prototype.slice.call(box.querySelectorAll('p')).forEach(function (p) {
+            if (p.textContent.indexOf('※') === 0) { p.remove(); }
+        });
+        form.style.display = '';
+        document.getElementById('soloInquiryForm').reset();
+        var btn = document.getElementById('submitBtn');
+        btn.disabled = false; btn.textContent = '先行申込をする';
+    }
+    document.addEventListener('click', function (e) {
+        var a = e.target.closest ? e.target.closest('a[href="#inquiry"], #askAgain') : null;
+        if (!a) { return; }
+        resetForm();
+        var pick = a.getAttribute('data-pick');
+        if (pick) {
+            Array.prototype.slice.call(document.querySelectorAll('#fi-parts input')).forEach(function (el) {
+                if (el.value === pick) { el.checked = true; }
+            });
+        }
+    });
+})();
+</script>
+{% endblock %}
